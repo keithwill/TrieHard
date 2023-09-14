@@ -23,7 +23,7 @@ namespace TrieHard.Collections
         private KeyValuePair<string, T> currentValue;
         private bool finished = false;
 
-        public static readonly CompactTrieEnumerator<T> None = new CompactTrieEnumerator<T>(null, ReadOnlyMemory<byte>.Empty, 0);
+        public static readonly CompactTrieEnumerator<T> None = new CompactTrieEnumerator<T>(null, ReadOnlyMemory<byte>.Empty, 0) { finished = true};
 
         internal CompactTrieEnumerator(CompactTrie<T> trie, ReadOnlyMemory<byte> rootPrefix, nint collectNode)
         {

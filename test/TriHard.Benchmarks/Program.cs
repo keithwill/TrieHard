@@ -1,4 +1,5 @@
 using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Filters;
 using BenchmarkDotNet.Running;
 using System.Reflection;
 

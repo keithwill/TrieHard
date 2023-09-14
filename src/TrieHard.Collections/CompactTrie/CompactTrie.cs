@@ -348,6 +348,11 @@ namespace TrieHard.Collections
             return SearchValues(keyBytes);
         }
 
+        public static IPrefixLookup<string, TValue> Create<TValue>()
+        {
+            return new CompactTrie<TValue>();
+        }
+
         ~CompactTrie()
         {
             if (!isDisposed)

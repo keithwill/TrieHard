@@ -23,7 +23,7 @@ namespace TrieHard.Collections
         private bool finished = false;
         private static readonly byte[] Empty = new byte[0];
 
-        public readonly static CompactTrieValueEnumerator<T> None = new CompactTrieValueEnumerator<T>(null, 0);
+        public readonly static CompactTrieValueEnumerator<T> None = new CompactTrieValueEnumerator<T>(null, 0) { finished = true};
 
         internal CompactTrieValueEnumerator(CompactTrie<T> trie, nint collectNode)
         {

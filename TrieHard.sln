@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TriHard.Benchmarks", "test\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TriHard.Tests", "test\TriHard.Tests\TriHard.Tests.csproj", "{1F2566AC-7965-41DE-B69E-E3C830C47461}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TrieHard.Alternatives", "src\TrieHard.Alternatives\TrieHard.Alternatives.csproj", "{C1BE9F5D-7F17-4119-B34B-DD66D3B1D2FB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{1F2566AC-7965-41DE-B69E-E3C830C47461}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1F2566AC-7965-41DE-B69E-E3C830C47461}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1F2566AC-7965-41DE-B69E-E3C830C47461}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C1BE9F5D-7F17-4119-B34B-DD66D3B1D2FB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C1BE9F5D-7F17-4119-B34B-DD66D3B1D2FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C1BE9F5D-7F17-4119-B34B-DD66D3B1D2FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C1BE9F5D-7F17-4119-B34B-DD66D3B1D2FB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

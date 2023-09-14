@@ -395,6 +395,11 @@ namespace TrieHard.Collections
                 yield return kvp.Value;
             }
         }
+
+        public static IPrefixLookup<string, TValue> Create<TValue>()
+        {
+            return new IndirectTrie<TValue>();
+        }
     }
 
 }

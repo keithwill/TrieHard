@@ -99,4 +99,9 @@ public class RadixTree<T> : IPrefixLookup<string, T>
             yield return kvp.Value;
         }
     }
+
+    public static IPrefixLookup<string, TValue> Create<TValue>()
+    {
+        return new RadixTree<TValue>();
+    }
 }

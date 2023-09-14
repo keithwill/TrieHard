@@ -75,6 +75,7 @@ namespace TrieHard.Collections.Contributions
     public interface IPrefixLookup
     {
         abstract static IPrefixLookup<string, TValue> Create<TValue>(IEnumerable<KeyValuePair<string, TValue>> source);
+        abstract static IPrefixLookup<string, TValue> Create<TValue>();
     }
 
 }

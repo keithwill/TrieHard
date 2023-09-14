@@ -2,6 +2,8 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Diagnosers;
 using Microsoft.Diagnostics.Tracing.Parsers.IIS_Trace;
+using TrieHard.Alternatives.List;
+using TrieHard.Alternatives.SQLite;
 using TrieHard.Collections;
 using TrieHard.Collections.Contributions;
 
@@ -16,6 +18,8 @@ namespace TriHard.Benchmarks
         private IndirectTrie<string> indirectTrie;
         private RadixTree<string> radixTree;
         private SimpleTrie<string> simpleTrie;
+        private SQLiteLookup<string> sqliteLookup;
+        private ListPrefixLookup<string> listLookup;
 
         private const string testKey = "555555";
         private const string testPrefixKey = "55555";
@@ -29,6 +33,8 @@ namespace TriHard.Benchmarks
             indirectTrie = (IndirectTrie<string>)IndirectTrie<string>.Create(PrefixLookupTestValues.SequentialStrings);
             radixTree = (RadixTree<string>)RadixTree<string>.Create(PrefixLookupTestValues.SequentialStrings);
             simpleTrie = (SimpleTrie<string>)SimpleTrie<string>.Create(PrefixLookupTestValues.SequentialStrings);
+            sqliteLookup = (SQLiteLookup<string>)SQLiteLookup<string>.Create(PrefixLookupTestValues.SequentialStrings);
+            listLookup = (ListPrefixLookup<string>)ListPrefixLookup<string>.Create(PrefixLookupTestValues.SequentialStrings);
         }
 
         [Benchmark]
@@ -62,6 +68,12 @@ namespace TriHard.Benchmarks
         }
 
         [Benchmark]
+        public void Set_List()
+        {
+            listLookup[testKey] = testKey;
+        }
+
+        [Benchmark]
         public string Get_Compact()
         {
             return compactTrie[testKey];
@@ -89,6 +101,18 @@ namespace TriHard.Benchmarks
         public string Get_Simple()
         {
             return simpleTrie[testKey];
+        }
+
+        [Benchmark]
+        public string Get_Sqlite()
+        {
+            return sqliteLookup[testKey];
+        }
+
+        [Benchmark]
+        public string Get_List()
+        {
+            return listLookup[testKey];
         }
 
         [Benchmark]
@@ -147,6 +171,28 @@ namespace TriHard.Benchmarks
         }
 
         [Benchmark]
+        public string Search_Sqlite()
+        {
+            string value = null;
+            foreach (var kvp in sqliteLookup.Search(testPrefixKey))
+            {
+                value = kvp.Value;
+            }
+            return value;
+        }
+
+        [Benchmark]
+        public string Search_List()
+        {
+            string value = null;
+            foreach (var kvp in listLookup.Search(testPrefixKey))
+            {
+                value = kvp.Value;
+            }
+            return value;
+        }
+
+        [Benchmark]
         public string SearchValues_Compact()
         {
             string resultValue = null;
@@ -192,6 +238,28 @@ namespace TriHard.Benchmarks
         }
 
         [Benchmark]
+        public string SearchValues_Sqlite()
+        {
+            string resultValue = null;
+            foreach (var value in sqliteLookup.SearchValues(testPrefixKey))
+            {
+                resultValue = value;
+            }
+            return resultValue;
+        }
+
+        [Benchmark]
+        public string SearchValues_List()
+        {
+            string resultValue = null;
+            foreach (var value in listLookup.SearchValues(testPrefixKey))
+            {
+                resultValue = value;
+            }
+            return resultValue;
+        }
+
+        [Benchmark]
         public int Create_Compact()
         {
             using var trie = (CompactTrie<string>)CompactTrie<string>.Create(PrefixLookupTestValues.EnglishWords);
@@ -217,6 +285,20 @@ namespace TriHard.Benchmarks
         {
             var simpleTrie = (SimpleTrie<string>)SimpleTrie<string>.Create(PrefixLookupTestValues.EnglishWords);
             return simpleTrie.Count;
+        }
+
+        [Benchmark]
+        public int Create_Sqlite()
+        {
+            var lookup = (SQLiteLookup<string>)SQLiteLookup<string>.Create(PrefixLookupTestValues.EnglishWords);
+            return lookup.Count;
+        }
+
+        [Benchmark]
+        public int Create_List()
+        {
+            var lookup = (ListPrefixLookup<string>)ListPrefixLookup<string>.Create(PrefixLookupTestValues.EnglishWords);
+            return lookup.Count;
         }
 
     }
