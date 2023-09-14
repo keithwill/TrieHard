@@ -29,6 +29,11 @@ namespace TriHard.Benchmarks
         /// </summary>
         public static readonly KeyValuePair<string, Guid>[] SequentialUuids;
 
+        /// <summary>
+        /// A thousand common English words as both key and value
+        /// </summary>
+        public static readonly KeyValuePair<string, string>[] EnglishWords;
+
         static PrefixLookupTestValues()
         {
             SequentialStrings = new KeyValuePair<string, string>[1_000_000];
@@ -63,6 +68,8 @@ namespace TriHard.Benchmarks
                 var guid = new Guid(guidSpan);
                 SequentialUuids[i] = new KeyValuePair<string, Guid>(guid.ToString(), guid);
             }
+
+            EnglishWords = CommonWords.English.Select(x => new KeyValuePair<string, string>(x, x)).ToArray();
         }
 
 

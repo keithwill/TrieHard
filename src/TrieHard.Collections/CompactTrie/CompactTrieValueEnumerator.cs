@@ -8,34 +8,31 @@ using System.Runtime.InteropServices;
 namespace TrieHard.Collections
 {
     [SkipLocalsInit]
-    public unsafe struct CompactTrieUtf8Enumerator<T> : IEnumerable<KeyValuePair<ReadOnlyMemory<byte>, T>>, IEnumerator<KeyValuePair<ReadOnlyMemory<byte>, T>>
+    public unsafe struct CompactTrieValueEnumerator<T> : IEnumerable<T>, IEnumerator<T>
     {
-        private static nuint StackEntrySize = (nuint)Convert.ToUInt64(sizeof(StackEntry));
+        private static nuint StackEntrySize = (nuint)Convert.ToUInt64(sizeof(StackValueEntry));
 
         private readonly CompactTrie<T> trie;
-        private readonly ReadOnlyMemory<byte> rootPrefix;
         private nint collectNode;
         private nint currentNodeAddress;
         private int stackCount;
         private int stackSize;
         private void* stack;
         private bool isDisposed = false;
-        private KeyValuePair<ReadOnlyMemory<byte>, T> currentValue;
+        private T currentValue;
         private bool finished = false;
-        private byte[] buffer = Empty;
         private static readonly byte[] Empty = new byte[0];
 
-        public readonly static CompactTrieUtf8Enumerator<T> None = new CompactTrieUtf8Enumerator<T>(null, ReadOnlyMemory<byte>.Empty, 0);
+        public readonly static CompactTrieValueEnumerator<T> None = new CompactTrieValueEnumerator<T>(null, 0);
 
-        internal CompactTrieUtf8Enumerator(CompactTrie<T> trie, ReadOnlyMemory<byte> rootPrefix, nint collectNode)
+        internal CompactTrieValueEnumerator(CompactTrie<T> trie, nint collectNode)
         {
             this.trie = trie;
-            this.rootPrefix = rootPrefix;
             this.collectNode = collectNode;
             this.currentNodeAddress = collectNode;
         }
 
-        public CompactTrieUtf8Enumerator()
+        public CompactTrieValueEnumerator()
         {
             finished = true;
         }
@@ -52,30 +49,30 @@ namespace TrieHard.Collections
                 var newSizeInt = stackSize * 2;
                 var newSize = (nuint)Convert.ToUInt64(newSizeInt);
                 void* tmp = NativeMemory.Alloc(newSize, StackEntrySize);
-                Span<StackEntry> newStack = new Span<StackEntry>(tmp, newSizeInt);
-                Span<StackEntry> oldStack = new Span<StackEntry>(stack, stackSize);
+                Span<StackValueEntry> newStack = new Span<StackValueEntry>(tmp, newSizeInt);
+                Span<StackValueEntry> oldStack = new Span<StackValueEntry>(stack, stackSize);
                 oldStack.CopyTo(newStack);
                 NativeMemory.Free(stack);
                 stack = tmp;
                 stackSize = newSizeInt;
             }
-            Span<StackEntry> stackEntries = new Span<StackEntry>(stack, stackSize);
-            stackEntries[stackCount] = new StackEntry(node, childIndex, key);
+            Span<StackValueEntry> stackEntries = new Span<StackValueEntry>(stack, stackSize);
+            stackEntries[stackCount] = new StackValueEntry(node, childIndex);
             stackCount++;
         }
 
-        private StackEntry Pop()
+        private StackValueEntry Pop()
         {
-            Span<StackEntry> stackEntries = new Span<StackEntry>(stack, stackSize);
-            StackEntry entry = stackEntries[stackCount - 1];
+            Span<StackValueEntry> stackEntries = new Span<StackValueEntry>(stack, stackSize);
+            StackValueEntry entry = stackEntries[stackCount - 1];
             stackCount--;
             return entry;
         }
 
-        private StackEntry Peek()
+        private StackValueEntry Peek()
         {
-            Span<StackEntry> stackEntries = new Span<StackEntry>(stack, stackSize);
-            StackEntry entry = stackEntries[stackCount - 1];
+            Span<StackValueEntry> stackEntries = new Span<StackValueEntry>(stack, stackSize);
+            StackValueEntry entry = stackEntries[stackCount - 1];
             return entry;
         }
 
@@ -94,7 +91,7 @@ namespace TrieHard.Collections
                 if (currentNode->ValueLocation > -1)
                 {
                     var value = trie.Values[currentNode->ValueLocation];
-                    currentValue = new KeyValuePair<ReadOnlyMemory<byte>, T>(GetKeyFromStack(), value);
+                    currentValue = value;
                     hasValue = true;
                 }
 
@@ -115,7 +112,7 @@ namespace TrieHard.Collections
                         finished = true;
                         return hasValue;
                     }
-                    StackEntry parentEntry = Pop();
+                    StackValueEntry parentEntry = Pop();
                     nint parentNodeAddress = (nint)parentEntry.Node;
                     CompactNodeTrie* parentNode = (CompactNodeTrie*)parentNodeAddress.ToPointer();
 
@@ -131,7 +128,6 @@ namespace TrieHard.Collections
                         byte childIndex = parentEntry.ChildIndex;
                         childIndex++;
                         var nextSibblingAddress = parentNode->GetChild(childIndex);
-                        //Node* nextSibbling = (Node*)nextSibblingAddress.ToPointer();
                         Push(parentNodeAddress, childIndex, parentNode->GetChildKey(childIndex));
                         currentNodeAddress = nextSibblingAddress;
 
@@ -145,31 +141,6 @@ namespace TrieHard.Collections
             }
         }
 
-        private ReadOnlyMemory<byte> GetKeyFromStack()
-        {
-            int prefixLength = rootPrefix.Length;
-            int keyByteLength = prefixLength + stackCount;
-            if (buffer.Length < keyByteLength)
-            {
-                if (buffer.Length > 0)
-                {
-                    ArrayPool<byte>.Shared.Return(buffer);
-                }
-                buffer = ArrayPool<byte>.Shared.Rent(keyByteLength);
-            }
-            Span<StackEntry> stackEntries = new Span<StackEntry>(this.stack, stackCount);
-            Span<byte> keyBytes = buffer.AsSpan(0, keyByteLength);
-
-            for (int i = 0; i < stackEntries.Length; i++)
-            {
-                var entry = stackEntries[i];
-                keyBytes[i + prefixLength] = entry.Key;
-            }
-            var prefixTarget = keyBytes.Slice(0, rootPrefix.Length);
-            rootPrefix.Span.CopyTo(prefixTarget);
-            return buffer.AsMemory(0, keyByteLength);
-        }
-
         public void Dispose()
         {
             if (!isDisposed)
@@ -177,10 +148,6 @@ namespace TrieHard.Collections
                 if (stackSize > 0)
                 {
                     NativeMemory.Free(stack);
-                }
-                if (buffer.Length > 0)
-                {
-                    ArrayPool<byte>.Shared.Return(buffer);
                 }
                 this.isDisposed = true;
             }
@@ -193,21 +160,33 @@ namespace TrieHard.Collections
                 {
                     NativeMemory.Free(stack);
                 }
-                if (buffer.Length > 0)
-                {
-                    ArrayPool<byte>.Shared.Return(buffer);
-                }
                 stackSize = 0;
                 stackCount = 0;
-                this.buffer = Empty;
                 this.currentNodeAddress = collectNode;
             }
         }
-        public CompactTrieUtf8Enumerator<T> GetEnumerator() { return this; }
-        IEnumerator<KeyValuePair<ReadOnlyMemory<byte>, T>> IEnumerable<KeyValuePair<ReadOnlyMemory<byte>, T>>.GetEnumerator() { return this; }
+        public CompactTrieValueEnumerator<T> GetEnumerator() { return this; }
+        IEnumerator<T> IEnumerable<T>.GetEnumerator() { return this; }
         IEnumerator IEnumerable.GetEnumerator() { return this; }
-        public KeyValuePair<ReadOnlyMemory<byte>, T> Current => this.currentValue;
+        public T Current => this.currentValue;
         object IEnumerator.Current => this.currentValue;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 9)]
+    internal unsafe readonly struct StackValueEntry
+    {
+        public StackValueEntry(long node, byte childIndex)
+        {
+            this.Node = node;
+            this.ChildIndex = childIndex;
+        }
+
+        [FieldOffset(0)]
+        public readonly long Node;
+
+        [FieldOffset(8)]
+        public readonly byte ChildIndex;
+
     }
 
 }

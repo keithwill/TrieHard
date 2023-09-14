@@ -23,6 +23,8 @@ namespace TrieHard.Collections
         private KeyValuePair<string, T> currentValue;
         private bool finished = false;
 
+        public static readonly CompactTrieEnumerator<T> None = new CompactTrieEnumerator<T>(null, ReadOnlyMemory<byte>.Empty, 0);
+
         internal CompactTrieEnumerator(CompactTrie<T> trie, ReadOnlyMemory<byte> rootPrefix, nint collectNode)
         {
             this.trie = trie;
@@ -84,7 +86,7 @@ namespace TrieHard.Collections
 
             while (true)
             {
-                Node* currentNode = (Node*)currentNodeAddress.ToPointer();
+                CompactNodeTrie* currentNode = (CompactNodeTrie*)currentNodeAddress.ToPointer();
                 bool hasValue = false;
 
                 if (currentNode->ValueLocation > -1)
@@ -113,7 +115,7 @@ namespace TrieHard.Collections
                     }
                     StackEntry parentEntry = Pop();
                     nint parentNodeAddress = (nint)parentEntry.Node;
-                    Node* parentNode = (Node*)parentNodeAddress.ToPointer();
+                    CompactNodeTrie* parentNode = (CompactNodeTrie*)parentNodeAddress.ToPointer();
 
                     if (parentEntry.ChildIndex >= parentNode->ChildCount - 1)
                     {
@@ -167,7 +169,10 @@ namespace TrieHard.Collections
         public void Reset() {
             if (trie is not null)
             {
-                NativeMemory.Free(stack);
+                if (stackSize > 0)
+                {
+                    NativeMemory.Free(stack);
+                }
                 stackSize = 0;
                 stackCount = 0;
                 this.currentNodeAddress = collectNode;

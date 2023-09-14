@@ -6,10 +6,10 @@ namespace TrieHard.Collections
 {
     [StructLayout(LayoutKind.Explicit, Size = 13)]
     [SkipLocalsInit]
-    internal unsafe struct Node
+    internal unsafe struct CompactNodeTrie
     {
 
-        public static readonly int Size = sizeof(Node);
+        public static readonly int Size = sizeof(CompactNodeTrie);
 
         [FieldOffset(0)]
         public long ChildKeysAddress;

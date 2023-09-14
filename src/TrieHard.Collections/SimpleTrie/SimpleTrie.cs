@@ -73,5 +73,13 @@ namespace TrieHard.Collections
             }
             return result;
         }
+
+        public IEnumerable<T> SearchValues(string keyPrefix)
+        {
+            foreach (var kvp in Search(keyPrefix))
+            {
+                yield return kvp.Value;
+            }
+        }
     }
 }

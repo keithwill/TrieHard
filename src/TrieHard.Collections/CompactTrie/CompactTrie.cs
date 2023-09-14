@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Unicode;
 using TrieHard.Collections.Contributions;
 
 namespace TrieHard.Collections
@@ -21,7 +22,7 @@ namespace TrieHard.Collections
 
         private List<T> values = new();
         private bool isDisposed = false;
-        private Node* rootPointer;
+        private CompactNodeTrie* rootPointer;
 
         internal List<T> Values => values;
 
@@ -43,16 +44,16 @@ namespace TrieHard.Collections
 
         private void CreateRoot()
         {
-            var nodeSize = Node.Size;
+            var nodeSize = CompactNodeTrie.Size;
             EnsureNodeSpace();
-            rootPointer = (Node*)buffer.CurrentAddress;
-            *rootPointer = new Node();
+            rootPointer = (CompactNodeTrie*)buffer.CurrentAddress;
+            *rootPointer = new CompactNodeTrie();
             RecordNode();
         }
 
         private void EnsureNodeSpace()
         {
-            if (!buffer.IsAvailable(Node.Size))
+            if (!buffer.IsAvailable(CompactNodeTrie.Size))
             {
                 var newCapacity = buffer.Size * 2;
                 var newBuffer = new CompactTrieNodeBuffer(newCapacity);
@@ -63,26 +64,28 @@ namespace TrieHard.Collections
 
         private void RecordNode()
         {
-            this.buffer.Advance(Node.Size);
+            this.buffer.Advance(CompactNodeTrie.Size);
             nodeCount++;
         }
 
         public void Set(string key, T value)
         {
-            var keyByteSize = Encoding.UTF8.GetByteCount(key);
-            Span<byte> keySpan;
+            var maxByteSize = (key.Length + 1) * 3;
 
             if (key.Length > 4096)
             {
-                var buffer = ArrayPool<byte>.Shared.Rent(keyByteSize);
-                keySpan = buffer.AsSpan();
+                var buffer = ArrayPool<byte>.Shared.Rent(maxByteSize);
+                Span<byte> keySpan = buffer.AsSpan();
+                Utf8.FromUtf16(key, keySpan, out var _, out var bytesWritten, false, true);
+                keySpan = keySpan.Slice(0, bytesWritten);
                 Set(keySpan, value);
                 ArrayPool<byte>.Shared.Return(buffer);
             }
             else
             {
-                Span<byte> stackKeySpan = stackalloc byte[keyByteSize];
-                Encoding.UTF8.GetBytes(key, stackKeySpan);
+                Span<byte> stackKeySpan = stackalloc byte[maxByteSize];
+                Utf8.FromUtf16(key, stackKeySpan, out var _, out var bytesWritten, false, true);
+                stackKeySpan = stackKeySpan.Slice(0, bytesWritten);
                 Set(stackKeySpan, value);
             }
         }
@@ -91,7 +94,7 @@ namespace TrieHard.Collections
         {
             int keyIndex = 0;
 
-            Node* searchNode = rootPointer;
+            CompactNodeTrie* searchNode = rootPointer;
             while (true)
             {
                 byte byteToMatch = key[keyIndex];
@@ -101,13 +104,13 @@ namespace TrieHard.Collections
                 {
                     matchingIndex = ~matchingIndex;
                     EnsureNodeSpace();
-                    Node* newNode = (Node*)buffer.CurrentAddress;
-                    *newNode = new Node { ValueLocation = -1 };
+                    CompactNodeTrie* newNode = (CompactNodeTrie*)buffer.CurrentAddress;
+                    *newNode = new CompactNodeTrie { ValueLocation = -1 };
                     RecordNode();
                     searchNode->AddChild(new nint(newNode), byteToMatch, matchingIndex);
                 }
 
-                searchNode = (Node*)searchNode->GetChild(matchingIndex).ToPointer();
+                searchNode = (CompactNodeTrie*)searchNode->GetChild(matchingIndex).ToPointer();
 
                 keyIndex++;
                 if (key.Length == keyIndex)
@@ -132,88 +135,69 @@ namespace TrieHard.Collections
             // needs to live as long as the returned enumerator (its used to generate key
             // values while the consumer is iterating).
             // Maybe make this use a pooled array that gets passed to the enumerator to return?
+            
 
+            
             ReadOnlyMemory<byte> keyMemory = System.Text.Encoding.UTF8.GetBytes(key);
             return Search(keyMemory);
         }
 
         public CompactTrieUtf8Enumerator<T> SearchUtf8(ReadOnlyMemory<byte> key)
         {
-            var keySpan = key.Span;
-            int keyIndex = 0;
-            Node* searchNode = rootPointer;
-            while (true)
+            nint matchingNode = FindNodeAddress(key.Span);
+            if (matchingNode > 0)
             {
-                byte byteToMatch = keySpan[keyIndex];
-
-                var matchingIndex = searchNode->BinarySearch(byteToMatch);
-                if (matchingIndex < 0)
-                {
-                    return new CompactTrieUtf8Enumerator<T>(null, key, 0);
-                }
-
-                var matchingChildAddress = searchNode->GetChild(matchingIndex);
-                searchNode = (Node*)matchingChildAddress.ToPointer();
-
-                keyIndex++;
-                if (key.Length == keyIndex)
-                {
-                    return new CompactTrieUtf8Enumerator<T>(this, key, matchingChildAddress);
-                }
+                return new CompactTrieUtf8Enumerator<T>(this, key, matchingNode);
             }
+            return CompactTrieUtf8Enumerator<T>.None;
         }
 
         public CompactTrieEnumerator<T> Search(ReadOnlyMemory<byte> key)
         {
-            var keySpan = key.Span;
-            int keyIndex = 0;
-            Node* searchNode = rootPointer;
-            while (true)
+            nint matchingNode = FindNodeAddress(key.Span);
+            if (matchingNode > 0)
             {
-                byte byteToMatch = keySpan[keyIndex];
-
-                var matchingIndex = searchNode->BinarySearch(byteToMatch);
-                if (matchingIndex < 0)
-                {
-                    return new CompactTrieEnumerator<T>(null, key, 0);
-                }
-
-                var matchingChildAddress = searchNode->GetChild(matchingIndex);
-                searchNode = (Node*)matchingChildAddress.ToPointer();
-
-                keyIndex++;
-                if (key.Length == keyIndex)
-                {
-                    return new CompactTrieEnumerator<T>(this, key, matchingChildAddress);
-                }
+                return new CompactTrieEnumerator<T>(this, key, matchingNode);
             }
+            return CompactTrieEnumerator<T>.None;
         }
 
-        public T Get(string key)
+        public CompactTrieValueEnumerator<T> SearchValues(ReadOnlySpan<byte> keyPrefix)
         {
-            var keyByteSize = Encoding.UTF8.GetByteCount(key);
-            Span<byte> keySpan;
-
-            if (key.Length > 4096)
+            nint matchingNode = FindNodeAddress(keyPrefix);
+            if (matchingNode > 0)
             {
-                var buffer = ArrayPool<byte>.Shared.Rent(keyByteSize);
-                keySpan = buffer.AsSpan();
-                var result = Get(keySpan);
+                return new CompactTrieValueEnumerator<T>(this, matchingNode);
+            }
+            return CompactTrieValueEnumerator<T>.None;
+        }
+
+        public CompactTrieValueEnumerator<T> SearchValues(string keyPrefix)
+        {
+            var maxByteSize = (keyPrefix.Length + 1) * 3;
+            if (keyPrefix.Length > 4096)
+            {
+                var buffer = ArrayPool<byte>.Shared.Rent(maxByteSize);
+                Span<byte> keySpan = buffer.AsSpan();
+                Utf8.FromUtf16(keyPrefix, keySpan, out var _, out var bytesWritten, false, true);
+                keySpan = keySpan.Slice(0, bytesWritten);
+                CompactTrieValueEnumerator<T> result = SearchValues(keySpan);
                 ArrayPool<byte>.Shared.Return(buffer);
                 return result;
             }
             else
             {
-                Span<byte> stackKeySpan = stackalloc byte[keyByteSize];
-                Encoding.UTF8.GetBytes(key, stackKeySpan);
-                return Get(stackKeySpan);
+                Span<byte> stackKeySpan = stackalloc byte[maxByteSize];
+                Utf8.FromUtf16(keyPrefix, stackKeySpan, out var _, out var bytesWritten, false, true);
+                stackKeySpan = stackKeySpan.Slice(0, bytesWritten);
+                return SearchValues(stackKeySpan);
             }
         }
 
-        public T Get(ReadOnlySpan<byte> key)
+        private nint FindNodeAddress(in ReadOnlySpan<byte> key)
         {
             int keyIndex = 0;
-            Node* searchNode = rootPointer;
+            CompactNodeTrie* searchNode = rootPointer;
             while (true)
             {
                 byte byteToMatch = key[keyIndex];
@@ -221,21 +205,57 @@ namespace TrieHard.Collections
                 var matchingIndex = searchNode->BinarySearch(byteToMatch);
                 if (matchingIndex < 0)
                 {
-                    return default;
+                    return 0;
                 }
 
-                searchNode = (Node*)searchNode->GetChild(matchingIndex).ToPointer();
+                var matchingChildAddress = searchNode->GetChild(matchingIndex);
+                searchNode = (CompactNodeTrie*)matchingChildAddress.ToPointer();
 
                 keyIndex++;
                 if (key.Length == keyIndex)
                 {
-                    if (searchNode->ValueLocation == -1)
-                    {
-                        return default;
-                    }
-                    return values[searchNode->ValueLocation];
+                    return matchingChildAddress;
                 }
             }
+        }
+
+        public T Get(string key)
+        {
+            var keyByteSize = Encoding.UTF8.GetMaxByteCount(key.Length);
+
+            if (key.Length > 4096)
+            {
+                Span<byte> keySpan;
+                var buffer = ArrayPool<byte>.Shared.Rent(keyByteSize);
+                keySpan = buffer.AsSpan();
+                Utf8.FromUtf16(key, keySpan, out var _, out var bytesWritten, false, true);
+                keySpan = keySpan.Slice(0, bytesWritten);
+                var result = Get(keySpan);
+                ArrayPool<byte>.Shared.Return(buffer);
+                return result;
+            }
+            else
+            {
+                Span<byte> stackKeySpan = stackalloc byte[keyByteSize];
+                Utf8.FromUtf16(key, stackKeySpan, out var _, out var bytesWritten, false, true);
+                stackKeySpan = stackKeySpan.Slice(0, bytesWritten);
+                return Get(stackKeySpan);
+            }
+        }
+
+        public T Get(ReadOnlySpan<byte> key)
+        {
+            var nodeAddress = FindNodeAddress(key);
+            if (nodeAddress == 0)
+            {
+                return default;
+            }
+            CompactNodeTrie* node = (CompactNodeTrie*)nodeAddress;
+            if (node->ValueLocation == -1)
+            {
+                return default;
+            }
+            return values[node->ValueLocation];
         }
 
         public void Dispose()
@@ -267,7 +287,7 @@ namespace TrieHard.Collections
 
         private void GetNodeFreeAddresses(nint searchNode, List<nint> freeList)
         {
-            Node* node = (Node*)searchNode.ToPointer();
+            CompactNodeTrie* node = (CompactNodeTrie*)searchNode.ToPointer();
             freeList.Add(new nint((void*)node->ChildKeysAddress));
             byte childCount = node->ChildCount;
             for (int i = 0; i < childCount; i++)
@@ -285,7 +305,7 @@ namespace TrieHard.Collections
 
         public void ClearNodeRecursive(nint nodeAddress)
         {
-            var node = (Node*)nodeAddress.ToPointer();
+            var node = (CompactNodeTrie*)nodeAddress.ToPointer();
             node->ValueLocation = -1;
             for(int i = 0; i < node->ChildCount; i++)
             {
@@ -318,6 +338,14 @@ namespace TrieHard.Collections
                 result.Set(kvp.Key, kvp.Value);
             }
             return result;
+        }
+
+
+
+        IEnumerable<T> IPrefixLookup<string, T>.SearchValues(string keyPrefix)
+        {
+            var keyBytes = Encoding.UTF8.GetBytes(keyPrefix);
+            return SearchValues(keyBytes);
         }
 
         ~CompactTrie()

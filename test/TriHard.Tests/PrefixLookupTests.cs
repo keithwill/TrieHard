@@ -77,6 +77,39 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<string, TestR
     }
 
     [Test]
+    public void SearchValuesAreAccurate()
+    {
+        Randomizer random = new(5364503);
+        Assume.That(T.IsImmutable, Is.False);
+        Assume.That(Add, Throws.Nothing);
+        Lookup.Clear();
+        List<KeyValuePair<string, TestRecord>> testKeyValues = new();
+        for (int i = 0; i < 1000; i++)
+        {
+            var key = i.ToString();
+            var record = new TestRecord(key);
+            Lookup[key] = record;
+            testKeyValues.Add(new KeyValuePair<string, TestRecord>(key, record));
+        }
+
+        var prefix = "10";
+
+        var actualResults = Lookup.SearchValues(prefix).ToArray();
+
+        var expected = testKeyValues
+            .Where(x => x.Key.StartsWith(prefix))
+            .OrderBy(x => x.Key)
+            .Select(x => x.Value).ToArray();
+
+        for (int i = 0; i < expected.Length; i++)
+        {
+            TestRecord? expectedResult = expected[i];
+            TestRecord? actualResult = actualResults[i];
+            Assert.That(expectedResult.Key, Is.EqualTo(actualResult.Key));
+        }
+    }
+
+    [Test]
     public void AddIncrementsCount()
     {
         Assume.That(T.IsImmutable, Is.False);

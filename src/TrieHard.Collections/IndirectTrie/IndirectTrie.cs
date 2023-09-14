@@ -384,6 +384,17 @@ namespace TrieHard.Collections
             }
             return result;
         }
+
+        /// <remarks>
+        /// This could be replaced with a struct enumerator that only gets values
+        /// </remarks>
+        public IEnumerable<T> SearchValues(string keyPrefix)
+        {
+            foreach(var kvp in Search(keyPrefix))
+            {
+                yield return kvp.Value;
+            }
+        }
     }
 
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Diagnosers;
+using Microsoft.Diagnostics.Tracing.Parsers.IIS_Trace;
 using TrieHard.Collections;
 using TrieHard.Collections.Contributions;
 
@@ -15,12 +16,11 @@ namespace TriHard.Benchmarks
         private IndirectTrie<string> indirectTrie;
         private RadixTree<string> radixTree;
         private SimpleTrie<string> simpleTrie;
-        private IPrefixLookup<string, string>[] tries;
 
-        private const string testKey = "23456";
-        private const string testPrefixKey = "2345";
-        private ReadOnlyMemory<byte> testKeyUtf8 = System.Text.Encoding.UTF8.GetBytes("23456");
-        private ReadOnlyMemory<byte> testPrefixKeyUtf8 = System.Text.Encoding.UTF8.GetBytes("23456");
+        private const string testKey = "555555";
+        private const string testPrefixKey = "55555";
+        private ReadOnlyMemory<byte> testKeyUtf8 = System.Text.Encoding.UTF8.GetBytes("555555");
+        private ReadOnlyMemory<byte> testPrefixKeyUtf8 = System.Text.Encoding.UTF8.GetBytes("55555");
 
         [GlobalSetup]
         public void Setup()
@@ -144,6 +144,79 @@ namespace TriHard.Benchmarks
                 value = kvp.Value;
             }
             return value;
+        }
+
+        [Benchmark]
+        public string SearchValues_Compact()
+        {
+            string resultValue = null;
+            foreach (var value in compactTrie.SearchValues(testPrefixKey))
+            {
+                resultValue = value;
+            }
+            return resultValue;
+        }
+
+
+        [Benchmark]
+        public string SearchValues_Indirect()
+        {
+            string resultValue = null;
+            foreach (var value in indirectTrie.SearchValues(testPrefixKey))
+            {
+                resultValue = value;
+            }
+            return resultValue;
+        }
+
+        [Benchmark]
+        public string SearchValues_Radix()
+        {
+            string resultValue = null;
+            foreach (var value in radixTree.SearchValues(testPrefixKey))
+            {
+                resultValue = value;
+            }
+            return resultValue;
+        }
+
+        [Benchmark]
+        public string SearchValues_Simple()
+        {
+            string resultValue = null;
+            foreach (var value in simpleTrie.SearchValues(testPrefixKey))
+            {
+                resultValue = value;
+            }
+            return resultValue;
+        }
+
+        [Benchmark]
+        public int Create_Compact()
+        {
+            using var trie = (CompactTrie<string>)CompactTrie<string>.Create(PrefixLookupTestValues.EnglishWords);
+            return trie.Count;
+        }
+
+        [Benchmark]
+        public int Create_Indirect()
+        {
+            var indirectTrie = (IndirectTrie<string>)IndirectTrie<string>.Create(PrefixLookupTestValues.EnglishWords);
+            return indirectTrie.Count;
+        }
+
+        [Benchmark]
+        public int Create_Radix()
+        {
+            var radixTree = (RadixTree<string>)RadixTree<string>.Create(PrefixLookupTestValues.EnglishWords);
+            return radixTree.Count;
+        }
+
+        [Benchmark]
+        public int Create_Simple()
+        {
+            var simpleTrie = (SimpleTrie<string>)SimpleTrie<string>.Create(PrefixLookupTestValues.EnglishWords);
+            return simpleTrie.Count;
         }
 
     }

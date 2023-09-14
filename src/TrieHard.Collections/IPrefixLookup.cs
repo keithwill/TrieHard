@@ -36,8 +36,10 @@ namespace TrieHard.Collections.Contributions
         /// supplied keyPrefix value.
         /// </summary>
         /// <param name="keyPrefix">The value to use as a 'StartsWith' search of keys</param>
-        /// <returns>An enermerable of the key value paris matching the prefix</returns>
+        /// <returns>An enermerable of the key value pairs matching the prefix</returns>
         IEnumerable<KeyValuePair<TKey, TValue>> Search(TKey keyPrefix);
+
+        IEnumerable<TValue> SearchValues(TKey keyPrefix);
 
         /// <summary>
         /// If this type of lookup can be modified after creation or not.
