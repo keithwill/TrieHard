@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
 namespace TrieHard.Collections
 {
+    [SkipLocalsInit]
     public unsafe struct CompactTrieEnumerator<T> : IEnumerable<KeyValuePair<string, T>>, IEnumerator<KeyValuePair<string, T>>
     {
         private static nuint StackEntrySize = (nuint)Convert.ToUInt64(sizeof(StackEntry));
@@ -176,26 +178,6 @@ namespace TrieHard.Collections
         IEnumerator IEnumerable.GetEnumerator() { return this; }
         public KeyValuePair<string, T> Current => this.currentValue;
         object IEnumerator.Current => this.currentValue;
-    }
-
-    [StructLayout(LayoutKind.Explicit, Size = 10)]
-    internal unsafe readonly struct StackEntry
-    {
-        public StackEntry(long node, byte childIndex, byte key)
-        {
-            this.Node = node;
-            this.ChildIndex = childIndex;
-            this.Key = key;
-        }
-
-        [FieldOffset(0)]
-        public readonly long Node;
-
-        [FieldOffset(8)]
-        public readonly byte ChildIndex;
-
-        [FieldOffset(9)]
-        public readonly byte Key;
     }
 
 }

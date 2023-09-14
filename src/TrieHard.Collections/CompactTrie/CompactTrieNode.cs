@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace TrieHard.Collections
 {
     [StructLayout(LayoutKind.Explicit, Size = 13)]
+    [SkipLocalsInit]
     internal unsafe struct Node
     {
 

@@ -2,14 +2,15 @@
 using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using TrieHard.Collections.Contributions;
-using TrieHard.Collections.Contributions.keithwill.CompactTrie.TrieHard.Collections;
 
 namespace TrieHard.Collections
 {
-    public unsafe class CompactTrie<T> : IPrefixLookup<string, T>, IDisposable
+    [SkipLocalsInit]
+    public unsafe class CompactTrie<T>  : IPrefixLookup<string, T>, IDisposable
     {
         public static bool IsImmutable => false;
         public static Concurrency ThreadSafety => Concurrency.Read;
