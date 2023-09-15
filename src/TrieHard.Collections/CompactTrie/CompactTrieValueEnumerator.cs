@@ -21,7 +21,6 @@ namespace TrieHard.Collections
         private bool isDisposed = false;
         private T currentValue;
         private bool finished = false;
-        private static readonly byte[] Empty = new byte[0];
 
         public readonly static CompactTrieValueEnumerator<T> None = new CompactTrieValueEnumerator<T>(null, 0) { finished = true};
 
@@ -30,6 +29,10 @@ namespace TrieHard.Collections
             this.trie = trie;
             this.collectNode = collectNode;
             this.currentNodeAddress = collectNode;
+            if (trie == null)
+            {
+                finished = true;
+            }
         }
 
         public CompactTrieValueEnumerator()

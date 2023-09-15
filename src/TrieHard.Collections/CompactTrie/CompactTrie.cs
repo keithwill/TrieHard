@@ -129,37 +129,45 @@ namespace TrieHard.Collections
             }
         }
 
+        private static readonly byte[] EmptyKeyBytes = new byte[0];
+
         public CompactTrieEnumerator<T> Search(string key)
         {
             // TODO: We can't use stackalloc because the backing for the string
             // needs to live as long as the returned enumerator (its used to generate key
             // values while the consumer is iterating).
             // Maybe make this use a pooled array that gets passed to the enumerator to return?
-            
 
-            
-            ReadOnlyMemory<byte> keyMemory = System.Text.Encoding.UTF8.GetBytes(key);
-            return Search(keyMemory);
+            if (key.Length == 0)
+            {
+                return Search(EmptyKeyBytes);
+            }
+
+            var maxByteSize = (key.Length + 1) * 3;
+            var buffer = ArrayPool<byte>.Shared.Rent(maxByteSize);
+            Span<byte> keySpan = buffer.AsSpan();
+            Utf8.FromUtf16(key, keySpan, out var _, out var bytesWritten, false, true);
+            return Search(buffer.AsMemory(0, bytesWritten));
         }
 
-        public CompactTrieUtf8Enumerator<T> SearchUtf8(ReadOnlyMemory<byte> key)
+        public CompactTrieUtf8Enumerator<T> SearchUtf8(ReadOnlyMemory<byte> key, byte[] keyBuffer = null)
         {
             nint matchingNode = FindNodeAddress(key.Span);
             if (matchingNode > 0)
             {
-                return new CompactTrieUtf8Enumerator<T>(this, key, matchingNode);
+                return new CompactTrieUtf8Enumerator<T>(this, key, matchingNode, keyBuffer);
             }
-            return CompactTrieUtf8Enumerator<T>.None;
+            return new CompactTrieUtf8Enumerator<T>(null, key, 0, keyBuffer);
         }
 
-        public CompactTrieEnumerator<T> Search(ReadOnlyMemory<byte> key)
+        public CompactTrieEnumerator<T> Search(ReadOnlyMemory<byte> key, byte[] keyBuffer = null)
         {
             nint matchingNode = FindNodeAddress(key.Span);
             if (matchingNode > 0)
             {
-                return new CompactTrieEnumerator<T>(this, key, matchingNode);
+                return new CompactTrieEnumerator<T>(this, key, matchingNode, keyBuffer);
             }
-            return CompactTrieEnumerator<T>.None;
+            return new CompactTrieEnumerator<T>(null, key, 0, keyBuffer);
         }
 
         public CompactTrieValueEnumerator<T> SearchValues(ReadOnlySpan<byte> keyPrefix)
@@ -175,7 +183,7 @@ namespace TrieHard.Collections
         public CompactTrieValueEnumerator<T> SearchValues(string keyPrefix)
         {
             var maxByteSize = (keyPrefix.Length + 1) * 3;
-            if (keyPrefix.Length > 4096)
+            if (maxByteSize > 4096)
             {
                 var buffer = ArrayPool<byte>.Shared.Rent(maxByteSize);
                 Span<byte> keySpan = buffer.AsSpan();

@@ -6,7 +6,7 @@ namespace TrieHard.Alternatives.SQLite
 {
 
     /// <summary>
-    /// A IPrefixLookup implementation that stores key value pairs in a simple table
+    /// An IPrefixLookup implementation that stores key value pairs in a simple table
     /// inside of SQLite.
     /// </summary>
     /// <typeparam name="T"></typeparam>

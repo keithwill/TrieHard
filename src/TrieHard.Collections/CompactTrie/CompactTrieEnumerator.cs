@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
@@ -15,6 +16,7 @@ namespace TrieHard.Collections
         private readonly CompactTrie<T> trie;
         private readonly ReadOnlyMemory<byte> rootPrefix;
         private nint collectNode;
+        private readonly byte[] keyBuffer;
         private nint currentNodeAddress;
         private int stackCount;
         private int stackSize;
@@ -22,15 +24,22 @@ namespace TrieHard.Collections
         private bool isDisposed = false;
         private KeyValuePair<string, T> currentValue;
         private bool finished = false;
+        private const int initialStackSize = 32;
 
         public static readonly CompactTrieEnumerator<T> None = new CompactTrieEnumerator<T>(null, ReadOnlyMemory<byte>.Empty, 0) { finished = true};
 
-        internal CompactTrieEnumerator(CompactTrie<T> trie, ReadOnlyMemory<byte> rootPrefix, nint collectNode)
+        internal CompactTrieEnumerator(CompactTrie<T> trie, ReadOnlyMemory<byte> rootPrefix, nint collectNode, byte[] keyBuffer = null)
         {
+
             this.trie = trie;
             this.rootPrefix = rootPrefix;
             this.collectNode = collectNode;
+            this.keyBuffer = keyBuffer;
             this.currentNodeAddress = collectNode;
+            if (trie == null)
+            {
+                finished = true;
+            }
         }
 
         public CompactTrieEnumerator()
@@ -42,12 +51,12 @@ namespace TrieHard.Collections
         {
             if (stackCount == 0)
             {
-                stack = NativeMemory.Alloc(4, StackEntrySize);
-                stackSize = 4;
+                stack = NativeMemory.Alloc(initialStackSize, StackEntrySize);
+                stackSize = initialStackSize;
             }
             if (stackSize < stackCount + 1)
             {
-                var newSizeInt = stackSize * 2;
+                var newSizeInt = stackSize * 8;
                 var newSize = (nuint)Convert.ToUInt64(newSizeInt);
                 void* tmp = NativeMemory.Alloc(newSize, StackEntrySize);
                 Span<StackEntry> newStack = new Span<StackEntry>(tmp, newSizeInt);
@@ -163,6 +172,10 @@ namespace TrieHard.Collections
             if (!isDisposed)
             {
                 NativeMemory.Free(stack);
+                if (keyBuffer is not null && keyBuffer.Length > 0)
+                {
+                    ArrayPool<byte>.Shared.Return(keyBuffer);
+                }
                 this.isDisposed = true;
             }
         }

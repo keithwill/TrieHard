@@ -15,6 +15,7 @@ namespace TrieHard.Collections
         private readonly CompactTrie<T> trie;
         private readonly ReadOnlyMemory<byte> rootPrefix;
         private nint collectNode;
+        private readonly byte[] keyBuffer;
         private nint currentNodeAddress;
         private int stackCount;
         private int stackSize;
@@ -22,17 +23,22 @@ namespace TrieHard.Collections
         private bool isDisposed = false;
         private KeyValuePair<ReadOnlyMemory<byte>, T> currentValue;
         private bool finished = false;
-        private byte[] buffer = Empty;
+        private byte[] resultKeyBuffer = Empty;
         private static readonly byte[] Empty = new byte[0];
 
         public readonly static CompactTrieUtf8Enumerator<T> None = new CompactTrieUtf8Enumerator<T>(null, ReadOnlyMemory<byte>.Empty, 0);
 
-        internal CompactTrieUtf8Enumerator(CompactTrie<T> trie, ReadOnlyMemory<byte> rootPrefix, nint collectNode)
+        internal CompactTrieUtf8Enumerator(CompactTrie<T> trie, ReadOnlyMemory<byte> rootPrefix, nint collectNode, byte[] keyBuffer = null)
         {
             this.trie = trie;
             this.rootPrefix = rootPrefix;
             this.collectNode = collectNode;
+            this.keyBuffer = keyBuffer;
             this.currentNodeAddress = collectNode;
+            if (trie == null)
+            {
+                finished = true;
+            }
         }
 
         public CompactTrieUtf8Enumerator()
@@ -149,16 +155,16 @@ namespace TrieHard.Collections
         {
             int prefixLength = rootPrefix.Length;
             int keyByteLength = prefixLength + stackCount;
-            if (buffer.Length < keyByteLength)
+            if (resultKeyBuffer.Length < keyByteLength)
             {
-                if (buffer.Length > 0)
+                if (resultKeyBuffer.Length > 0)
                 {
-                    ArrayPool<byte>.Shared.Return(buffer);
+                    ArrayPool<byte>.Shared.Return(resultKeyBuffer);
                 }
-                buffer = ArrayPool<byte>.Shared.Rent(keyByteLength);
+                resultKeyBuffer = ArrayPool<byte>.Shared.Rent(keyByteLength);
             }
             Span<StackEntry> stackEntries = new Span<StackEntry>(this.stack, stackCount);
-            Span<byte> keyBytes = buffer.AsSpan(0, keyByteLength);
+            Span<byte> keyBytes = resultKeyBuffer.AsSpan(0, keyByteLength);
 
             for (int i = 0; i < stackEntries.Length; i++)
             {
@@ -167,7 +173,7 @@ namespace TrieHard.Collections
             }
             var prefixTarget = keyBytes.Slice(0, rootPrefix.Length);
             rootPrefix.Span.CopyTo(prefixTarget);
-            return buffer.AsMemory(0, keyByteLength);
+            return resultKeyBuffer.AsMemory(0, keyByteLength);
         }
 
         public void Dispose()
@@ -178,9 +184,13 @@ namespace TrieHard.Collections
                 {
                     NativeMemory.Free(stack);
                 }
-                if (buffer.Length > 0)
+                if (resultKeyBuffer.Length > 0)
                 {
-                    ArrayPool<byte>.Shared.Return(buffer);
+                    ArrayPool<byte>.Shared.Return(resultKeyBuffer);
+                }
+                if (keyBuffer is not null && keyBuffer.Length > 0)
+                {
+                    ArrayPool<byte>.Shared.Return(keyBuffer);
                 }
                 this.isDisposed = true;
             }
@@ -193,13 +203,13 @@ namespace TrieHard.Collections
                 {
                     NativeMemory.Free(stack);
                 }
-                if (buffer.Length > 0)
+                if (resultKeyBuffer.Length > 0)
                 {
-                    ArrayPool<byte>.Shared.Return(buffer);
+                    ArrayPool<byte>.Shared.Return(resultKeyBuffer);
                 }
                 stackSize = 0;
                 stackCount = 0;
-                this.buffer = Empty;
+                this.resultKeyBuffer = Empty;
                 this.currentNodeAddress = collectNode;
             }
         }
