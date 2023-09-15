@@ -17,13 +17,13 @@ namespace TriHard.Benchmarks
             var benchmarkConfig = new BenchmarkConfig();
             var summary = BenchmarkRunner.Run(new Type[]
             {
-                typeof(CompactBench<CompactTrie<string>>),
-                typeof(PrefixLookupBench<IndirectTrie<string>>),
-                typeof(PrefixLookupBench<RadixTree<string>>),
-                typeof(PrefixLookupBench<SimpleTrie<string>>),
-                typeof(PrefixLookupBench<SQLiteLookup<string>>),
-                typeof(PrefixLookupBench<ListPrefixLookup<string>>),
-                typeof(PrefixLookupBench<rmTrie<string>>),
+                typeof(Compact),
+                typeof(Simple),
+                typeof(Radix),
+                typeof(NaiveList),
+                typeof(Indirect),
+                typeof(SQLite),
+                typeof(rmTrie)
             }, args: args, config: benchmarkConfig);
 
         }
