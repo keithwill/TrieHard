@@ -1,5 +1,4 @@
 ﻿using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Order;
 using System;
 using TrieHard.Alternatives.ExternalLibraries.rm.Trie;
 using TrieHard.Alternatives.List;

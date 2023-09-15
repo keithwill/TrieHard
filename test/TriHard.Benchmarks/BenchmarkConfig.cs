@@ -4,6 +4,8 @@ using BenchmarkDotNet.Environments;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Order;
+using BenchmarkDotNet.Diagnostics.Windows;
+using Microsoft.Diagnostics.Tracing.Parsers;
 
 namespace TriHard.Benchmarks
 {
@@ -11,11 +13,10 @@ namespace TriHard.Benchmarks
     {
         public BenchmarkConfig()
         {
-            
-            //.AddDiagnoser(EventPipeProfiler.Default)
             Add(
                 DefaultConfig.Instance
                 .AddDiagnoser(MemoryDiagnoser.Default)
+                .AddDiagnoser(EventPipeProfiler.Default)
                 .WithOptions(ConfigOptions.JoinSummary)
                 .WithOrderer(new DefaultOrderer(SummaryOrderPolicy.FastestToSlowest, MethodOrderPolicy.Alphabetical))
                 .WithOptions(ConfigOptions.DisableLogFile)
