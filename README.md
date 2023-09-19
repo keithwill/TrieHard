@@ -1,4 +1,6 @@
-# The TrieHard Project
+![Nuget](https://img.shields.io/nuget/v/PrefixLookup)
+
+# Prefix Lookup and the TrieHard Project
 
 Hi! I'm keithwill. I'm a C# dev that has been in the industry for a while,
 and while working on an open source project I realized I needed an industrial
