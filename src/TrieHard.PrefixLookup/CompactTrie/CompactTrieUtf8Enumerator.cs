@@ -174,11 +174,6 @@ namespace TrieHard.Collections
                 keyBytes[i + prefixLength] = entry.Key;
             }
 
-            // for(int i = 0; i < stackStack.Length; i++)
-            // {
-            //     keyBytes[i + prefixLength] = stackStack[i];
-            // }
-
             return resultKeyBuffer.AsMemory(0, keyByteLength);
         }
 

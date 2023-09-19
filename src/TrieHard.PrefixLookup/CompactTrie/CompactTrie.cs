@@ -71,7 +71,7 @@ namespace TrieHard.Collections
 
         public void Set(string key, T? value)
         {
-            var maxByteSize = (key.Length + 1) * 3;
+            var maxByteSize = key.Length * 4;
 
             if (key.Length > 4096)
             {
@@ -139,7 +139,7 @@ namespace TrieHard.Collections
                 return Search(EmptyKeyBytes);
             }
 
-            var maxByteSize = (key.Length + 1) * 3;
+            var maxByteSize = key.Length * 4;
             var buffer = ArrayPool<byte>.Shared.Rent(maxByteSize);
             Span<byte> keySpan = buffer.AsSpan();
             Utf8.FromUtf16(key, keySpan, out var _, out var bytesWritten, false, true);
@@ -199,7 +199,7 @@ namespace TrieHard.Collections
 
         public CompactTrieValueEnumerator<T?> SearchValues(string keyPrefix)
         {
-            var maxByteSize = (keyPrefix.Length + 1) * 3;
+            var maxByteSize = keyPrefix.Length * 3;
             if (maxByteSize > 4096)
             {
                 var buffer = ArrayPool<byte>.Shared.Rent(maxByteSize);
@@ -246,12 +246,12 @@ namespace TrieHard.Collections
 
         public T? Get(string key)
         {
-            var keyByteSize = Encoding.UTF8.GetMaxByteCount(key.Length);
+            int keyByteMaxSize = key.Length * 4;
 
             if (key.Length > 4096)
             {
                 Span<byte> keySpan;
-                var buffer = ArrayPool<byte>.Shared.Rent(keyByteSize);
+                var buffer = ArrayPool<byte>.Shared.Rent(keyByteMaxSize);
                 keySpan = buffer.AsSpan();
                 Utf8.FromUtf16(key, keySpan, out var _, out var bytesWritten, false, true);
                 keySpan = keySpan.Slice(0, bytesWritten);
@@ -261,7 +261,7 @@ namespace TrieHard.Collections
             }
             else
             {
-                Span<byte> stackKeySpan = stackalloc byte[keyByteSize];
+                Span<byte> stackKeySpan = stackalloc byte[keyByteMaxSize];
                 Utf8.FromUtf16(key, stackKeySpan, out var _, out var bytesWritten, false, true);
                 stackKeySpan = stackKeySpan.Slice(0, bytesWritten);
                 return Get(stackKeySpan);
