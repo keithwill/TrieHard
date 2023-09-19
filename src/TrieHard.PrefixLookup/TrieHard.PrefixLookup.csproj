@@ -18,12 +18,8 @@
     <RepositoryUrl>https://github.com/keithwill/TrieHard</RepositoryUrl>
     <RepositoryType>github</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="../TrieHard.Abstractions/TrieHard.Abstractions.csproj" Private="true" />
-    <ProjectReference Include="../TrieHard.Collections/TrieHard.Collections.csproj" Private="true" />
-  </ItemGroup>
 
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\">

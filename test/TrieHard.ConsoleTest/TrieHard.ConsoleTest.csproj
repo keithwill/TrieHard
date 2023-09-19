@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\TrieHard.Alternatives\TrieHard.Alternatives.csproj" />
-    <ProjectReference Include="..\src\TrieHard.Collections\TrieHard.Collections.csproj" />
+    <ProjectReference Include="..\..\src\TrieHard.Alternatives\TrieHard.Alternatives.csproj" />
+    <ProjectReference Include="..\..\src\TrieHard.PrefixLookup\TrieHard.PrefixLookup.csproj" />
   </ItemGroup>
 
 </Project>
