@@ -87,13 +87,13 @@ can be enumerated for key value pairs like a Dictionary, but also exposes
 Search and SearchValues methods which take a key prefix and return enumerables
 of KeyValuePairs or the generic value results respectively.
 
-### SimpleTrie
+### [SimpleTrie](https://github.com/keithwill/TrieHard/tree/main/src/TrieHard.PrefixLookup/SimpleTrie)
 
 This was implemented as a reference C# trie based on various articles that suggest
 using Dictionaries at each node to store keys and children. A number of nuget packages
 can be found that implement a similar approach.
 
-### RadixTree
+### [RadixTree](https://github.com/keithwill/TrieHard/tree/main/src/TrieHard.PrefixLookup/RadixTree)
 
 This is similar to a trie, but key values that don't branch can be combined. When keys
 are longer and highly unique, then this approach can perform well. This particular
@@ -102,7 +102,7 @@ by a single thread while reads are going on concurrently. It is not an immutable
 trie though, and if changes are performed while readers are enumerating, they will
 see values that may have been modified after they started enumerating.
 
-### Indirect Trie
+### [Indirect Trie](https://github.com/keithwill/TrieHard/tree/main/src/TrieHard.PrefixLookup/IndirectTrie)
 
 This trie uses readonly structs stored in arrays to represent nodes.
 The structs do not directly reference each other, instead referencing bucket and array
@@ -110,7 +110,7 @@ index locations where connected nodes are stored instead. Nodes only store links
 parent, their first child and to their first in-order sibling. It has similar concurrency
 characteristics to the RadixTree.
 
-### Compact Trie
+### [Compact Trie](https://github.com/keithwill/TrieHard/tree/main/src/TrieHard.PrefixLookup/CompactTrie)
 
 This Trie uses unmanaged memory as storage for nodes and utilizes Spans and inline
 arrays to reduce allocations during operations. It offers a few specialized APIs beyond
@@ -150,16 +150,22 @@ its not intended for use outside of these contrived benchmarks and it wasn't
 made to support updates.
 
 
-### Nuget Package TrieHard.PrefixLookup
+### Nuget Package [PrefixLookup](https://camo.githubusercontent.com/887adb22225c0f98b23fecc0aca4b12ae232332941c37fc0615ab57d4dc03ade/68747470733a2f2f696d672e736869656c64732e696f2f6e756765742f762f5072656669784c6f6f6b7570)
 
 Also included is a project for building a Nuget package. Currently this utilizes
 a wrapper around the CompactTrie implementation. This package should be considered
-experimental at this time and plans are to tareget the most recent LTS of .NET
+experimental at this time and plans are to target the most recent LTS of .NET
 
 ## Benchmarks
 
+Benchmarks are contained in TrieHard.Benchmarks. Most of the tests are contained in
+the [LookupBenchmark.cs](https://github.com/keithwill/TrieHard/blob/main/test/TrieHard.Benchmarks/LookupBenchmark.cs), but
+there are a few tests in [CompatBench.cs](https://github.com/keithwill/TrieHard/blob/main/test/TrieHard.Benchmarks/CompactBench.cs) which
+are specific to the CompactTrie.
 
 ### Creating a lookup with a million sequential entries (strings for keys and values)
+`dotnet run -c Release --filter *Create*`
+
 ```console
 | Type      | Method | Mean     | Error    | StdDev   | Gen0   | Gen1   | Gen2   | Allocated  |
 |---------- |------- |---------:|---------:|---------:|-------:|-------:|-------:|-----------:|
@@ -173,6 +179,8 @@ experimental at this time and plans are to tareget the most recent LTS of .NET
 ```
 
 ### Getting a value by key
+`dotnet run -c Release --filter *Get*`
+
 ```console
 | Type      | Method   | Mean            | Error          | StdDev        | Gen0   | Allocated |
 |---------- |--------- |----------------:|---------------:|--------------:|-------:|----------:|
@@ -188,6 +196,8 @@ experimental at this time and plans are to tareget the most recent LTS of .NET
 A plain list struggles a bit at one million records.
 
 ### Setting a value by key
+`dotnet run -c Release --filter *Set*`
+
 ```console
 | Type      | Method | Mean            | Error         | StdDev       | Allocated |
 |---------- |------- |----------------:|--------------:|-------------:|----------:|
@@ -200,6 +210,8 @@ A plain list struggles a bit at one million records.
 ```
 
 ### Searching Key Value Pairs by prefix (100 results enumerated)
+`dotnet run -c Release --filter *SearchKVP*`
+
 ```console
 | Type      | Method    | Mean            | Error           | StdDev        | Gen0   | Allocated |
 |---------- |---------- |----------------:|----------------:|--------------:|-------:|----------:|
@@ -213,6 +225,8 @@ A plain list struggles a bit at one million records.
 ```
 
 ### Searching Values by prefix (100 results enumerated)
+`dotnet run -c Release --filter *SearchValues*`
+
 ```console
 | Type      | Method            | Mean            | Error           | StdDev       | Gen0   | Allocated |
 |---------- |------------------ |----------------:|----------------:|-------------:|-------:|----------:|
@@ -226,6 +240,8 @@ A plain list struggles a bit at one million records.
 ```
 
 ### Compact additional APIs
+`dotnet run -c Release --filter *Compact*`
+
 ```console
 | Method            | Mean            | Error          | StdDev      | Gen0   | Allocated |
 |------------------ |----------------:|---------------:|------------:|-------:|----------:|
