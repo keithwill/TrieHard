@@ -146,7 +146,7 @@ namespace TrieHard.Collections
             return Search(buffer.AsMemory(0, bytesWritten));
         }
 
-        public CompactTrieUtf8Enumerator<T> SearchUtf8(ReadOnlyMemory<byte> key, byte[] keyBuffer = null)
+        private CompactTrieUtf8Enumerator<T> SearchUtf8(ReadOnlyMemory<byte> key, byte[] keyBuffer = null)
         {
             nint matchingNode = FindNodeAddress(key.Span);
             if (matchingNode > 0)

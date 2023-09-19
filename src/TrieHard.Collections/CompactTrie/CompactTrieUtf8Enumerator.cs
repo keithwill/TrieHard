@@ -136,7 +136,7 @@ namespace TrieHard.Collections
                         byte childIndex = parentEntry.ChildIndex;
                         childIndex++;
                         var nextSibblingAddress = parentNode->GetChild(childIndex);
-                        //Node* nextSibbling = (Node*)nextSibblingAddress.ToPointer();
+                        //Node* nextSibling = (Node*)nextSiblingAddress.ToPointer();
                         Push(parentNodeAddress, childIndex, parentNode->GetChildKey(childIndex));
                         currentNodeAddress = nextSibblingAddress;
 

@@ -4,11 +4,31 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <PackageId>PrefixLookup</PackageId>
+    <Title>PrefixLookup</Title>
+    <Version>0.1.0</Version>
+    <Authors>keithwill</Authors>
+    <Description>
+      A library containing an optimized PrefixLookup collection, useful for implementation an 
+      autocomplete or typeahead functionality.
+    </Description>
+    <PackageTags>Autocomplete Typeahead Trie Collections Prefix</PackageTags>    
+    <PackageProjectUrl>https://github.com/keithwill/TrieHard</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/keithwill/TrieHard</RepositoryUrl>
+    <RepositoryType>github</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../TrieHard.Abstractions/TrieHard.Abstractions.csproj" />
-    <ProjectReference Include="../TrieHard.Collections/TrieHard.Collections.csproj" />
+    <ProjectReference Include="../TrieHard.Abstractions/TrieHard.Abstractions.csproj" Private="true" />
+    <ProjectReference Include="../TrieHard.Collections/TrieHard.Collections.csproj" Private="true" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  
 </Project>

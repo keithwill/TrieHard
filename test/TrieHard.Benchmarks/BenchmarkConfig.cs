@@ -16,7 +16,7 @@ namespace TrieHard.Benchmarks
             Add(
                 DefaultConfig.Instance
                 .AddDiagnoser(MemoryDiagnoser.Default)
-                .AddDiagnoser(EventPipeProfiler.Default)
+                //.AddDiagnoser(EventPipeProfiler.Default)
                 .WithOptions(ConfigOptions.JoinSummary)
                 .WithOrderer(new DefaultOrderer(SummaryOrderPolicy.FastestToSlowest, MethodOrderPolicy.Alphabetical))
                 .WithOptions(ConfigOptions.DisableLogFile)

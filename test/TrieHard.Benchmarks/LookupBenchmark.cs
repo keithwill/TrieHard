@@ -51,7 +51,7 @@ namespace TrieHard.Benchmarks
         }
 
         [Benchmark]
-        public string Search()
+        public string SearchKVP()
         {
             string value = null;
             foreach (var kvp in lookup.Search(testPrefixKey))

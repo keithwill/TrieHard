@@ -10,7 +10,6 @@ namespace TrieHard.Benchmarks
     {
 
         private ReadOnlyMemory<byte> testKeyUtf8 = Encoding.UTF8.GetBytes(testKey);
-        //private ReadOnlyMemory<byte> testPrefixKeyUtf8 = Encoding.UTF8.GetBytes(testPrefixKey);
 
         private byte[] testPrefixKeyUtf8 = Encoding.UTF8.GetBytes(testPrefixKey);
 
@@ -18,19 +17,6 @@ namespace TrieHard.Benchmarks
         public string Get_Utf8()
         {
             return lookup.Get(testKeyUtf8.Span);
-        }
-
-        [Benchmark]
-        public string Search_Utf8()
-        {
-            string value = null;
-            using var searchResult = lookup.SearchUtf8(testPrefixKeyUtf8);
-            foreach (var kvp in searchResult)
-            {
-                value = kvp.Value;
-            }
-            searchResult.Dispose();
-            return value;
         }
 
         [Benchmark]
@@ -45,7 +31,7 @@ namespace TrieHard.Benchmarks
         }
 
         [Benchmark]
-        public int SearchValues_Utf8Experiment()
+        public int SearchSpans()
         {
             int keyLength = 0;
             foreach(var kvp in lookup.SearchSpans(testPrefixKeyUtf8.AsSpan()))

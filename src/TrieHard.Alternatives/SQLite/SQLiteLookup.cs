@@ -17,11 +17,11 @@ namespace TrieHard.Alternatives.SQLite
         private T[] values = Array.Empty<T>();
         private string connectionString;
         private bool isDisposed = false;
-        private SqliteCommand searchCommand;
-        private SqliteParameter searchKeyParamter;
+        private SqliteCommand? searchCommand;
+        private SqliteParameter? searchKeyParamter;
 
-        private SqliteCommand getCommand;
-        private SqliteParameter getKeyParameter;
+        private SqliteCommand? getCommand;
+        private SqliteParameter? getKeyParameter;
 
         public SQLiteLookup() 
         {
@@ -99,19 +99,19 @@ namespace TrieHard.Alternatives.SQLite
 
         public T Get(string key)
         {
-            getKeyParameter.Value = key;
-            var valueIndex = getCommand.ExecuteScalar();
+            getKeyParameter!.Value = key;
+            var valueIndex = getCommand!.ExecuteScalar();
             if (valueIndex == null)
             {
-                return default;
+                return default!;
             }
             return values[(long)valueIndex];
         }
 
         public IEnumerable<KeyValuePair<string, T>> Search(string keyPrefix)
         {
-            searchKeyParamter.Value = $"{keyPrefix}%";
-            using var reader = searchCommand.ExecuteReader();
+            searchKeyParamter!.Value = $"{keyPrefix}%";
+            using var reader = searchCommand!.ExecuteReader();
             while(reader.Read())
             {
                 yield return new KeyValuePair<string, T>(reader.GetString(Ord.Key), values[reader.GetInt32(Ord.ValueIndex)]);
@@ -120,8 +120,8 @@ namespace TrieHard.Alternatives.SQLite
 
         public IEnumerable<T> SearchValues(string keyPrefix)
         {
-            searchKeyParamter.Value = $"{keyPrefix}%";
-            using var reader = searchCommand.ExecuteReader();
+            searchKeyParamter!.Value = $"{keyPrefix}%";
+            using var reader = searchCommand!.ExecuteReader();
             while (reader.Read())
             {
                 yield return values[reader.GetInt32(Ord.ValueIndex)];
