@@ -6,13 +6,13 @@ using TrieHard.Alternatives.SQLite;
 using TrieHard.Collections;
 
 //var trie = new CompactTrie<string>();
-var kvps = new List<KeyValuePair<string, string>>();
+var kvps = new List<KeyValuePair<string, string?>>();
 
 for(int i = 0; i < 1_000; i++)
 {
     var key = i.ToString();
 
-    kvps.Add(new KeyValuePair<string, string>(key, key));
+    kvps.Add(new KeyValuePair<string, string?>(key, key));
 }
 GC.Collect(2, GCCollectionMode.Forced, true, true);
 //Console.WriteLine("Keys Generated");

@@ -9,7 +9,7 @@ namespace TrieHard.Collections
 {
     public struct IndirectTrieEnumerator<T> : IEnumerator<KeyValuePair<string, T>>, IEnumerator, IEnumerable<KeyValuePair<string, T>>
     {
-        private IndirectTrie<T> trie;
+        private IndirectTrie<T>? trie;
         private int depthFromCollectRoot;
         private IndirectTrieLocation currentLocation;
         private readonly int initialDepth;

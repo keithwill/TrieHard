@@ -10,7 +10,7 @@ namespace TrieHard.Collections
 
     public class SimpleNode<T>
     {
-        public T Value;
+        public T? Value;
         public bool HasValue = false;
         
         public Dictionary<char, SimpleNode<T>> Children { get; set; } = new Dictionary<char, SimpleNode<T>>();
@@ -24,7 +24,7 @@ namespace TrieHard.Collections
         public int Set(ReadOnlySpan<char> keySegment, T value)
         {
             var matchingNode = GetNode(keySegment, createIfMissing: true);
-            matchingNode.Value = value;
+            matchingNode!.Value = value;
             int valueCountChange = 0;
             if (matchingNode.HasValue)
             {
@@ -45,9 +45,9 @@ namespace TrieHard.Collections
             return valueCountChange;
         }
 
-        public T Get(ReadOnlySpan<char> keySegment)
+        public T? Get(ReadOnlySpan<char> keySegment)
         {
-            return GetNode(keySegment).Value;
+            return GetNode(keySegment)!.Value;
         }
 
         public IEnumerable<KeyValuePair<string, T>> Search(string keySegment)
@@ -63,7 +63,7 @@ namespace TrieHard.Collections
         {
             if (HasValue)
             {
-                yield return new KeyValuePair<string, T>(keyBuilder.ToString(), Value);
+                yield return new KeyValuePair<string, T>(keyBuilder.ToString(), Value!);
             }
             foreach((var key, var child) in Children)
             {
@@ -76,7 +76,7 @@ namespace TrieHard.Collections
             }
         }
 
-        public SimpleNode<T> GetNode(ReadOnlySpan<char> keySegment, bool createIfMissing = false)
+        public SimpleNode<T>? GetNode(ReadOnlySpan<char> keySegment, bool createIfMissing = false)
         {
             var searchNode = this;
             while (true)

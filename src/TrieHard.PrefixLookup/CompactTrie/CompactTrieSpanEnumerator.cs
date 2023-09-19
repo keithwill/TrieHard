@@ -7,14 +7,14 @@ public unsafe struct CompactTrieSpanEnumerator<T>
     private HybridStack<byte> keyStack;
     private HybridStack<NodeTransversal> nodeStack;
 
-    private CompactTrie<T> trie;
+    private CompactTrie<T>? trie;
     private readonly CompactTrieNode collectNode;
 
     private CompactTrieNode currentNodeBacking;
 
-    private KeyValue<byte, T> currentKeyValue;
+    private KeyValue<byte, T?> currentKeyValue;
 
-    public KeyValue<byte, T> Current => currentKeyValue;
+    public KeyValue<byte, T?> Current => currentKeyValue;
 
     private bool returnRootValue = false;
 
@@ -52,8 +52,8 @@ public unsafe struct CompactTrieSpanEnumerator<T>
     {
         if (node.ValueLocation == -1) return false;
 
-        T value = trie.Values[node.ValueLocation];
-        currentKeyValue = new KeyValue<byte, T>(value, in keyStack);
+        T? value = trie!.Values[node.ValueLocation];
+        currentKeyValue = new KeyValue<byte, T?>(value, in keyStack);
         currentNodeBacking = node;
         return true;
     }

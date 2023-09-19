@@ -9,7 +9,7 @@ namespace TrieHard.Tests;
 
 public record class TestRecord(string Key);
 
-public abstract class PrefixLookupTests<T> where T : IPrefixLookup<string, TestRecord>
+public abstract class PrefixLookupTests<T> where T : IPrefixLookup<string, TestRecord?>
 {
     protected TestRecord TestRecord { get; init; }
     private KeyValuePair<string, TestRecord> testKvp;
@@ -36,7 +36,7 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<string, TestR
     [Test]
     public void CreateWithValues()
     {
-        T lookup = (T)T.Create(testKvpEnumerable);
+        T lookup = (T)T.Create(testKvpEnumerable!);
     }
 
     [Test]
@@ -52,7 +52,7 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<string, TestR
     public void Get()
     {
         Assume.That(CreateWithValues, Throws.Nothing);
-        var lookup = (T)T.Create(testKvpEnumerable);
+        var lookup = (T)T.Create(testKvpEnumerable!);
         var result = lookup[TestKey];
         Assert.That(result, Is.SameAs(TestRecord));
     }
@@ -61,7 +61,7 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<string, TestR
     public void Search_FindsValueByPrefix()
     {
         Assume.That(Add, Throws.Nothing);
-        T lookup = (T)T.Create(testKvpEnumerable);
+        T lookup = (T)T.Create(testKvpEnumerable!);
         lookup[TestKey] = TestRecord;
         var result = lookup.Search(TestKeyPrefix).Single();
         Assert.That(result.Value, Is.SameAs(TestRecord));
@@ -71,7 +71,7 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<string, TestR
     public void SearchValues_FindsValueByPrefix()
     {
         Assume.That(Add, Throws.Nothing);
-        T lookup = (T)T.Create(testKvpEnumerable);
+        T lookup = (T)T.Create(testKvpEnumerable!);
         lookup[TestKey] = TestRecord;
         var result = lookup.SearchValues(TestKeyPrefix).Single();
         Assert.That(result, Is.SameAs(TestRecord));
@@ -81,7 +81,7 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<string, TestR
     public void Search_FindsKeyByPrefix()
     {
         Assume.That(CreateWithValues, Throws.Nothing);
-        T lookup = (T)T.Create(testKvpEnumerable);
+        T lookup = (T)T.Create(testKvpEnumerable!);
         var result = lookup.Search(TestKeyPrefix).Single();
         Assert.That(result.Key, Is.EqualTo(TestKey));
     }
@@ -93,7 +93,7 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<string, TestR
     {
         Assume.That(CreateWithValues, Throws.Nothing);
         var testKeyValues = GetTestRecords(valuesToAdd);
-        var lookup = (T)T.Create(testKeyValues);
+        var lookup = (T)T.Create(testKeyValues!);
 
         var prefix = "1";
 
@@ -112,7 +112,7 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<string, TestR
     {
         Assume.That(CreateWithValues, Throws.Nothing);
         var testKeyValues = GetTestRecords(valuesToAdd);
-        var lookup = (T)T.Create(testKeyValues);
+        var lookup = (T)T.Create(testKeyValues!);
 
         var prefix = "1";
 
@@ -129,7 +129,7 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<string, TestR
         {
             TestRecord? expectedResult = expected[resultIndex];
             TestRecord? actualResult = actualResults[resultIndex];
-            Assert.That(expectedResult.Key, Is.EqualTo(actualResult.Key));
+            Assert.That(expectedResult.Key, Is.EqualTo(actualResult!.Key));
         }
     }
 
@@ -187,9 +187,9 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<string, TestR
 }
 
 
-public class SimpleTrieTests : PrefixLookupTests<SimpleTrie<TestRecord>> { }
-public class IndirectTrieTests : PrefixLookupTests<IndirectTrie<TestRecord>> { }
-public class RadixTreeTests : PrefixLookupTests<RadixTree<TestRecord>> { }
-public class SqliteLookupTests : PrefixLookupTests<SQLiteLookup<TestRecord>> { }
-public class ListPrefixLookupTests : PrefixLookupTests<ListPrefixLookup<TestRecord>> { }
-public class rmTrieTests : PrefixLookupTests<rmTrie<TestRecord>> { }
+public class SimpleTrieTests : PrefixLookupTests<SimpleTrie<TestRecord?>> { }
+public class IndirectTrieTests : PrefixLookupTests<IndirectTrie<TestRecord?>> { }
+public class RadixTreeTests : PrefixLookupTests<RadixTree<TestRecord?>> { }
+public class SqliteLookupTests : PrefixLookupTests<SQLiteLookup<TestRecord?>> { }
+public class ListPrefixLookupTests : PrefixLookupTests<ListPrefixLookup<TestRecord?>> { }
+public class rmTrieTests : PrefixLookupTests<rmTrie<TestRecord?>> { }

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace TrieHard.Abstractions
 {
-    public interface IPrefixLookup<TKey, TValue> : IPrefixLookup, IEnumerable<KeyValuePair<TKey, TValue>>
+    public interface IPrefixLookup<TKey, TValue> : IPrefixLookup, IEnumerable<KeyValuePair<TKey, TValue?>>
     {
 
         /// <summary>
@@ -18,7 +18,7 @@ namespace TrieHard.Abstractions
         /// </summary>
         /// <param name="key">The key to match on</param>
         /// <returns>The value associated with the key or default(TElement)</returns>
-        TValue this[TKey key] { get; set; }
+        TValue? this[TKey key] { get; set; }
 
         /// <summary>
         /// Removes all values from the lookup. Implementations are free to decide if this
@@ -37,9 +37,9 @@ namespace TrieHard.Abstractions
         /// </summary>
         /// <param name="keyPrefix">The value to use as a 'StartsWith' search of keys</param>
         /// <returns>An enumerable of the key value pairs matching the prefix</returns>
-        IEnumerable<KeyValuePair<TKey, TValue>> Search(TKey keyPrefix);
+        IEnumerable<KeyValuePair<TKey, TValue?>> Search(TKey keyPrefix);
 
-        IEnumerable<TValue> SearchValues(TKey keyPrefix);
+        IEnumerable<TValue?> SearchValues(TKey keyPrefix);
 
         /// <summary>
         /// If this type of lookup can be modified after creation or not.
@@ -74,8 +74,8 @@ namespace TrieHard.Abstractions
 
     public interface IPrefixLookup
     {
-        abstract static IPrefixLookup<string, TValue> Create<TValue>(IEnumerable<KeyValuePair<string, TValue>> source);
-        abstract static IPrefixLookup<string, TValue> Create<TValue>();
+        abstract static IPrefixLookup<string, TValue?> Create<TValue>(IEnumerable<KeyValuePair<string, TValue?>> source);
+        abstract static IPrefixLookup<string, TValue?> Create<TValue>();
     }
 
 }

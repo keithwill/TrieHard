@@ -2,9 +2,9 @@
 
 namespace TrieHard.Collections
 {
-    public readonly record struct IndirectTrieNode<T>(IndirectTrieLocation Location, IndirectTrieLocation Parent, IndirectTrieLocation Sibbling, IndirectTrieLocation Child, char Key, T Value)
+    public readonly record struct IndirectTrieNode<T>(IndirectTrieLocation Location, IndirectTrieLocation Parent, IndirectTrieLocation Sibbling, IndirectTrieLocation Child, char Key, T? Value)
     {
-        public static readonly IndirectTrieNode<T> none = new(IndirectTrieLocation.None, IndirectTrieLocation.None, IndirectTrieLocation.None, IndirectTrieLocation.None, default, default);
+        public static readonly IndirectTrieNode<T> none = new(IndirectTrieLocation.None, IndirectTrieLocation.None, IndirectTrieLocation.None, IndirectTrieLocation.None, default, default!);
         public static ref readonly IndirectTrieNode<T> None => ref none;
 
         public bool IsNone => !Location.Exists;

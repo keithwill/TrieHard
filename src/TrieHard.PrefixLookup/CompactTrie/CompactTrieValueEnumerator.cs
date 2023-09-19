@@ -12,19 +12,19 @@ namespace TrieHard.Collections
     {
         private static nuint StackEntrySize = (nuint)Convert.ToUInt64(sizeof(StackValueEntry));
 
-        private readonly CompactTrie<T> trie;
+        private readonly CompactTrie<T>? trie;
         private nint collectNode;
         private nint currentNodeAddress;
         private int stackCount;
         private int stackSize;
         private void* stack;
         private bool isDisposed = false;
-        private T currentValue;
+        private T? currentValue;
         private bool finished = false;
 
         public readonly static CompactTrieValueEnumerator<T> None = new CompactTrieValueEnumerator<T>(null, 0) { finished = true};
 
-        internal CompactTrieValueEnumerator(CompactTrie<T> trie, nint collectNode)
+        internal CompactTrieValueEnumerator(CompactTrie<T>? trie, nint collectNode)
         {
             this.trie = trie;
             this.collectNode = collectNode;
@@ -93,7 +93,7 @@ namespace TrieHard.Collections
 
                 if (currentNode->ValueLocation > -1)
                 {
-                    var value = trie.Values[currentNode->ValueLocation];
+                    var value = trie!.Values[currentNode->ValueLocation];
                     currentValue = value;
                     hasValue = true;
                 }
@@ -171,8 +171,8 @@ namespace TrieHard.Collections
         public CompactTrieValueEnumerator<T> GetEnumerator() { return this; }
         IEnumerator<T> IEnumerable<T>.GetEnumerator() { return this; }
         IEnumerator IEnumerable.GetEnumerator() { return this; }
-        public T Current => this.currentValue;
-        object IEnumerator.Current => this.currentValue;
+        public T? Current => this.currentValue;
+        object? IEnumerator.Current => this.currentValue;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 9)]

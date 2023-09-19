@@ -15,7 +15,7 @@ internal class RadixTreeNode<T>
     public string KeySegment;
     public RadixTreeNode<T>[] Children = Empty;
     public static readonly RadixTreeNode<T>[] Empty = Array.Empty<RadixTreeNode<T>>();
-    public T Value;
+    public T? Value;
     public char FirstChar;
 
     public RadixTreeNode()
@@ -36,7 +36,7 @@ internal class RadixTreeNode<T>
     FakeTailRecursion:
         // Set on a child
         var searchFirstChar = searchKey[0];
-        RadixTreeNode<T> matchingChild = null;
+        RadixTreeNode<T>? matchingChild = null;
         int childIndex = 0;
         for (int i = 0; i < searchNode.Children.Length; i++)
         {
@@ -123,10 +123,10 @@ internal class RadixTreeNode<T>
         };
     }
 
-    public RadixTreeNode<T> NextSibling => Parent.Children.Length > ParentIndex + 1 ? Parent.Children[ParentIndex + 1] : null;
-    public RadixTreeNode<T> FirstChild => Children.Length > 0 ? Children[0] : null;
-    public RadixTreeNode<T> Back => Parent.KeySegment.Length > 0 ? Parent : null;
-    public RadixTreeNode<T> Next => FirstChild ?? NextSibling ?? Back;
+    public RadixTreeNode<T>? NextSibling => Parent!.Children.Length > ParentIndex + 1 ? Parent.Children[ParentIndex + 1] : null;
+    public RadixTreeNode<T>? FirstChild => Children.Length > 0 ? Children[0] : null;
+    public RadixTreeNode<T>? Back => Parent!.KeySegment.Length > 0 ? Parent : null;
+    public RadixTreeNode<T>? Next => FirstChild ?? NextSibling ?? Back;
 
     private void AddChild(ref RadixTreeNode<T> rootNode, RadixTreeNode<T> newChild, int afterIndex)
     {
@@ -191,7 +191,7 @@ internal class RadixTreeNode<T>
 
             if (this != rootNode)
             {
-                newSelf.Parent.Children[newSelf.ParentIndex] = newSelf;
+                newSelf.Parent!.Children[newSelf.ParentIndex] = newSelf;
             }
             else
             {
@@ -240,10 +240,10 @@ internal class RadixTreeNode<T>
         Children[childIndex] = splitParent;
     }
 
-    private RadixTreeNode<T> Parent;
+    private RadixTreeNode<T>? Parent;
     private int ParentIndex;
 
-    public RadixTreeNode<T> GetValue(in ReadOnlySpan<char> key)
+    public RadixTreeNode<T>? GetValue(in ReadOnlySpan<char> key)
     {
         var searchNode = this;
         var searchKey = key;
@@ -373,7 +373,7 @@ internal class RadixTreeNode<T>
                         {
                             yield break;
                         }
-                        var nextParentSibbling = searchNode.Parent.NextSibling;
+                        var nextParentSibbling = searchNode.Parent!.NextSibling;
                         if (nextParentSibbling is null)
                         {
                             searchNode = searchNode.Parent;
@@ -440,11 +440,11 @@ internal class RadixTreeNode<T>
         int depth = 0;
         int fullKeyLength = 0;
 
-        while(searchNode.KeySegment.Length > 0)
+        while(searchNode!.KeySegment.Length > 0)
         {
             depth++;
             fullKeyLength += searchNode.KeySegment.Length;
-            searchNode = searchNode.Parent;
+            searchNode = searchNode.Parent!;
         }
 
         searchNode = node;
@@ -453,11 +453,11 @@ internal class RadixTreeNode<T>
 
         for (int i = depth - 1; i >= 0; i--)
         {
-            var segmentLength = searchNode.KeySegment.Length;
+            var segmentLength = searchNode!.KeySegment.Length;
             int segmentStartIndex = segmentEndIndex - (segmentLength - 1);
             Span<char> keySegmentTarget = result.Slice(segmentStartIndex, segmentLength);
             searchNode.KeySegment.CopyTo(keySegmentTarget);
-            searchNode = searchNode.Parent;
+            searchNode = searchNode.Parent!;
             segmentEndIndex = segmentEndIndex - segmentLength;
         }
         

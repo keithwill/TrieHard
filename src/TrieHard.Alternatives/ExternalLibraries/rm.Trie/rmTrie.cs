@@ -9,7 +9,7 @@ namespace TrieHard.Alternatives.ExternalLibraries.rm.Trie
     /// This trie has more downloads than most of the other nuget or github repos I could find, and works
     /// on .NET standard / 5.0+
     /// </summary>
-    public class rmTrie<T> : IPrefixLookup<string, T>
+    public class rmTrie<T> : IPrefixLookup<string, T?>
     {
         TrieMap<T> trieMap;
 
@@ -18,10 +18,10 @@ namespace TrieHard.Alternatives.ExternalLibraries.rm.Trie
             trieMap = new TrieMap<T>();
         }
 
-        public T this[string key] 
+        public T? this[string key] 
         {
             get => trieMap.ValueBy(key);
-            set => trieMap.Add(key, value); 
+            set => trieMap.Add(key, value!); 
         }
 
         public static bool IsImmutable => false;
@@ -30,17 +30,17 @@ namespace TrieHard.Alternatives.ExternalLibraries.rm.Trie
 
         public int Count => trieMap.Values().Count();
 
-        public static IPrefixLookup<string, TValue> Create<TValue>(IEnumerable<KeyValuePair<string, TValue>> source)
+        public static IPrefixLookup<string, TValue?> Create<TValue>(IEnumerable<KeyValuePair<string, TValue?>> source)
         {
             var trie = new rmTrie<TValue>();
             foreach(var kvp in source)
             {
-                trie.trieMap.Add(kvp.Key, kvp.Value);
+                trie.trieMap.Add(kvp.Key, kvp.Value!);
             }
             return trie;
         }
 
-        public static IPrefixLookup<string, TValue> Create<TValue>()
+        public static IPrefixLookup<string, TValue?> Create<TValue>()
         {
             return new rmTrie<TValue>();
         }
@@ -50,14 +50,14 @@ namespace TrieHard.Alternatives.ExternalLibraries.rm.Trie
             trieMap.Clear();
         }
 
-        public IEnumerator<KeyValuePair<string, T>> GetEnumerator()
+        public IEnumerator<KeyValuePair<string, T?>> GetEnumerator()
         {
-            return trieMap.KeyValuePairs().GetEnumerator();
+            return trieMap.KeyValuePairs().GetEnumerator()!;
         }
 
-        public IEnumerable<KeyValuePair<string, T>> Search(string keyPrefix)
+        public IEnumerable<KeyValuePair<string, T?>> Search(string keyPrefix)
         {
-            return trieMap.KeyValuePairsBy(keyPrefix);
+            return trieMap.KeyValuePairsBy(keyPrefix)!;
         }
 
         public IEnumerable<T> SearchValues(string keyPrefix)

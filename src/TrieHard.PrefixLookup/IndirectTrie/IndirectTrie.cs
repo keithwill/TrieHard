@@ -25,7 +25,7 @@ namespace TrieHard.Collections
     /// most of that advantage is lost in this implementation on storing additional bucket indexes
     /// for each node connection.
     /// </summary>
-    public class IndirectTrie<T> : IPrefixLookup<string, T>
+    public class IndirectTrie<T> : IPrefixLookup<string, T?>
     {
         public static bool IsImmutable => false;
         public static Concurrency ThreadSafety => Concurrency.Read;
@@ -33,13 +33,12 @@ namespace TrieHard.Collections
         private const int BUCKET_SIZE = 10000;
         private IndirectTrieNode<T>[][] Nodes = new IndirectTrieNode<T>[1][];
         private IndirectTrieLocation NextNodeLocation = new IndirectTrieLocation(0, 1);
-        private int nodeCount = 0;
         private int valueCount = 0;
 
         public int Count => valueCount;
 
 
-        public T this[string key]
+        public T? this[string key]
         {
             get => Get(key);
             set => Add(key, value);
@@ -53,7 +52,7 @@ namespace TrieHard.Collections
         
         public IndirectTrie()
         {
-            var root = new IndirectTrieNode<T>(IndirectTrieLocation.Root, IndirectTrieLocation.None, IndirectTrieLocation.None, IndirectTrieLocation.None, default, default);
+            var root = new IndirectTrieNode<T>(IndirectTrieLocation.Root, IndirectTrieLocation.None, IndirectTrieLocation.None, IndirectTrieLocation.None, default, default!);
             Nodes[0] = new IndirectTrieNode<T>[BUCKET_SIZE];
             SetNode(in root);
         }
@@ -65,7 +64,7 @@ namespace TrieHard.Collections
             var existing = FindNode(key);
             if (!existing.Exists)
             {
-                Add(key, default);
+                Add(key, default!);
                 existing = FindNode(key);
             }
             return new CachedKey(this, existing, key.Length);
@@ -74,7 +73,7 @@ namespace TrieHard.Collections
         public T Get(in ReadOnlySpan<char> key)
         {
             var result = FindNode(key);
-            return result.Exists ? Get(result).Value : default;
+            return result.Exists ? Get(result).Value : default!;
         }
 
         public T Get(CachedKey cachedKey)
@@ -111,7 +110,7 @@ namespace TrieHard.Collections
             }
         }
 
-        public void Add(string key, T value)
+        public void Add(string key, T?value)
         {
             ReadOnlySpan<char> keySlice = key;
             var remainingKey = FindPrefixMatch(keySlice, out var setSearch);
@@ -202,7 +201,7 @@ namespace TrieHard.Collections
                             // We are inserting as the new first child of the parent
                             var newParent = parentNode with { Child = newLocation };
                             sibbling = sibblingSearchNode.Location;
-                            var newFirstChildNode = new IndirectTrieNode<T>(newLocation, newParent.Location, sibbling, IndirectTrieLocation.None, key, default);
+                            var newFirstChildNode = new IndirectTrieNode<T>(newLocation, newParent.Location, sibbling, IndirectTrieLocation.None, key, default!);
                             SetNode(newFirstChildNode);
                             SetNode(newParent);
                             return newLocation;
@@ -214,7 +213,7 @@ namespace TrieHard.Collections
 
                             ref readonly IndirectTrieNode<T> previousNodeToPatch = ref Get(previous);
                             var newPreviousNodeToPatch = previousNodeToPatch with { Sibbling = newLocation };
-                            var newInsertNode = new IndirectTrieNode<T>(newLocation, parent, previousNodeToPatch.Sibbling, IndirectTrieLocation.None, key, default);
+                            var newInsertNode = new IndirectTrieNode<T>(newLocation, parent, previousNodeToPatch.Sibbling, IndirectTrieLocation.None, key, default!);
                             SetNode(newInsertNode);
                             SetNode(newPreviousNodeToPatch);
                             return newLocation;
@@ -228,7 +227,7 @@ namespace TrieHard.Collections
                 // Parent had a child, but we didn't find one greater than the current key
                 ref readonly IndirectTrieNode<T> previousNode = ref Get(previous);
                 var newPreviousNode = previousNode with { Sibbling = newLocation };
-                var newNode = new IndirectTrieNode<T>(newLocation, parent, IndirectTrieLocation.None, IndirectTrieLocation.None, key, default);
+                var newNode = new IndirectTrieNode<T>(newLocation, parent, IndirectTrieLocation.None, IndirectTrieLocation.None, key, default!);
                 SetNode(newNode);
                 SetNode(newPreviousNode);
                 return newLocation;
@@ -236,7 +235,7 @@ namespace TrieHard.Collections
             else
             {
                 var newParent = parentNode with { Child = newLocation }; ;
-                var newSingleChildNode = new IndirectTrieNode<T>(newLocation, parent, sibbling, IndirectTrieLocation.None, key, default);
+                var newSingleChildNode = new IndirectTrieNode<T>(newLocation, parent, sibbling, IndirectTrieLocation.None, key, default!);
                 Nodes[newLocation.Bucket][newLocation.Index] = newSingleChildNode; //Set(newSingleChildNode);
                 SetNode(newParent);
                 return newLocation;
@@ -353,7 +352,7 @@ namespace TrieHard.Collections
                     IndirectTrieNode<T> existingNode = buffer[nodeIndex];
                     if (existingNode.HasValue)
                     {
-                        SetNode(existingNode with { Value = default });
+                        SetNode(existingNode with { Value = default! });
                     }
                 }
             }

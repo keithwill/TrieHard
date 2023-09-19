@@ -11,7 +11,7 @@ using TrieHard.Abstractions;
 namespace TrieHard.Collections
 {
     [SkipLocalsInit]
-    public unsafe class CompactTrie<T>  : IPrefixLookup<string, T>, IDisposable
+    public unsafe class CompactTrie<T>  : IPrefixLookup<string, T?>, IDisposable
     {
         public static bool IsImmutable => false;
         public static Concurrency ThreadSafety => Concurrency.Read;
@@ -20,17 +20,17 @@ namespace TrieHard.Collections
         private CompactTrieNodeBuffer buffer;
         private nuint nodeCount = 0;
 
-        private List<T> values = new();
+        private List<T?> values = new();
         private bool isDisposed = false;
         private CompactTrieNode* rootPointer;
 
-        internal List<T> Values => values;
+        internal List<T?> Values => values;
 
 
         public int Count => values.Count;
 
 
-        public T this[string key]
+        public T? this[string key]
         {
             get => Get(key);
             set => Set(key, value);
@@ -69,7 +69,7 @@ namespace TrieHard.Collections
             nodeCount++;
         }
 
-        public void Set(string key, T value)
+        public void Set(string key, T? value)
         {
             var maxByteSize = (key.Length + 1) * 3;
 
@@ -91,7 +91,7 @@ namespace TrieHard.Collections
             }
         }
 
-        public void Set(in ReadOnlySpan<byte> key, T value)
+        public void Set(in ReadOnlySpan<byte> key, T? value)
         {
             int keyIndex = 0;
 
@@ -146,14 +146,14 @@ namespace TrieHard.Collections
             return Search(buffer.AsMemory(0, bytesWritten));
         }
 
-        private CompactTrieUtf8Enumerator<T> SearchUtf8(ReadOnlyMemory<byte> key, byte[] keyBuffer = null)
+        private CompactTrieUtf8Enumerator<T> SearchUtf8(ReadOnlyMemory<byte> key, byte[] keyBuffer = null!)
         {
             nint matchingNode = FindNodeAddress(key.Span);
             if (matchingNode > 0)
             {
                 return new CompactTrieUtf8Enumerator<T>(this, key, matchingNode, keyBuffer);
             }
-            return new CompactTrieUtf8Enumerator<T>(null, key, 0, keyBuffer);
+            return new CompactTrieUtf8Enumerator<T>(null!, key, 0, keyBuffer);
         }
 
         /// <summary>
@@ -177,14 +177,14 @@ namespace TrieHard.Collections
             return new CompactTrieNodeSpanEnumerable<T>();
         }
 
-        public CompactTrieEnumerator<T> Search(ReadOnlyMemory<byte> key, byte[] keyBuffer = null)
+        public CompactTrieEnumerator<T> Search(ReadOnlyMemory<byte> key, byte[]? keyBuffer = null)
         {
             nint matchingNode = FindNodeAddress(key.Span);
             if (matchingNode > 0)
             {
                 return new CompactTrieEnumerator<T>(this, key, matchingNode, keyBuffer);
             }
-            return new CompactTrieEnumerator<T>(null, key, 0, keyBuffer);
+            return new CompactTrieEnumerator<T>(null!, key, 0, keyBuffer);
         }
 
         public CompactTrieValueEnumerator<T> SearchValues(ReadOnlySpan<byte> keyPrefix)
@@ -244,7 +244,7 @@ namespace TrieHard.Collections
             }
         }
 
-        public T Get(string key)
+        public T? Get(string key)
         {
             var keyByteSize = Encoding.UTF8.GetMaxByteCount(key.Length);
 
@@ -268,17 +268,17 @@ namespace TrieHard.Collections
             }
         }
 
-        public T Get(ReadOnlySpan<byte> key)
+        public T? Get(ReadOnlySpan<byte> key)
         {
             var nodeAddress = FindNodeAddress(key);
             if (nodeAddress == 0)
             {
-                return default;
+                return default!;
             }
             CompactTrieNode* node = (CompactTrieNode*)nodeAddress;
             if (node->ValueLocation == -1)
             {
-                return default;
+                return default!;
             }
             return values[node->ValueLocation];
         }
@@ -339,12 +339,12 @@ namespace TrieHard.Collections
             }
         }
 
-        IEnumerable<KeyValuePair<string, T>> IPrefixLookup<string, T>.Search(string keyPrefix)
+        IEnumerable<KeyValuePair<string, T?>> IPrefixLookup<string, T?>.Search(string keyPrefix)
         {
             return this.Search(keyPrefix);
         }
 
-        IEnumerator<KeyValuePair<string, T>> IEnumerable<KeyValuePair<string, T>>.GetEnumerator()
+        IEnumerator<KeyValuePair<string, T?>> IEnumerable<KeyValuePair<string, T?>>.GetEnumerator()
         {
             return this.GetEnumerator();
         }
@@ -355,7 +355,7 @@ namespace TrieHard.Collections
         }
 
 
-        public static IPrefixLookup<string, TValue> Create<TValue>(IEnumerable<KeyValuePair<string, TValue>> source)
+        public static IPrefixLookup<string, TValue?> Create<TValue>(IEnumerable<KeyValuePair<string, TValue?>> source)
         {
             var result = new CompactTrie<TValue>();
             foreach (var kvp in source)
@@ -367,24 +367,16 @@ namespace TrieHard.Collections
 
 
 
-        IEnumerable<T> IPrefixLookup<string, T>.SearchValues(string keyPrefix)
+        IEnumerable<T> IPrefixLookup<string, T?>.SearchValues(string keyPrefix)
         {
             var keyBytes = Encoding.UTF8.GetBytes(keyPrefix);
             return SearchValues(keyBytes);
         }
 
-        public static IPrefixLookup<string, TValue> Create<TValue>()
+        public static IPrefixLookup<string, TValue?> Create<TValue>()
         {
             return new CompactTrie<TValue>();
         }
-
-        // ~CompactTrie()
-        // {
-        //     if (!isDisposed)
-        //     {
-        //         Dispose();
-        //     }
-        // }
 
     }
 

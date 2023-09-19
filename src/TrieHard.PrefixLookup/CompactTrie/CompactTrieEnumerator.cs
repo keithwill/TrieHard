@@ -9,26 +9,26 @@ using System.Text;
 namespace TrieHard.Collections
 {
     [SkipLocalsInit]
-    public unsafe struct CompactTrieEnumerator<T> : IEnumerable<KeyValuePair<string, T>>, IEnumerator<KeyValuePair<string, T>>
+    public unsafe struct CompactTrieEnumerator<T> : IEnumerable<KeyValuePair<string, T?>>, IEnumerator<KeyValuePair<string, T?>>
     {
         private static nuint StackEntrySize = (nuint)Convert.ToUInt64(sizeof(CompactTrieStackEntry));
 
-        private readonly CompactTrie<T> trie;
+        private readonly CompactTrie<T>? trie;
         private readonly ReadOnlyMemory<byte> rootPrefix;
         private nint collectNode;
-        private readonly byte[] keyBuffer;
+        private readonly byte[]? keyBuffer;
         private nint currentNodeAddress;
         private int stackCount;
         private int stackSize;
         private void* stack;
         private bool isDisposed = false;
-        private KeyValuePair<string, T> currentValue;
+        private KeyValuePair<string, T?> currentValue;
         private bool finished = false;
         private const int initialStackSize = 32;
 
-        public static readonly CompactTrieEnumerator<T> None = new CompactTrieEnumerator<T>(null, ReadOnlyMemory<byte>.Empty, 0) { finished = true};
+        public static readonly CompactTrieEnumerator<T> None = new CompactTrieEnumerator<T>(null!, ReadOnlyMemory<byte>.Empty, 0) { finished = true};
 
-        internal CompactTrieEnumerator(CompactTrie<T> trie, ReadOnlyMemory<byte> rootPrefix, nint collectNode, byte[] keyBuffer = null)
+        internal CompactTrieEnumerator(CompactTrie<T> trie, ReadOnlyMemory<byte> rootPrefix, nint collectNode, byte[]? keyBuffer = null)
         {
 
             this.trie = trie;
@@ -100,8 +100,8 @@ namespace TrieHard.Collections
 
                 if (currentNode->ValueLocation > -1)
                 {
-                    var value = trie.Values[currentNode->ValueLocation];
-                    currentValue = new KeyValuePair<string, T>(GetKeyFromStack(), value);
+                    var value = trie!.Values[currentNode->ValueLocation];
+                    currentValue = new KeyValuePair<string, T?>(GetKeyFromStack(), value);
                     hasValue = true;
                 }
 
@@ -192,9 +192,9 @@ namespace TrieHard.Collections
             }
         }
         public CompactTrieEnumerator<T> GetEnumerator() { return this; }
-        IEnumerator<KeyValuePair<string, T>> IEnumerable<KeyValuePair<string, T>>.GetEnumerator() { return this; }
+        IEnumerator<KeyValuePair<string, T?>> IEnumerable<KeyValuePair<string, T?>>.GetEnumerator() { return this; }
         IEnumerator IEnumerable.GetEnumerator() { return this; }
-        public KeyValuePair<string, T> Current => this.currentValue;
+        public KeyValuePair<string, T?> Current => this.currentValue;
         object IEnumerator.Current => this.currentValue;
     }
 

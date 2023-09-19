@@ -8,24 +8,24 @@ using System.Runtime.InteropServices;
 namespace TrieHard.Collections
 {
     [SkipLocalsInit]
-    public unsafe struct CompactTrieUtf8Enumerator<T> : IEnumerable<KeyValuePair<ReadOnlyMemory<byte>, T>>, IEnumerator<KeyValuePair<ReadOnlyMemory<byte>, T>>
+    public unsafe struct CompactTrieUtf8Enumerator<T> : IEnumerable<KeyValuePair<ReadOnlyMemory<byte>, T?>>, IEnumerator<KeyValuePair<ReadOnlyMemory<byte>, T?>>
     {
         private static nuint StackEntrySize = (nuint)Convert.ToUInt64(sizeof(CompactTrieStackEntry));
 
-        private readonly CompactTrie<T> trie;
+        private readonly CompactTrie<T>? trie;
         private readonly ReadOnlyMemory<byte> rootPrefix;
         private nint collectNode;
         private nint currentNodeAddress;
 
-        private CompactTrieStackEntry[] nodeStack;
+        private CompactTrieStackEntry[] nodeStack = Array.Empty<CompactTrieStackEntry>();
         private int nodeStackCount;
         private int nodeStackCapacity;
         
-        private readonly byte[] keyBuffer;
+        private readonly byte[]? keyBuffer;
         private byte[] resultKeyBuffer = Empty;
 
         private bool isDisposed = false;
-        private KeyValuePair<ReadOnlyMemory<byte>, T> currentValue;
+        private KeyValuePair<ReadOnlyMemory<byte>, T?> currentValue;
         private bool finished = false;
         
 
@@ -33,9 +33,9 @@ namespace TrieHard.Collections
 
     
 
-        public readonly static CompactTrieUtf8Enumerator<T> None = new CompactTrieUtf8Enumerator<T>(null, ReadOnlyMemory<byte>.Empty, 0);
+        public readonly static CompactTrieUtf8Enumerator<T> None = new CompactTrieUtf8Enumerator<T>(null!, ReadOnlyMemory<byte>.Empty, 0);
 
-        internal CompactTrieUtf8Enumerator(CompactTrie<T> trie, ReadOnlyMemory<byte> rootPrefix, nint collectNode, byte[] keyBuffer = null)
+        internal CompactTrieUtf8Enumerator(CompactTrie<T> trie, ReadOnlyMemory<byte> rootPrefix, nint collectNode, byte[] keyBuffer = null!)
         {
             this.trie = trie;
             this.rootPrefix = rootPrefix;
@@ -97,8 +97,8 @@ namespace TrieHard.Collections
 
                 if (currentNode->ValueLocation > -1)
                 {
-                    var value = trie.Values[currentNode->ValueLocation];
-                    currentValue = new KeyValuePair<ReadOnlyMemory<byte>, T>(GetKeyFromStack(), value);
+                    var value = trie!.Values[currentNode->ValueLocation];
+                    currentValue = new KeyValuePair<ReadOnlyMemory<byte>, T?>(GetKeyFromStack(), value);
                     hasValue = true;
                 }
 
@@ -220,9 +220,9 @@ namespace TrieHard.Collections
             }
         }
         public CompactTrieUtf8Enumerator<T> GetEnumerator() { return this; }
-        IEnumerator<KeyValuePair<ReadOnlyMemory<byte>, T>> IEnumerable<KeyValuePair<ReadOnlyMemory<byte>, T>>.GetEnumerator() { return this; }
+        IEnumerator<KeyValuePair<ReadOnlyMemory<byte>, T?>> IEnumerable<KeyValuePair<ReadOnlyMemory<byte>, T?>>.GetEnumerator() { return this; }
         IEnumerator IEnumerable.GetEnumerator() { return this; }
-        public KeyValuePair<ReadOnlyMemory<byte>, T> Current => this.currentValue;
+        public KeyValuePair<ReadOnlyMemory<byte>, T?> Current => this.currentValue;
         object IEnumerator.Current => this.currentValue;
     }
 

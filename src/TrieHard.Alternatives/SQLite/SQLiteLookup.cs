@@ -10,11 +10,11 @@ namespace TrieHard.Alternatives.SQLite
     /// inside of SQLite.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class SQLiteLookup<T> : IPrefixLookup<string, T>, IDisposable
+    public class SQLiteLookup<T> : IPrefixLookup<string, T?>, IDisposable
     {
 
         private SqliteConnection connection;
-        private T[] values = Array.Empty<T>();
+        private T?[] values = Array.Empty<T>();
         private string connectionString;
         private bool isDisposed = false;
         private SqliteCommand? searchCommand;
@@ -30,7 +30,7 @@ namespace TrieHard.Alternatives.SQLite
             connection.Open();
         }
 
-        public T this[string key] {
+        public T? this[string key] {
             get => Get(key);
             set => throw new NotImplementedException(); 
         }
@@ -41,7 +41,7 @@ namespace TrieHard.Alternatives.SQLite
 
         public int Count => values.Length;
 
-        public static IPrefixLookup<string, TValue> Create<TValue>(IEnumerable<KeyValuePair<string, TValue>> source)
+        public static IPrefixLookup<string, TValue?> Create<TValue>(IEnumerable<KeyValuePair<string, TValue?>> source)
         {
             var lookup = new SQLiteLookup<TValue>();
             using var cmd = new SqliteCommand("CREATE TABLE lookup ( Key PRIMARY KEY, ValueIndex ) WITHOUT ROWID", lookup.connection);
@@ -92,12 +92,12 @@ namespace TrieHard.Alternatives.SQLite
             public const int ValueIndex = 1;
         }
 
-        public IEnumerator<KeyValuePair<string, T>> GetEnumerator()
+        public IEnumerator<KeyValuePair<string, T?>> GetEnumerator()
         {
             return Search("").GetEnumerator();
         }
 
-        public T Get(string key)
+        public T? Get(string key)
         {
             getKeyParameter!.Value = key;
             var valueIndex = getCommand!.ExecuteScalar();
@@ -108,17 +108,17 @@ namespace TrieHard.Alternatives.SQLite
             return values[(long)valueIndex];
         }
 
-        public IEnumerable<KeyValuePair<string, T>> Search(string keyPrefix)
+        public IEnumerable<KeyValuePair<string, T?>> Search(string keyPrefix)
         {
             searchKeyParamter!.Value = $"{keyPrefix}%";
             using var reader = searchCommand!.ExecuteReader();
             while(reader.Read())
             {
-                yield return new KeyValuePair<string, T>(reader.GetString(Ord.Key), values[reader.GetInt32(Ord.ValueIndex)]);
+                yield return new KeyValuePair<string, T?>(reader.GetString(Ord.Key), values[reader.GetInt32(Ord.ValueIndex)]);
             }
         }
 
-        public IEnumerable<T> SearchValues(string keyPrefix)
+        public IEnumerable<T?> SearchValues(string keyPrefix)
         {
             searchKeyParamter!.Value = $"{keyPrefix}%";
             using var reader = searchCommand!.ExecuteReader();
@@ -133,7 +133,7 @@ namespace TrieHard.Alternatives.SQLite
             return GetEnumerator();
         }
 
-        public static IPrefixLookup<string, TValue> Create<TValue>()
+        public static IPrefixLookup<string, TValue?> Create<TValue>()
         {
             throw new NotImplementedException();
         }
