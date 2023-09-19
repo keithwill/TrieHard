@@ -29,7 +29,7 @@ internal class RadixTreeNode<T>
         this.FirstChar = KeySegment[0];
     }
 
-    public void SetValue(ref RadixTreeNode<T> rootNode, in ReadOnlySpan<char> key, T value)
+    public void SetValue(ref RadixTreeNode<T> rootNode, in ReadOnlySpan<char> key, T? value)
     {
         var searchNode = rootNode;
         var searchKey = key;
@@ -320,11 +320,11 @@ internal class RadixTreeNode<T>
         return sb.ToString();
     }
 
-    public IEnumerable<KeyValuePair<string, T>> Collect()
+    public IEnumerable<KeyValuePair<string, T?>> Collect()
     {
         if (Value is not null)
         {
-            yield return new KeyValuePair<string, T>(GetFullKey(this), Value);
+            yield return new KeyValuePair<string, T?>(GetFullKey(this), Value);
         }
         if (Children.Length == 0)
         {
@@ -348,7 +348,7 @@ internal class RadixTreeNode<T>
 
             if (searchNode.Value is not null)
             {
-                yield return new KeyValuePair<string, T>(GetFullKey(searchNode), searchNode.Value);
+                yield return new KeyValuePair<string, T?>(GetFullKey(searchNode), searchNode.Value);
             }
             if (searchNode.Children.Length != 0)
             {
@@ -393,9 +393,9 @@ internal class RadixTreeNode<T>
 
     }
     
-    public IEnumerable<KeyValuePair<string, T>> EnumeratePrefix(ReadOnlySpan<char> key)
+    public IEnumerable<KeyValuePair<string, T?>> EnumeratePrefix(ReadOnlySpan<char> key)
     {
-        if (Children.Length == 0) return Array.Empty<KeyValuePair<string, T>>();
+        if (Children.Length == 0) return Array.Empty<KeyValuePair<string, T?>>();
         var searchRoot = this;
 
         TailRecursionWhen:
@@ -426,12 +426,12 @@ internal class RadixTreeNode<T>
                 }
 
                 // We partial matched, but the remainder is a mismatch
-                return Array.Empty<KeyValuePair<string, T>>();
+                return Array.Empty<KeyValuePair<string, T?>>();
 
             }
         }
 
-        return Array.Empty<KeyValuePair<string, T>>();
+        return Array.Empty<KeyValuePair<string, T?>>();
     }
 
     public string GetFullKey(RadixTreeNode<T> node)

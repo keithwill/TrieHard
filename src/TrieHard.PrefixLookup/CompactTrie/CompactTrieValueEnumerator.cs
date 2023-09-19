@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 namespace TrieHard.Collections
 {
     [SkipLocalsInit]
-    public unsafe struct CompactTrieValueEnumerator<T> : IEnumerable<T>, IEnumerator<T>
+    public unsafe struct CompactTrieValueEnumerator<T> : IEnumerable<T?>, IEnumerator<T?>
     {
         private static nuint StackEntrySize = (nuint)Convert.ToUInt64(sizeof(StackValueEntry));
 
@@ -169,7 +169,7 @@ namespace TrieHard.Collections
             }
         }
         public CompactTrieValueEnumerator<T> GetEnumerator() { return this; }
-        IEnumerator<T> IEnumerable<T>.GetEnumerator() { return this; }
+        IEnumerator<T?> IEnumerable<T?>.GetEnumerator() { return this; }
         IEnumerator IEnumerable.GetEnumerator() { return this; }
         public T? Current => this.currentValue;
         object? IEnumerator.Current => this.currentValue;

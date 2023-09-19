@@ -31,7 +31,7 @@ namespace TrieHard.Collections
         public static Concurrency ThreadSafety => Concurrency.Read;
 
         private const int BUCKET_SIZE = 10000;
-        private IndirectTrieNode<T>[][] Nodes = new IndirectTrieNode<T>[1][];
+        private IndirectTrieNode<T?>[][] Nodes = new IndirectTrieNode<T?>[1][];
         private IndirectTrieLocation NextNodeLocation = new IndirectTrieLocation(0, 1);
         private int valueCount = 0;
 
@@ -44,16 +44,16 @@ namespace TrieHard.Collections
             set => Add(key, value);
         }
 
-        internal ref readonly IndirectTrieNode<T> Get(in IndirectTrieLocation location) => ref Nodes[location.Bucket][location.Index];
+        internal ref readonly IndirectTrieNode<T?> Get(in IndirectTrieLocation location) => ref Nodes[location.Bucket][location.Index];
 
-        private ref readonly IndirectTrieNode<T> GetByIndex(int bucket, int index) => ref Nodes[bucket][index];
+        private ref readonly IndirectTrieNode<T?> GetByIndex(int bucket, int index) => ref Nodes[bucket][index];
 
-        private void SetNode(in IndirectTrieNode<T> node) => Nodes[node.Location.Bucket][node.Location.Index] = node;
+        private void SetNode(in IndirectTrieNode<T?> node) => Nodes[node.Location.Bucket][node.Location.Index] = node;
         
         public IndirectTrie()
         {
-            var root = new IndirectTrieNode<T>(IndirectTrieLocation.Root, IndirectTrieLocation.None, IndirectTrieLocation.None, IndirectTrieLocation.None, default, default!);
-            Nodes[0] = new IndirectTrieNode<T>[BUCKET_SIZE];
+            var root = new IndirectTrieNode<T?>(IndirectTrieLocation.Root, IndirectTrieLocation.None, IndirectTrieLocation.None, IndirectTrieLocation.None, default, default!);
+            Nodes[0] = new IndirectTrieNode<T?>[BUCKET_SIZE];
             SetNode(in root);
         }
 
@@ -70,19 +70,19 @@ namespace TrieHard.Collections
             return new CachedKey(this, existing, key.Length);
         }
 
-        public T Get(in ReadOnlySpan<char> key)
+        public T? Get(in ReadOnlySpan<char> key)
         {
             var result = FindNode(key);
             return result.Exists ? Get(result).Value : default!;
         }
 
-        public T Get(CachedKey cachedKey)
+        public T? Get(CachedKey cachedKey)
         {
-            ref readonly IndirectTrieNode<T> result = ref Get(cachedKey.NodeLocation);
+            ref readonly IndirectTrieNode<T?> result = ref Get(cachedKey.NodeLocation);
             return result.Value;
         }
 
-        internal IndirectTrieLocation NextDepthFirst(in IndirectTrieNode<T> node, ref int depth)
+        internal IndirectTrieLocation NextDepthFirst(in IndirectTrieNode<T?> node, ref int depth)
         {
             if (node.HasChild)
             {
@@ -102,7 +102,7 @@ namespace TrieHard.Collections
                 {
                     return IndirectTrieLocation.None;
                 }
-                ref readonly IndirectTrieNode<T> parent = ref Get(node.Parent);
+                ref readonly IndirectTrieNode<T?> parent = ref Get(node.Parent);
 
                 if (parent.HasSibbling) {
                     return parent.Sibbling;
@@ -119,14 +119,14 @@ namespace TrieHard.Collections
             {
                 setLocation = InsertNode(setLocation, remainingKey[i]);
             }
-            ref readonly IndirectTrieNode<T> node = ref Get(setLocation);
+            ref readonly IndirectTrieNode<T?> node = ref Get(setLocation);
             var nodeWithNewValue = node with { Value = value };
             var countChange = CountChange(node, nodeWithNewValue);
             SetNode(nodeWithNewValue);
             valueCount += countChange;
         }
 
-        private int CountChange(IndirectTrieNode<T> oldNode, IndirectTrieNode<T> newNode)
+        private int CountChange(IndirectTrieNode<T?> oldNode, IndirectTrieNode<T?> newNode)
         {
             var hadValue = oldNode.HasValue;
             var hasValue = newNode.HasValue;
@@ -152,7 +152,7 @@ namespace TrieHard.Collections
             {
                 var newBucketLength = nextLocation.Bucket + 2;
                 Array.Resize(ref Nodes, newBucketLength);
-                Nodes[newBucketLength - 1] = new IndirectTrieNode<T>[BUCKET_SIZE];
+                Nodes[newBucketLength - 1] = new IndirectTrieNode<T?>[BUCKET_SIZE];
                 NextNodeLocation = new IndirectTrieLocation(newBucketLength - 1, 0);
             }
             else
@@ -170,7 +170,7 @@ namespace TrieHard.Collections
             // Get sibbling 
             var newLocation = AllocateNode();
 
-            ref readonly IndirectTrieNode<T> parentNode = ref Get(parent);
+            ref readonly IndirectTrieNode<T?> parentNode = ref Get(parent);
 
             // We have to find the first child of our parent that
             // has a key greater than our current one, or the last key
@@ -179,7 +179,7 @@ namespace TrieHard.Collections
             // The parent's 'Child' location points to 'A'
             // 'A' points to 'C'
             // In that case, we need to find 'C' then change
-            // 'A' sibbling to point to our new 'B' and have
+            // 'A' sibling to point to our new 'B' and have
             // 'B' point to 'C'
 
             IndirectTrieLocation sibbling = IndirectTrieLocation.None;
@@ -192,7 +192,7 @@ namespace TrieHard.Collections
 
                 while (sibblingLocation != IndirectTrieLocation.None)
                 {
-                    ref readonly IndirectTrieNode<T> sibblingSearchNode = ref Get(sibblingLocation);
+                    ref readonly IndirectTrieNode<T?> sibblingSearchNode = ref Get(sibblingLocation);
 
                     if (sibblingSearchNode.Key > key)
                     {
@@ -201,7 +201,7 @@ namespace TrieHard.Collections
                             // We are inserting as the new first child of the parent
                             var newParent = parentNode with { Child = newLocation };
                             sibbling = sibblingSearchNode.Location;
-                            var newFirstChildNode = new IndirectTrieNode<T>(newLocation, newParent.Location, sibbling, IndirectTrieLocation.None, key, default!);
+                            var newFirstChildNode = new IndirectTrieNode<T?>(newLocation, newParent.Location, sibbling, IndirectTrieLocation.None, key, default!);
                             SetNode(newFirstChildNode);
                             SetNode(newParent);
                             return newLocation;
@@ -211,9 +211,9 @@ namespace TrieHard.Collections
                             // We are inserting after the first element
                             // so we need to patch the previous sibbling's Node
 
-                            ref readonly IndirectTrieNode<T> previousNodeToPatch = ref Get(previous);
+                            ref readonly IndirectTrieNode<T?> previousNodeToPatch = ref Get(previous);
                             var newPreviousNodeToPatch = previousNodeToPatch with { Sibbling = newLocation };
-                            var newInsertNode = new IndirectTrieNode<T>(newLocation, parent, previousNodeToPatch.Sibbling, IndirectTrieLocation.None, key, default!);
+                            var newInsertNode = new IndirectTrieNode<T?>(newLocation, parent, previousNodeToPatch.Sibbling, IndirectTrieLocation.None, key, default!);
                             SetNode(newInsertNode);
                             SetNode(newPreviousNodeToPatch);
                             return newLocation;
@@ -225,9 +225,9 @@ namespace TrieHard.Collections
                 }
 
                 // Parent had a child, but we didn't find one greater than the current key
-                ref readonly IndirectTrieNode<T> previousNode = ref Get(previous);
+                ref readonly IndirectTrieNode<T?> previousNode = ref Get(previous);
                 var newPreviousNode = previousNode with { Sibbling = newLocation };
-                var newNode = new IndirectTrieNode<T>(newLocation, parent, IndirectTrieLocation.None, IndirectTrieLocation.None, key, default!);
+                var newNode = new IndirectTrieNode<T?>(newLocation, parent, IndirectTrieLocation.None, IndirectTrieLocation.None, key, default!);
                 SetNode(newNode);
                 SetNode(newPreviousNode);
                 return newLocation;
@@ -235,7 +235,7 @@ namespace TrieHard.Collections
             else
             {
                 var newParent = parentNode with { Child = newLocation }; ;
-                var newSingleChildNode = new IndirectTrieNode<T>(newLocation, parent, sibbling, IndirectTrieLocation.None, key, default!);
+                var newSingleChildNode = new IndirectTrieNode<T?>(newLocation, parent, sibbling, IndirectTrieLocation.None, key, default!);
                 Nodes[newLocation.Bucket][newLocation.Index] = newSingleChildNode; //Set(newSingleChildNode);
                 SetNode(newParent);
                 return newLocation;
@@ -249,7 +249,7 @@ namespace TrieHard.Collections
             return new IndirectTrieEnumerator<T>(this, cacheKey.NodeLocation, cacheKey.Depth);
         }
 
-        IEnumerable<KeyValuePair<string, T>> IPrefixLookup<string, T>.Search(string prefix)
+        IEnumerable<KeyValuePair<string, T?>> IPrefixLookup<string, T?>.Search(string prefix)
         {
             return Search(prefix);
         }
@@ -270,7 +270,7 @@ namespace TrieHard.Collections
 
         private IndirectTrieLocation FindNode(in ReadOnlySpan<char> key)
         {
-            ref readonly IndirectTrieNode<T> root = ref Get(IndirectTrieLocation.Root);
+            ref readonly IndirectTrieNode<T?> root = ref Get(IndirectTrieLocation.Root);
 
             var searchLocation = root.Child;
             char matchChar = key[0];
@@ -279,7 +279,7 @@ namespace TrieHard.Collections
 
             while (searchLocation.Exists)
             {
-                ref readonly IndirectTrieNode<T> node = ref Get(searchLocation);
+                ref readonly IndirectTrieNode<T?> node = ref Get(searchLocation);
                 
                 if (!node.Key.Equals(matchChar))
                 {
@@ -303,19 +303,19 @@ namespace TrieHard.Collections
             return IndirectTrieLocation.None;
         }
 
-        private ReadOnlySpan<char> FindPrefixMatch(ReadOnlySpan<char> key, out IndirectTrieNode<T> bestMatch)
+        private ReadOnlySpan<char> FindPrefixMatch(ReadOnlySpan<char> key, out IndirectTrieNode<T?> bestMatch)
         {
 
             //ref readonly Location rootLocation = ref Location.Root;
             //ref readonly Node root = ref GetByIndex(0, 0);
-            IndirectTrieNode<T> root = GetByIndex(0, 0);
+            IndirectTrieNode<T?> root = GetByIndex(0, 0);
 
             bestMatch = root;
             if (!root.Child.Exists)
             {
                 return key;
             }
-            IndirectTrieNode<T> node = Get(root.Child);
+            IndirectTrieNode<T?> node = Get(root.Child);
             while(true)
             {
                 if (node.Key != key[0])
@@ -346,10 +346,10 @@ namespace TrieHard.Collections
         {
             for (int bucketIndex = 0; bucketIndex < Nodes.Length; bucketIndex++)
             {
-                IndirectTrieNode<T>[] buffer = Nodes[bucketIndex];
+                IndirectTrieNode<T?>[] buffer = Nodes[bucketIndex];
                 for (int nodeIndex = 0; nodeIndex < buffer.Length; nodeIndex++)
                 {
-                    IndirectTrieNode<T> existingNode = buffer[nodeIndex];
+                    IndirectTrieNode<T?> existingNode = buffer[nodeIndex];
                     if (existingNode.HasValue)
                     {
                         SetNode(existingNode with { Value = default! });
@@ -364,7 +364,7 @@ namespace TrieHard.Collections
             return new IndirectTrieEnumerator<T>(this, IndirectTrieLocation.Root, 0);
         }
 
-        IEnumerator<KeyValuePair<string, T>> IEnumerable<KeyValuePair<string, T>>.GetEnumerator()
+        IEnumerator<KeyValuePair<string, T?>> IEnumerable<KeyValuePair<string, T?>>.GetEnumerator()
         {
             return this.GetEnumerator();
         }
@@ -374,7 +374,7 @@ namespace TrieHard.Collections
             return this.GetEnumerator();
         }
 
-        public static IPrefixLookup<string, TValue> Create<TValue>(IEnumerable<KeyValuePair<string, TValue>> source)
+        public static IPrefixLookup<string, TValue?> Create<TValue>(IEnumerable<KeyValuePair<string, TValue?>> source)
         {
             var result = new IndirectTrie<TValue>();
             foreach (var kvp in source)
@@ -387,7 +387,7 @@ namespace TrieHard.Collections
         /// <remarks>
         /// This could be replaced with a struct enumerator that only gets values
         /// </remarks>
-        public IEnumerable<T> SearchValues(string keyPrefix)
+        public IEnumerable<T?> SearchValues(string keyPrefix)
         {
             foreach(var kvp in Search(keyPrefix))
             {
@@ -395,9 +395,9 @@ namespace TrieHard.Collections
             }
         }
 
-        public static IPrefixLookup<string, TValue> Create<TValue>()
+        public static IPrefixLookup<string, TValue?> Create<TValue>()
         {
-            return new IndirectTrie<TValue>();
+            return new IndirectTrie<TValue?>();
         }
     }
 

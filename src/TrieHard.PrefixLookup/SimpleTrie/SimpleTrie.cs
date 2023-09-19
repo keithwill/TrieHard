@@ -28,7 +28,7 @@ namespace TrieHard.Collections
         private SimpleNode<T> rootNode = new();
         private int count;        
 
-        public T this[string key] { 
+        public T? this[string key] { 
             get => rootNode.Get(key);
             set
             {
@@ -44,17 +44,17 @@ namespace TrieHard.Collections
             count = 0;
         }
 
-        public IEnumerable<KeyValuePair<string, T>> GetValues()
+        public IEnumerable<KeyValuePair<string, T?>> GetValues()
         {
             return rootNode.CollectValues(string.Empty.AsMemory(), new StringBuilder());
         }
 
-        public IEnumerator<KeyValuePair<string, T>> GetEnumerator()
+        public IEnumerator<KeyValuePair<string, T?>> GetEnumerator()
         {
             return GetValues().GetEnumerator();
         }
 
-        public IEnumerable<KeyValuePair<string, T>> Search(string keyPrefix)
+        public IEnumerable<KeyValuePair<string, T?>> Search(string keyPrefix)
         {
             return rootNode.Search(keyPrefix);
         }
@@ -64,9 +64,9 @@ namespace TrieHard.Collections
             return GetEnumerator();
         }
 
-        public static IPrefixLookup<string, TValue> Create<TValue>(IEnumerable<KeyValuePair<string, TValue>> source)
+        public static IPrefixLookup<string, TValue?> Create<TValue>(IEnumerable<KeyValuePair<string, TValue?>> source)
         {
-            var result = new SimpleTrie<TValue>();
+            var result = new SimpleTrie<TValue?>();
             foreach (var kvp in source)
             {
                 result[kvp.Key] = kvp.Value;
@@ -74,7 +74,7 @@ namespace TrieHard.Collections
             return result;
         }
 
-        public IEnumerable<T> SearchValues(string keyPrefix)
+        public IEnumerable<T?> SearchValues(string keyPrefix)
         {
             foreach (var kvp in Search(keyPrefix))
             {
@@ -82,9 +82,9 @@ namespace TrieHard.Collections
             }
         }
 
-        public static IPrefixLookup<string, TValue> Create<TValue>()
+        public static IPrefixLookup<string, TValue?> Create<TValue>()
         {
-            return new SimpleTrie<TValue>();
+            return new SimpleTrie<TValue?>();
         }
     }
 }

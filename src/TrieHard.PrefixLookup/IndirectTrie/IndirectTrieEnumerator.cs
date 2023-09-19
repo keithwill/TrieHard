@@ -7,13 +7,13 @@ using System.Threading.Tasks;
 
 namespace TrieHard.Collections
 {
-    public struct IndirectTrieEnumerator<T> : IEnumerator<KeyValuePair<string, T>>, IEnumerator, IEnumerable<KeyValuePair<string, T>>
+    public struct IndirectTrieEnumerator<T> : IEnumerator<KeyValuePair<string, T?>>, IEnumerator, IEnumerable<KeyValuePair<string, T?>>
     {
         private IndirectTrie<T>? trie;
         private int depthFromCollectRoot;
         private IndirectTrieLocation currentLocation;
         private readonly int initialDepth;
-        private KeyValuePair<string, T> current;
+        private KeyValuePair<string, T?> current;
 
 
         internal IndirectTrieEnumerator(IndirectTrie<T> trie, IndirectTrieLocation collectRoot, int initialDepth)
@@ -30,14 +30,14 @@ namespace TrieHard.Collections
             current = default;
         }
 
-        internal string GetFullKey(in IndirectTrieNode<T> node, int depth)
+        internal string GetFullKey(in IndirectTrieNode<T?> node, int depth)
         {
-            IndirectTrieNode<T> searchNode = node;
+            IndirectTrieNode<T?> searchNode = node;
             Span<char> result = stackalloc char[depth];
             for (int i = depth - 1; i >= 0; i--)
             {
                 result[i] = searchNode.Key;
-                searchNode = trie.Get(searchNode.Parent);
+                searchNode = trie!.Get(searchNode.Parent);
             }
             return result.ToString();
         }
@@ -50,14 +50,14 @@ namespace TrieHard.Collections
                 return false;
             }
 
-            ref readonly IndirectTrieNode<T> currentNode = ref trie.Get(currentLoc);
+            ref readonly IndirectTrieNode<T?> currentNode = ref trie!.Get(currentLoc);
 
             if (depthFromCollectRoot == -1)
             {
                 depthFromCollectRoot++;
                 if (currentNode.Value is not null)
                 {
-                    current = new KeyValuePair<string, T>(GetFullKey(currentNode, initialDepth), currentNode.Value);
+                    current = new KeyValuePair<string, T?>(GetFullKey(currentNode, initialDepth), currentNode.Value);
                     return true;
                 }
             }
@@ -66,12 +66,12 @@ namespace TrieHard.Collections
 
             while (next.Exists)
             {
-                ref readonly IndirectTrieNode<T> nextNode = ref trie.Get(next);
+                ref readonly IndirectTrieNode<T?> nextNode = ref trie.Get(next);
                 if (nextNode.Value is not null)
                 {
                     currentLocation = next;
                     var key = GetFullKey(nextNode, initialDepth + depthFromCollectRoot);
-                    current = new KeyValuePair<string, T>(key, nextNode.Value);
+                    current = new KeyValuePair<string, T?>(key, nextNode.Value);
                     return true;
                 }
                 next = trie.NextDepthFirst(nextNode, ref depthFromCollectRoot);
@@ -80,7 +80,7 @@ namespace TrieHard.Collections
         }
 
 
-        public KeyValuePair<string, T> Current
+        public KeyValuePair<string, T?> Current
         {
             get
             {
@@ -112,7 +112,7 @@ namespace TrieHard.Collections
             return this;
         }
 
-        IEnumerator<KeyValuePair<string, T>> IEnumerable<KeyValuePair<string, T>>.GetEnumerator()
+        IEnumerator<KeyValuePair<string, T?>> IEnumerable<KeyValuePair<string, T?>>.GetEnumerator()
         {
             return this;
         }

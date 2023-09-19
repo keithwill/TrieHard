@@ -187,17 +187,17 @@ namespace TrieHard.Collections
             return new CompactTrieEnumerator<T>(null!, key, 0, keyBuffer);
         }
 
-        public CompactTrieValueEnumerator<T> SearchValues(ReadOnlySpan<byte> keyPrefix)
+        public CompactTrieValueEnumerator<T?> SearchValues(ReadOnlySpan<byte> keyPrefix)
         {
             nint matchingNode = FindNodeAddress(keyPrefix);
             if (matchingNode > 0)
             {
-                return new CompactTrieValueEnumerator<T>(this, matchingNode);
+                return new CompactTrieValueEnumerator<T?>(this, matchingNode);
             }
-            return CompactTrieValueEnumerator<T>.None;
+            return CompactTrieValueEnumerator<T?>.None;
         }
 
-        public CompactTrieValueEnumerator<T> SearchValues(string keyPrefix)
+        public CompactTrieValueEnumerator<T?> SearchValues(string keyPrefix)
         {
             var maxByteSize = (keyPrefix.Length + 1) * 3;
             if (maxByteSize > 4096)
@@ -206,7 +206,7 @@ namespace TrieHard.Collections
                 Span<byte> keySpan = buffer.AsSpan();
                 Utf8.FromUtf16(keyPrefix, keySpan, out var _, out var bytesWritten, false, true);
                 keySpan = keySpan.Slice(0, bytesWritten);
-                CompactTrieValueEnumerator<T> result = SearchValues(keySpan);
+                CompactTrieValueEnumerator<T?> result = SearchValues(keySpan);
                 ArrayPool<byte>.Shared.Return(buffer);
                 return result;
             }

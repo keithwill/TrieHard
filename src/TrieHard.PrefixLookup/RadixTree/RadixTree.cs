@@ -44,20 +44,21 @@ public class RadixTree<T> : IPrefixLookup<string, T>
     public int Count => root.GetValuesCount();
 
 
-    public T this[string key]
+    public T? this[string key]
     {
         get => Get(key);
         set => Set(key, value);
     }
 
-    public void Set(in ReadOnlySpan<char> keyBytes, T value)
+    public void Set(in ReadOnlySpan<char> keyBytes, T? value)
     {
         root.SetValue(ref root, keyBytes, value);
     }
 
-    public T Get(in ReadOnlySpan<char> key)
+    public T? Get(in ReadOnlySpan<char> key)
     {
-        return root.GetValue(key).Value;
+        var node = root.GetValue(key);
+        return node is null ? default : node.Value;
     }
 
     public void Clear()
@@ -66,13 +67,13 @@ public class RadixTree<T> : IPrefixLookup<string, T>
         this.root.Children = Array.Empty<RadixTreeNode<T>>();
     }
 
-    public IEnumerable<KeyValuePair<string, T>> Search(string keyPrefix)
+    public IEnumerable<KeyValuePair<string, T?>> Search(string keyPrefix)
     {
         if (keyPrefix == string.Empty) return root.Collect();
         return root.EnumeratePrefix(keyPrefix);
     }
 
-    public IEnumerator<KeyValuePair<string, T>> GetEnumerator()
+    public IEnumerator<KeyValuePair<string, T?>> GetEnumerator()
     {
         return Search(string.Empty).GetEnumerator();
     }
@@ -82,9 +83,9 @@ public class RadixTree<T> : IPrefixLookup<string, T>
         return GetEnumerator();
     }
 
-    public static IPrefixLookup<string, TValue> Create<TValue>(IEnumerable<KeyValuePair<string, TValue>> source)
+    public static IPrefixLookup<string, TValue?> Create<TValue>(IEnumerable<KeyValuePair<string, TValue?>> source)
     {
-        var result = new RadixTree<TValue>();
+        var result = new RadixTree<TValue?>();
         foreach (var kvp in source)
         {
             result[kvp.Key] = kvp.Value;
@@ -92,7 +93,7 @@ public class RadixTree<T> : IPrefixLookup<string, T>
         return result;
     }
 
-    public IEnumerable<T> SearchValues(string keyPrefix)
+    public IEnumerable<T?> SearchValues(string keyPrefix)
     {
         foreach (var kvp in Search(keyPrefix))
         {
@@ -100,8 +101,8 @@ public class RadixTree<T> : IPrefixLookup<string, T>
         }
     }
 
-    public static IPrefixLookup<string, TValue> Create<TValue>()
+    public static IPrefixLookup<string, TValue?> Create<TValue>()
     {
-        return new RadixTree<TValue>();
+        return new RadixTree<TValue?>();
     }
 }
