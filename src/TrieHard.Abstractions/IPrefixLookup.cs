@@ -6,13 +6,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TrieHard.Collections.Contributions
+namespace TrieHard.Abstractions
 {
     public interface IPrefixLookup<TKey, TValue> : IPrefixLookup, IEnumerable<KeyValuePair<TKey, TValue>>
     {
 
         /// <summary>
-        /// Gets the value of the supplied key. Unlike a Dicationary,
+        /// Gets the value of the supplied key. Unlike a Dictionary,
         /// this will return a default or null value if the value does not
         /// exist in the lookup.
         /// </summary>
@@ -36,7 +36,7 @@ namespace TrieHard.Collections.Contributions
         /// supplied keyPrefix value.
         /// </summary>
         /// <param name="keyPrefix">The value to use as a 'StartsWith' search of keys</param>
-        /// <returns>An enermerable of the key value pairs matching the prefix</returns>
+        /// <returns>An enumerable of the key value pairs matching the prefix</returns>
         IEnumerable<KeyValuePair<TKey, TValue>> Search(TKey keyPrefix);
 
         IEnumerable<TValue> SearchValues(TKey keyPrefix);

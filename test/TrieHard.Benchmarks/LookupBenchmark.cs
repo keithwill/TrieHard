@@ -4,9 +4,9 @@ using TrieHard.Alternatives.ExternalLibraries.rm.Trie;
 using TrieHard.Alternatives.List;
 using TrieHard.Alternatives.SQLite;
 using TrieHard.Collections;
-using TrieHard.Collections.Contributions;
+using TrieHard.Abstractions;
 
-namespace TriHard.Benchmarks
+namespace TrieHard.Benchmarks
 {
 
     public class Simple : LookupBenchmark<SimpleTrie<string>> { }

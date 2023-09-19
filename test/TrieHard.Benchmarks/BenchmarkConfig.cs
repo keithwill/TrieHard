@@ -7,7 +7,7 @@ using BenchmarkDotNet.Order;
 using BenchmarkDotNet.Diagnostics.Windows;
 using Microsoft.Diagnostics.Tracing.Parsers;
 
-namespace TriHard.Benchmarks
+namespace TrieHard.Benchmarks
 {
     public class BenchmarkConfig : ManualConfig
     {

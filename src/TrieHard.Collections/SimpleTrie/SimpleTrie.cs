@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
-using TrieHard.Collections.Contributions;
+using TrieHard.Abstractions;
 
 namespace TrieHard.Collections
 {

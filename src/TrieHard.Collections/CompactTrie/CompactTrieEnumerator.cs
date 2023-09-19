@@ -11,7 +11,7 @@ namespace TrieHard.Collections
     [SkipLocalsInit]
     public unsafe struct CompactTrieEnumerator<T> : IEnumerable<KeyValuePair<string, T>>, IEnumerator<KeyValuePair<string, T>>
     {
-        private static nuint StackEntrySize = (nuint)Convert.ToUInt64(sizeof(StackEntry));
+        private static nuint StackEntrySize = (nuint)Convert.ToUInt64(sizeof(CompactTrieStackEntry));
 
         private readonly CompactTrie<T> trie;
         private readonly ReadOnlyMemory<byte> rootPrefix;
@@ -59,30 +59,30 @@ namespace TrieHard.Collections
                 var newSizeInt = stackSize * 8;
                 var newSize = (nuint)Convert.ToUInt64(newSizeInt);
                 void* tmp = NativeMemory.Alloc(newSize, StackEntrySize);
-                Span<StackEntry> newStack = new Span<StackEntry>(tmp, newSizeInt);
-                Span<StackEntry> oldStack = new Span<StackEntry>(stack, stackSize);
+                Span<CompactTrieStackEntry> newStack = new Span<CompactTrieStackEntry>(tmp, newSizeInt);
+                Span<CompactTrieStackEntry> oldStack = new Span<CompactTrieStackEntry>(stack, stackSize);
                 oldStack.CopyTo(newStack);
                 NativeMemory.Free(stack);
                 stack = tmp;
                 stackSize = newSizeInt;
             }
-            Span<StackEntry> stackEntries = new Span<StackEntry>(stack, stackSize);
-            stackEntries[stackCount] = new StackEntry ( node, childIndex, key );
+            Span<CompactTrieStackEntry> stackEntries = new Span<CompactTrieStackEntry>(stack, stackSize);
+            stackEntries[stackCount] = new CompactTrieStackEntry ( node, childIndex, key );
             stackCount++;
         }
 
-        private StackEntry Pop()
+        private CompactTrieStackEntry Pop()
         {
-            Span<StackEntry> stackEntries = new Span<StackEntry>(stack, stackSize);
-            StackEntry entry = stackEntries[stackCount - 1];
+            Span<CompactTrieStackEntry> stackEntries = new Span<CompactTrieStackEntry>(stack, stackSize);
+            CompactTrieStackEntry entry = stackEntries[stackCount - 1];
             stackCount--;
             return entry;
         }
 
-        private StackEntry Peek()
+        private CompactTrieStackEntry Peek()
         {
-            Span<StackEntry> stackEntries = new Span<StackEntry>(stack, stackSize);
-            StackEntry entry = stackEntries[stackCount - 1];
+            Span<CompactTrieStackEntry> stackEntries = new Span<CompactTrieStackEntry>(stack, stackSize);
+            CompactTrieStackEntry entry = stackEntries[stackCount - 1];
             return entry;
         }
 
@@ -95,7 +95,7 @@ namespace TrieHard.Collections
 
             while (true)
             {
-                CompactNodeTrie* currentNode = (CompactNodeTrie*)currentNodeAddress.ToPointer();
+                CompactTrieNode* currentNode = (CompactTrieNode*)currentNodeAddress.ToPointer();
                 bool hasValue = false;
 
                 if (currentNode->ValueLocation > -1)
@@ -122,9 +122,9 @@ namespace TrieHard.Collections
                         finished = true;
                         return hasValue;
                     }
-                    StackEntry parentEntry = Pop();
+                    CompactTrieStackEntry parentEntry = Pop();
                     nint parentNodeAddress = (nint)parentEntry.Node;
-                    CompactNodeTrie* parentNode = (CompactNodeTrie*)parentNodeAddress.ToPointer();
+                    CompactTrieNode* parentNode = (CompactTrieNode*)parentNodeAddress.ToPointer();
 
                     if (parentEntry.ChildIndex >= parentNode->ChildCount - 1)
                     {
@@ -155,7 +155,7 @@ namespace TrieHard.Collections
         private string GetKeyFromStack()
         {
             int prefixLength = rootPrefix.Length;
-            Span<StackEntry> stackEntries = new Span<StackEntry>(this.stack, stackCount);
+            Span<CompactTrieStackEntry> stackEntries = new Span<CompactTrieStackEntry>(this.stack, stackCount);
             Span<byte> keyBytes = stackalloc byte[prefixLength + stackCount];
             for(int i = 0; i < stackEntries.Length; i++)
             {

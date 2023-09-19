@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections;
-using TrieHard.Collections.Contributions;
+using TrieHard.Abstractions;
 using rm.Trie;
 
 namespace TrieHard.Alternatives.ExternalLibraries.rm.Trie

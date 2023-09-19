@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TriHard.Benchmarks
+namespace TrieHard.Benchmarks
 {
     public static class TypeExtensionMethods
     {

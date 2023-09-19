@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using TrieHard.Collections.Contributions;
+using TrieHard.Abstractions;
 
-namespace TriHard.Benchmarks
+namespace TrieHard.Benchmarks
 {
     /// <summary>
     /// TODO: Implement a clunky way to estimate the amount of managed garbage that is released

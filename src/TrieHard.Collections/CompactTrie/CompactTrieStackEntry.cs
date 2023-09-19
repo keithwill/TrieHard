@@ -2,10 +2,14 @@
 
 namespace TrieHard.Collections
 {
+    /// <summary>
+    /// A struct used to store entries in HybridStacks to allow navigation up and to siblings
+    /// during CompactTrie node transversals.
+    /// </summary>
     [StructLayout(LayoutKind.Explicit, Size = 10)]
-    internal unsafe readonly struct StackEntry
+    internal unsafe readonly struct CompactTrieStackEntry
     {
-        public StackEntry(long node, byte childIndex, byte key)
+        public CompactTrieStackEntry(long node, byte childIndex, byte key)
         {
             this.Node = node;
             this.ChildIndex = childIndex;

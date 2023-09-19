@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Unicode;
-using TrieHard.Collections.Contributions;
+using TrieHard.Abstractions;
 
 namespace TrieHard.Collections
 {
@@ -22,9 +22,10 @@ namespace TrieHard.Collections
 
         private List<T> values = new();
         private bool isDisposed = false;
-        private CompactNodeTrie* rootPointer;
+        private CompactTrieNode* rootPointer;
 
         internal List<T> Values => values;
+
 
         public int Count => values.Count;
 
@@ -44,16 +45,16 @@ namespace TrieHard.Collections
 
         private void CreateRoot()
         {
-            var nodeSize = CompactNodeTrie.Size;
+            var nodeSize = CompactTrieNode.Size;
             EnsureNodeSpace();
-            rootPointer = (CompactNodeTrie*)buffer.CurrentAddress;
-            *rootPointer = new CompactNodeTrie();
+            rootPointer = (CompactTrieNode*)buffer.CurrentAddress;
+            *rootPointer = new CompactTrieNode();
             RecordNode();
         }
 
         private void EnsureNodeSpace()
         {
-            if (!buffer.IsAvailable(CompactNodeTrie.Size))
+            if (!buffer.IsAvailable(CompactTrieNode.Size))
             {
                 var newCapacity = buffer.Size * 2;
                 var newBuffer = new CompactTrieNodeBuffer(newCapacity);
@@ -64,7 +65,7 @@ namespace TrieHard.Collections
 
         private void RecordNode()
         {
-            this.buffer.Advance(CompactNodeTrie.Size);
+            this.buffer.Advance(CompactTrieNode.Size);
             nodeCount++;
         }
 
@@ -94,7 +95,7 @@ namespace TrieHard.Collections
         {
             int keyIndex = 0;
 
-            CompactNodeTrie* searchNode = rootPointer;
+            CompactTrieNode* searchNode = rootPointer;
             while (true)
             {
                 byte byteToMatch = key[keyIndex];
@@ -104,13 +105,13 @@ namespace TrieHard.Collections
                 {
                     matchingIndex = ~matchingIndex;
                     EnsureNodeSpace();
-                    CompactNodeTrie* newNode = (CompactNodeTrie*)buffer.CurrentAddress;
-                    *newNode = new CompactNodeTrie { ValueLocation = -1 };
+                    CompactTrieNode* newNode = (CompactTrieNode*)buffer.CurrentAddress;
+                    *newNode = new CompactTrieNode { ValueLocation = -1 };
                     RecordNode();
                     searchNode->AddChild(new nint(newNode), byteToMatch, matchingIndex);
                 }
 
-                searchNode = (CompactNodeTrie*)searchNode->GetChild(matchingIndex).ToPointer();
+                searchNode = (CompactTrieNode*)searchNode->GetChild(matchingIndex).ToPointer();
 
                 keyIndex++;
                 if (key.Length == keyIndex)
@@ -133,11 +134,6 @@ namespace TrieHard.Collections
 
         public CompactTrieEnumerator<T> Search(string key)
         {
-            // TODO: We can't use stackalloc because the backing for the string
-            // needs to live as long as the returned enumerator (its used to generate key
-            // values while the consumer is iterating).
-            // Maybe make this use a pooled array that gets passed to the enumerator to return?
-
             if (key.Length == 0)
             {
                 return Search(EmptyKeyBytes);
@@ -158,6 +154,27 @@ namespace TrieHard.Collections
                 return new CompactTrieUtf8Enumerator<T>(this, key, matchingNode, keyBuffer);
             }
             return new CompactTrieUtf8Enumerator<T>(null, key, 0, keyBuffer);
+        }
+
+        /// <summary>
+        /// Performs a prefix search on the provided key, and returns an enumerator optimized
+        /// for iteration which will not allocate unless boxed and which provides access to 
+        /// the byte spans of UTF8 text of each key. Use the span only within the foreach loop
+        /// body, as every time the returned enumerator iterates, the previously returned
+        /// KeyValue will no longer contain valid data.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public CompactTrieNodeSpanEnumerable<T> SearchSpans(ReadOnlySpan<byte> key)
+        {
+            nint nodeAddress = FindNodeAddress(key);
+
+            if (nodeAddress > 0)
+            {
+                ref readonly CompactTrieNode matchingNode = ref *(CompactTrieNode*)nodeAddress.ToPointer();
+                return new CompactTrieNodeSpanEnumerable<T>(this, key, matchingNode);
+            }
+            return new CompactTrieNodeSpanEnumerable<T>();
         }
 
         public CompactTrieEnumerator<T> Search(ReadOnlyMemory<byte> key, byte[] keyBuffer = null)
@@ -202,10 +219,10 @@ namespace TrieHard.Collections
             }
         }
 
-        private nint FindNodeAddress(in ReadOnlySpan<byte> key)
+        private nint FindNodeAddress(ReadOnlySpan<byte> key)
         {
             int keyIndex = 0;
-            CompactNodeTrie* searchNode = rootPointer;
+            CompactTrieNode* searchNode = rootPointer;
             while (true)
             {
                 byte byteToMatch = key[keyIndex];
@@ -217,7 +234,7 @@ namespace TrieHard.Collections
                 }
 
                 var matchingChildAddress = searchNode->GetChild(matchingIndex);
-                searchNode = (CompactNodeTrie*)matchingChildAddress.ToPointer();
+                searchNode = (CompactTrieNode*)matchingChildAddress.ToPointer();
 
                 keyIndex++;
                 if (key.Length == keyIndex)
@@ -258,7 +275,7 @@ namespace TrieHard.Collections
             {
                 return default;
             }
-            CompactNodeTrie* node = (CompactNodeTrie*)nodeAddress;
+            CompactTrieNode* node = (CompactTrieNode*)nodeAddress;
             if (node->ValueLocation == -1)
             {
                 return default;
@@ -295,7 +312,7 @@ namespace TrieHard.Collections
 
         private void GetNodeFreeAddresses(nint searchNode, List<nint> freeList)
         {
-            CompactNodeTrie* node = (CompactNodeTrie*)searchNode.ToPointer();
+            CompactTrieNode* node = (CompactTrieNode*)searchNode.ToPointer();
             freeList.Add(new nint((void*)node->ChildKeysAddress));
             byte childCount = node->ChildCount;
             for (int i = 0; i < childCount; i++)
@@ -313,7 +330,7 @@ namespace TrieHard.Collections
 
         public void ClearNodeRecursive(nint nodeAddress)
         {
-            var node = (CompactNodeTrie*)nodeAddress.ToPointer();
+            var node = (CompactTrieNode*)nodeAddress.ToPointer();
             node->ValueLocation = -1;
             for(int i = 0; i < node->ChildCount; i++)
             {
@@ -361,13 +378,13 @@ namespace TrieHard.Collections
             return new CompactTrie<TValue>();
         }
 
-        ~CompactTrie()
-        {
-            if (!isDisposed)
-            {
-                Dispose();
-            }
-        }
+        // ~CompactTrie()
+        // {
+        //     if (!isDisposed)
+        //     {
+        //         Dispose();
+        //     }
+        // }
 
     }
 

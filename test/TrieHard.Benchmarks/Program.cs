@@ -8,7 +8,7 @@ using TrieHard.Alternatives.List;
 using TrieHard.Alternatives.SQLite;
 using TrieHard.Collections;
 
-namespace TriHard.Benchmarks
+namespace TrieHard.Benchmarks
 {
     public class Program
     {

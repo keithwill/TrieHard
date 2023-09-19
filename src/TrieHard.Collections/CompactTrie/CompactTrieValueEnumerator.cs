@@ -88,7 +88,7 @@ namespace TrieHard.Collections
 
             while (true)
             {
-                CompactNodeTrie* currentNode = (CompactNodeTrie*)currentNodeAddress.ToPointer();
+                CompactTrieNode* currentNode = (CompactTrieNode*)currentNodeAddress.ToPointer();
                 bool hasValue = false;
 
                 if (currentNode->ValueLocation > -1)
@@ -117,7 +117,7 @@ namespace TrieHard.Collections
                     }
                     StackValueEntry parentEntry = Pop();
                     nint parentNodeAddress = (nint)parentEntry.Node;
-                    CompactNodeTrie* parentNode = (CompactNodeTrie*)parentNodeAddress.ToPointer();
+                    CompactTrieNode* parentNode = (CompactTrieNode*)parentNodeAddress.ToPointer();
 
                     if (parentEntry.ChildIndex >= parentNode->ChildCount - 1)
                     {

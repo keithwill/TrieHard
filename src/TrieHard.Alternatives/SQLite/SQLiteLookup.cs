@@ -1,6 +1,6 @@
 ﻿using Microsoft.Data.Sqlite;
 using System.Collections;
-using TrieHard.Collections.Contributions;
+using TrieHard.Abstractions;
 
 namespace TrieHard.Alternatives.SQLite
 {

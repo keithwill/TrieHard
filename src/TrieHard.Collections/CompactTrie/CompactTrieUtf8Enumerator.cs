@@ -10,21 +10,28 @@ namespace TrieHard.Collections
     [SkipLocalsInit]
     public unsafe struct CompactTrieUtf8Enumerator<T> : IEnumerable<KeyValuePair<ReadOnlyMemory<byte>, T>>, IEnumerator<KeyValuePair<ReadOnlyMemory<byte>, T>>
     {
-        private static nuint StackEntrySize = (nuint)Convert.ToUInt64(sizeof(StackEntry));
+        private static nuint StackEntrySize = (nuint)Convert.ToUInt64(sizeof(CompactTrieStackEntry));
 
         private readonly CompactTrie<T> trie;
         private readonly ReadOnlyMemory<byte> rootPrefix;
         private nint collectNode;
-        private readonly byte[] keyBuffer;
         private nint currentNodeAddress;
-        private int stackCount;
-        private int stackSize;
-        private void* stack;
+
+        private CompactTrieStackEntry[] nodeStack;
+        private int nodeStackCount;
+        private int nodeStackCapacity;
+        
+        private readonly byte[] keyBuffer;
+        private byte[] resultKeyBuffer = Empty;
+
         private bool isDisposed = false;
         private KeyValuePair<ReadOnlyMemory<byte>, T> currentValue;
         private bool finished = false;
-        private byte[] resultKeyBuffer = Empty;
+        
+
         private static readonly byte[] Empty = new byte[0];
+
+    
 
         public readonly static CompactTrieUtf8Enumerator<T> None = new CompactTrieUtf8Enumerator<T>(null, ReadOnlyMemory<byte>.Empty, 0);
 
@@ -48,53 +55,44 @@ namespace TrieHard.Collections
 
         private void Push(nint node, byte childIndex, byte key)
         {
-            if (stackCount == 0)
+
+            if (nodeStackCount == 0)
             {
-                stack = NativeMemory.Alloc(4, StackEntrySize);
-                stackSize = 4;
+                nodeStack = ArrayPool<CompactTrieStackEntry>.Shared.Rent(64);
+                nodeStackCapacity = 64;
             }
-            if (stackSize < stackCount + 1)
+            if (nodeStackCapacity <= nodeStackCount)
             {
-                var newSizeInt = stackSize * 2;
-                var newSize = (nuint)Convert.ToUInt64(newSizeInt);
-                void* tmp = NativeMemory.Alloc(newSize, StackEntrySize);
-                Span<StackEntry> newStack = new Span<StackEntry>(tmp, newSizeInt);
-                Span<StackEntry> oldStack = new Span<StackEntry>(stack, stackSize);
-                oldStack.CopyTo(newStack);
-                NativeMemory.Free(stack);
-                stack = tmp;
-                stackSize = newSizeInt;
+                var newStack = ArrayPool<CompactTrieStackEntry>.Shared.Rent(nodeStackCapacity * 2);
+                var oldNodeStack = nodeStack;
+
+                Array.Copy(oldNodeStack, newStack, nodeStackCount);
+                ArrayPool<CompactTrieStackEntry>.Shared.Return(oldNodeStack);
+                nodeStack = newStack;
             }
-            Span<StackEntry> stackEntries = new Span<StackEntry>(stack, stackSize);
-            stackEntries[stackCount] = new StackEntry(node, childIndex, key);
-            stackCount++;
+            nodeStack[nodeStackCount] = new CompactTrieStackEntry(node, childIndex, key);
+            nodeStackCount++;
         }
 
-        private StackEntry Pop()
+
+        private CompactTrieStackEntry Pop()
         {
-            Span<StackEntry> stackEntries = new Span<StackEntry>(stack, stackSize);
-            StackEntry entry = stackEntries[stackCount - 1];
-            stackCount--;
+            var entry = nodeStack[nodeStackCount - 1];
+            nodeStackCount--;
             return entry;
         }
 
-        private StackEntry Peek()
-        {
-            Span<StackEntry> stackEntries = new Span<StackEntry>(stack, stackSize);
-            StackEntry entry = stackEntries[stackCount - 1];
-            return entry;
-        }
 
         public bool MoveNext()
         {
             if (finished) return false;
             // Movement is descend to first child if one exists
-            // If not, backtrack with stack and descend to next sibbling
+            // If not, backtrack with stack and descend to next sibling
             // Only return values when we descend.
 
             while (true)
             {
-                CompactNodeTrie* currentNode = (CompactNodeTrie*)currentNodeAddress.ToPointer();
+                CompactTrieNode* currentNode = (CompactTrieNode*)currentNodeAddress.ToPointer();
                 bool hasValue = false;
 
                 if (currentNode->ValueLocation > -1)
@@ -121,9 +119,9 @@ namespace TrieHard.Collections
                         finished = true;
                         return hasValue;
                     }
-                    StackEntry parentEntry = Pop();
+                    CompactTrieStackEntry parentEntry = Pop();
                     nint parentNodeAddress = (nint)parentEntry.Node;
-                    CompactNodeTrie* parentNode = (CompactNodeTrie*)parentNodeAddress.ToPointer();
+                    CompactTrieNode* parentNode = (CompactTrieNode*)parentNodeAddress.ToPointer();
 
                     if (parentEntry.ChildIndex >= parentNode->ChildCount - 1)
                     {
@@ -133,6 +131,7 @@ namespace TrieHard.Collections
                     }
                     else
                     {
+                        
                         // From the current Node's parent, descend into the next sibbling of the current node
                         byte childIndex = parentEntry.ChildIndex;
                         childIndex++;
@@ -154,7 +153,8 @@ namespace TrieHard.Collections
         private ReadOnlyMemory<byte> GetKeyFromStack()
         {
             int prefixLength = rootPrefix.Length;
-            int keyByteLength = prefixLength + stackCount;
+            int keyByteLength = prefixLength + nodeStackCount;
+
             if (resultKeyBuffer.Length < keyByteLength)
             {
                 if (resultKeyBuffer.Length > 0)
@@ -163,16 +163,22 @@ namespace TrieHard.Collections
                 }
                 resultKeyBuffer = ArrayPool<byte>.Shared.Rent(keyByteLength);
             }
-            Span<StackEntry> stackEntries = new Span<StackEntry>(this.stack, stackCount);
+            Span<CompactTrieStackEntry> stackEntries = nodeStack.AsSpan(0, nodeStackCount);
             Span<byte> keyBytes = resultKeyBuffer.AsSpan(0, keyByteLength);
 
-            for (int i = 0; i < stackEntries.Length; i++)
+            var prefixTarget = keyBytes.Slice(0, rootPrefix.Length);
+            rootPrefix.Span.CopyTo(prefixTarget);
+            for (int i = 0; i < nodeStackCount - 1; i++)
             {
                 var entry = stackEntries[i];
                 keyBytes[i + prefixLength] = entry.Key;
             }
-            var prefixTarget = keyBytes.Slice(0, rootPrefix.Length);
-            rootPrefix.Span.CopyTo(prefixTarget);
+
+            // for(int i = 0; i < stackStack.Length; i++)
+            // {
+            //     keyBytes[i + prefixLength] = stackStack[i];
+            // }
+
             return resultKeyBuffer.AsMemory(0, keyByteLength);
         }
 
@@ -180,9 +186,9 @@ namespace TrieHard.Collections
         {
             if (!isDisposed)
             {
-                if (stackSize > 0)
+                if (nodeStackCapacity > 0)
                 {
-                    NativeMemory.Free(stack);
+                    ArrayPool<CompactTrieStackEntry>.Shared.Return(nodeStack);
                 }
                 if (resultKeyBuffer.Length > 0)
                 {
@@ -199,16 +205,16 @@ namespace TrieHard.Collections
         {
             if (trie is not null)
             {
-                if (stackSize > 0)
-                {
-                    NativeMemory.Free(stack);
-                }
+                // if (stackSize > 0)
+                // {
+                //     NativeMemory.Free(stack);
+                // }
                 if (resultKeyBuffer.Length > 0)
                 {
                     ArrayPool<byte>.Shared.Return(resultKeyBuffer);
                 }
-                stackSize = 0;
-                stackCount = 0;
+                // stackSize = 0;
+                // stackCount = 0;
                 this.resultKeyBuffer = Empty;
                 this.currentNodeAddress = collectNode;
             }

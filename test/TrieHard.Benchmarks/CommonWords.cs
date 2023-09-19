@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TriHard.Benchmarks
+namespace TrieHard.Benchmarks
 {
     /// <summary>
     /// Words taken from https://gist.github.com/deekayen/4148741 and  https://github.com/lwinmoe/segment

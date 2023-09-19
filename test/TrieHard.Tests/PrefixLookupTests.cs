@@ -3,9 +3,9 @@ using TrieHard.Alternatives.ExternalLibraries.rm.Trie;
 using TrieHard.Alternatives.List;
 using TrieHard.Alternatives.SQLite;
 using TrieHard.Collections;
-using TrieHard.Collections.Contributions;
+using TrieHard.Abstractions;
 
-namespace TriHard.Tests;
+namespace TrieHard.Tests;
 
 public record class TestRecord(string Key);
 
@@ -134,7 +134,7 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<string, TestR
     }
 
 
-    private KeyValuePair<string, TestRecord>[] GetTestRecords(int count)
+    protected KeyValuePair<string, TestRecord>[] GetTestRecords(int count)
     {
         List<KeyValuePair<string, TestRecord>> testKeyValues = new();
         for (int i = 0; i < count; i++)
@@ -190,7 +190,6 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<string, TestR
 public class SimpleTrieTests : PrefixLookupTests<SimpleTrie<TestRecord>> { }
 public class IndirectTrieTests : PrefixLookupTests<IndirectTrie<TestRecord>> { }
 public class RadixTreeTests : PrefixLookupTests<RadixTree<TestRecord>> { }
-public class CompactTrieTests : PrefixLookupTests<CompactTrie<TestRecord>> { }
 public class SqliteLookupTests : PrefixLookupTests<SQLiteLookup<TestRecord>> { }
 public class ListPrefixLookupTests : PrefixLookupTests<ListPrefixLookup<TestRecord>> { }
 public class rmTrieTests : PrefixLookupTests<rmTrie<TestRecord>> { }

@@ -6,10 +6,10 @@ namespace TrieHard.Collections
 {
     [StructLayout(LayoutKind.Explicit, Size = 13)]
     [SkipLocalsInit]
-    internal unsafe struct CompactNodeTrie
+    public unsafe struct CompactTrieNode
     {
 
-        public static readonly int Size = sizeof(CompactNodeTrie);
+        public static readonly int Size = sizeof(CompactTrieNode);
 
         [FieldOffset(0)]
         public long ChildKeysAddress;
@@ -37,10 +37,30 @@ namespace TrieHard.Collections
             return keys.BinarySearch(keyByte);
         }
 
+        public bool Is(in CompactTrieNode other)
+        {
+            return this.ChildKeysAddress == other.ChildKeysAddress;
+        }
+
         public nint GetChild(int index)
         {
+            Span<long> childKeys = new Span<long>((long*)ChildLocations, ChildCount);
             var childrenLocations = (long*)ChildLocations.ToPointer();
-            return (nint)childrenLocations[index];
+            var result = (nint)childrenLocations[index];
+            return result;
+        }
+
+        public readonly ref readonly CompactTrieNode GetChildRef(int index)
+        {
+            byte* childKeys = (byte*)((nint)ChildKeysAddress).ToPointer();
+            long* childLocations = (long*)(childKeys + ChildCount);
+            CompactTrieNode* childPointer = (CompactTrieNode*)new nint(childLocations[index]).ToPointer();
+            return ref *childPointer;
+        }
+
+        public CompactTrieNode* GetChildPointer(int index)
+        {
+            return (CompactTrieNode*)GetChild(index).ToPointer();
         }
 
         public byte GetChildKey(int index)
@@ -94,5 +114,7 @@ namespace TrieHard.Collections
         }
 
     }
+
+
 
 }
