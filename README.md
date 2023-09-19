@@ -1,4 +1,4 @@
-![Nuget](https://img.shields.io/nuget/v/PrefixLookup)
+[![Version](https://img.shields.io/nuget/vpre/PrefixLookup.svg)](https://www.nuget.org/packages/PrefixLookup)
 
 # Prefix Lookup and the TrieHard Project
 
