@@ -4,7 +4,7 @@ using TrieHard.Collections;
 
 public class PrefixLookup<T> : IPrefixLookup<string, T?>, IDisposable
 {
-    private CompactTrie<T> trie;
+    private FlatTrie<T> trie;
     public T? this[string key]
     {
         get => trie[key];
@@ -13,7 +13,7 @@ public class PrefixLookup<T> : IPrefixLookup<string, T?>, IDisposable
 
     public PrefixLookup()
     {
-        trie = new CompactTrie<T>();
+        trie = new FlatTrie<T>();
     }
 
     public static bool IsImmutable => CompactTrie<T>.IsImmutable;
@@ -24,14 +24,14 @@ public class PrefixLookup<T> : IPrefixLookup<string, T?>, IDisposable
     public static IPrefixLookup<string, TValue?> Create<TValue>(IEnumerable<KeyValuePair<string, TValue?>> source)
     {
         var result = new PrefixLookup<TValue?>();
-        result.trie = (CompactTrie<TValue?>)CompactTrie<TValue?>.Create(source);
+        result.trie = (FlatTrie<TValue?>)FlatTrie<TValue?>.Create(source);
         return result;
     }
 
     public static IPrefixLookup<string, TValue?> Create<TValue>()
     {
         var result = new PrefixLookup<TValue?>();
-        result.trie = (CompactTrie<TValue?>)CompactTrie<TValue>.Create<TValue?>();
+        result.trie = (FlatTrie<TValue?>)FlatTrie<TValue>.Create<TValue?>();
         return result;
     }
 
@@ -40,7 +40,7 @@ public class PrefixLookup<T> : IPrefixLookup<string, T?>, IDisposable
         trie.Clear();
     }
 
-    public CompactTrieEnumerator<T> GetEnumerator()
+    public IEnumerator<KeyValuePair<string, T?>> GetEnumerator()
     {
         return trie.GetEnumerator();
     }
@@ -50,7 +50,7 @@ public class PrefixLookup<T> : IPrefixLookup<string, T?>, IDisposable
         return this.GetEnumerator();
     }
 
-    public CompactTrieEnumerator<T> Search(string keyPrefix)
+    public SearchResult<KeyValuePair<string, T?>> Search(string keyPrefix)
     {
         return trie.Search(keyPrefix);
     }
@@ -60,7 +60,7 @@ public class PrefixLookup<T> : IPrefixLookup<string, T?>, IDisposable
         return Search(keyPrefix);
     }
 
-    public CompactTrieValueEnumerator<T?> SearchValues(string keyPrefix)
+    public SearchResult<T?> SearchValues(string keyPrefix)
     {
         return trie.SearchValues(keyPrefix);
     }
@@ -77,6 +77,5 @@ public class PrefixLookup<T> : IPrefixLookup<string, T?>, IDisposable
 
     public void Dispose()
     {
-        trie.Dispose();
     }
 }

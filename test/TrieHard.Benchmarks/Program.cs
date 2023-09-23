@@ -23,7 +23,8 @@ namespace TrieHard.Benchmarks
                 typeof(NaiveList),
                 typeof(Indirect),
                 typeof(SQLite),
-                typeof(rmTrie)
+                typeof(rmTrie),
+                typeof(Flat)
             }, args: args, config: benchmarkConfig);
 
         }

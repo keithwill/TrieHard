@@ -14,7 +14,7 @@ namespace TrieHard.Collections;
 /// Advantages: Offers theoretical advantages when the key space is not saturated
 /// or where the keys stored might have long repeated prefixes and special values (for example, route patterns).
 /// Comparing operations are faster on arrays of characters than on individual characters
-/// that must be retreived by referencing children / sibblings. This implementation does
+/// that must be retrieved by referencing children / siblings. This implementation does
 /// not require any additional backing storage than object references from the root, and 
 /// keys are stored as segments on each node, making this implementation easier to diagnose
 /// than some of the other implementations.

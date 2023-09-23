@@ -121,6 +121,12 @@ The string keys are converted to UTF8 bytes before they are stored and when retr
 Performance is better when using the UTF8 specific search methods (not shared by the other
 implementations) or when retrieving values.
 
+### [Flat Trie](https://github.com/keithwill/TrieHard/tree/main/src/TrieHard.PrefixLookup/FlatTrie)
+This Trie backs all of the node data in arrays and takes advantage of lower allocation
+patterns similar to the Compact Trie, such as the usage of structs and array pooling.
+Additional Key data is stored with each node to optimize for read heavy workloads. Several
+APIs unique to this trie also exist (such as paginating through page data.
+
 ### rm.Trie
 
 I found this library on nuget/github. It was one of the few trie libraries that had
@@ -153,7 +159,7 @@ made to support updates.
 ### Nuget Package [PrefixLookup](https://camo.githubusercontent.com/887adb22225c0f98b23fecc0aca4b12ae232332941c37fc0615ab57d4dc03ade/68747470733a2f2f696d672e736869656c64732e696f2f6e756765742f762f5072656669784c6f6f6b7570)
 
 Also included is a project for building a Nuget package. Currently this utilizes
-a wrapper around the CompactTrie implementation. This package should be considered
+a wrapper around the FlatTrie implementation. This package should be considered
 experimental at this time and plans are to target the most recent LTS of .NET
 
 ## Benchmarks
