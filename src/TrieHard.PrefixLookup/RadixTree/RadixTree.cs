@@ -42,8 +42,6 @@ public class RadixTree<T> : IPrefixLookup<string, T>
         root = new RadixTreeNode<T>();
     }
 
-    public int NodeCount => root.GetChildrenCount();
-
     public int Count => root.GetValuesCount();
 
 

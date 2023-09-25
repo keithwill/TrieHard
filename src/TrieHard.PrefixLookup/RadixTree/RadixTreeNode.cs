@@ -437,52 +437,20 @@ internal class RadixTreeNode<T> : IDisposable
         }
     }
 
-    public int GetChildrenCount()
-    {
-        return GetChildrenCountInternal(0);
-    }
-
-    public int CountValues(int runningCount = 0)
-    {
-        if (Value != null) runningCount++;
-        var children = Children;
-        for (int i = 0; i < children.Length; i++)
-        {
-            RadixTreeNode<T> child = children[i];
-            runningCount = child.CountValues(runningCount);
-        }
-        return runningCount;
-    }
-
-    private int GetChildrenCountInternal(int runningCount)
-    {
-        var children = Children;
-        for (var index = 0; index < children.Length; index++)
-        {
-            var child = children[index];
-            runningCount++;
-            runningCount = child.GetChildrenCountInternal(runningCount);
-        }
-
-        return runningCount;
-    }
-
     public int GetValuesCount()
     {
-        return GetValuesCountInternal(0);
+        int runningCount = 0;
+        GetValuesCountInternal(ref runningCount);
+        return runningCount;
     }
 
-    private int GetValuesCountInternal(int runningCount)
+    private void GetValuesCountInternal(ref int runningCount)
     {
+        if (Value is not null) runningCount++;
         foreach (var child in Children)
         {
-            if (child.Value != null)
-            {
-                runningCount++;
-            }
-            runningCount = child.GetChildrenCountInternal(runningCount);
+            child.GetValuesCountInternal(ref runningCount);
         }
-        return runningCount;
     }
 
     public override string ToString()
