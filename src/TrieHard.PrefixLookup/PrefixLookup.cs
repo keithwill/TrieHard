@@ -1,6 +1,7 @@
 using System.Collections;
 using TrieHard.Abstractions;
 using TrieHard.Collections;
+using TrieHard.PrefixLookup;
 
 public class PrefixLookup<T> : IPrefixLookup<string, T?>, IDisposable
 {

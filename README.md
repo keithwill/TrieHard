@@ -99,7 +99,7 @@ This is similar to a trie, but key values that don't branch can be combined. Whe
 are longer and highly unique, then this approach can perform well. This particular
 implementation was tuned to reduce recursion and can can be modified
 by a single thread while reads are going on concurrently. It is not an immutable
-trie though, and if changes are performed while readers are enumerating, they will
+trie though, and if changes are performed while readers are enumerating, they may
 see values that may have been modified after they started enumerating.
 
 ### [Indirect Trie](https://github.com/keithwill/TrieHard/tree/main/src/TrieHard.PrefixLookup/IndirectTrie)
@@ -118,14 +118,19 @@ the IPrefixLookup methods, such as a non allocation search operation that gives 
 to keys as UTF8 spans.
 
 The string keys are converted to UTF8 bytes before they are stored and when retrieved.
-Performance is better when using the UTF8 specific search methods (not shared by the other
-implementations) or when retrieving values.
+Performance is better when using the UTF8 specific search methods or when retrieving values.
+
+It can support any number of readers, but cannot be concurrently written to while reads are
+ongoing.
 
 ### [Flat Trie](https://github.com/keithwill/TrieHard/tree/main/src/TrieHard.PrefixLookup/FlatTrie)
 This Trie backs all of the node data in arrays and takes advantage of lower allocation
 patterns similar to the Compact Trie, such as the usage of structs and array pooling.
 Additional Key data is stored with each node to optimize for read heavy workloads. Several
 APIs unique to this trie also exist (such as paginating through page data.
+
+It can support any number of readers, but cannot be concurrently written to while reads are
+ongoing.
 
 ### rm.Trie
 

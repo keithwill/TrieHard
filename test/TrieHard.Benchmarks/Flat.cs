@@ -2,6 +2,7 @@
 using System;
 using System.Text;
 using TrieHard.Collections;
+using TrieHard.PrefixLookup;
 
 namespace TrieHard.Benchmarks;
 

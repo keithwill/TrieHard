@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Text.Unicode;
 using TrieHard.Abstractions;
+using TrieHard.PrefixLookup;
 
 namespace TrieHard.Collections;
 
@@ -46,36 +49,73 @@ public class RadixTree<T> : IPrefixLookup<string, T>
 
     public T? this[string key]
     {
-        get => Get(key);
-        set => Set(key, value);
+        get
+        {
+            Span<byte> keyBuffer = stackalloc byte[key.Length * 4];
+            Span<byte> keySpan = GetKeyStringBytes(key, keyBuffer);
+            return Get(keySpan);
+        }
+        set
+        {
+            Span<byte> keyBuffer = stackalloc byte[key.Length * 4];
+            Span<byte> keySpan = GetKeyStringBytes(key, keyBuffer);
+            Set(keySpan, value);
+        }
     }
 
-    public void Set(in ReadOnlySpan<char> keyBytes, T? value)
+    private static Span<byte> GetKeyStringBytes(string key, Span<byte> buffer)
+    {
+        Utf8.FromUtf16(key, buffer, out var _, out var bytesWritten, false, true);
+        return buffer.Slice(0, bytesWritten);
+    }
+
+    public void Set(ReadOnlySpan<byte> keyBytes, T? value)
     {
         root.SetValue(ref root, keyBytes, value);
     }
 
-    public T? Get(in ReadOnlySpan<char> key)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public T? Get(ReadOnlySpan<byte> key)
     {
-        var node = root.GetValue(key);
-        return node is null ? default : node.Value;
+        return root.GetValue(key);
     }
 
     public void Clear()
     {
-        this.root.Value = default;
-        this.root.Children = Array.Empty<RadixTreeNode<T>>();
+        this.root.Reset();
     }
 
-    public IEnumerable<KeyValuePair<string, T?>> Search(string keyPrefix)
+    public SearchResult<KeyValuePair<byte[], T?>> SearchUtf8(ReadOnlySpan<byte> keyPrefix)
     {
-        if (keyPrefix == string.Empty) return root.Collect();
-        return root.EnumeratePrefix(keyPrefix);
+        var collector = ArrayPoolList<KeyValuePair<byte[], T?>>.Rent();
+        if (keyPrefix.Length == 0)
+        {
+            root.CollectKeyValues(collector);
+        }
+        else
+        {
+            root.SearchPrefix(keyPrefix, collector);
+        }
+        return new SearchResult<KeyValuePair<byte[], T?>>(collector);
     }
 
-    public IEnumerator<KeyValuePair<string, T?>> GetEnumerator()
+    public SearchResult<KeyValuePair<string, T?>> Search(ReadOnlySpan<byte> keyPrefix)
     {
-        return Search(string.Empty).GetEnumerator();
+        var collector = ArrayPoolList<KeyValuePair<string, T?>>.Rent();
+        if (keyPrefix.Length == 0)
+        {
+            root.CollectKeyValueStrings(collector);
+        }
+        else
+        {
+            root.SearchPrefixStrings(keyPrefix, collector);
+        }
+        return new SearchResult<KeyValuePair<string, T?>>(collector);
+    }
+
+    public IEnumerator<KeyValuePair<byte[], T?>> GetEnumerator()
+    {
+        return SearchUtf8(ReadOnlySpan<byte>.Empty).GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()
@@ -93,16 +133,41 @@ public class RadixTree<T> : IPrefixLookup<string, T>
         return result;
     }
 
-    public IEnumerable<T?> SearchValues(string keyPrefix)
+    public SearchResult<T?> SearchValues(ReadOnlySpan<byte> keyPrefix)
     {
-        foreach (var kvp in Search(keyPrefix))
+        var collector = ArrayPoolList<T?>.Rent();
+        if (keyPrefix.Length == 0)
         {
-            yield return kvp.Value;
+            root.CollectValues(collector);
         }
+        else
+        {
+            root.SearchPrefixValues(keyPrefix, collector);
+        }
+        return new SearchResult<T?>(collector);
     }
 
     public static IPrefixLookup<string, TValue?> Create<TValue>()
     {
         return new RadixTree<TValue?>();
+    }
+
+    public IEnumerable<KeyValuePair<string, T?>> Search(string keyPrefix)
+    {
+        Span<byte> keyBuffer = stackalloc byte[keyPrefix.Length * 4];
+        keyBuffer = GetKeyStringBytes(keyPrefix, keyBuffer);
+        return Search(keyBuffer);
+    }
+
+    public IEnumerable<T?> SearchValues(string keyPrefix)
+    {
+        Span<byte> keyBuffer = stackalloc byte[keyPrefix.Length * 4];
+        keyBuffer = GetKeyStringBytes(keyPrefix, keyBuffer);
+        return SearchValues(keyBuffer);
+    }
+
+    IEnumerator<KeyValuePair<string, T?>> IEnumerable<KeyValuePair<string, T?>>.GetEnumerator()
+    {
+        return this.Search(string.Empty).GetEnumerator();
     }
 }

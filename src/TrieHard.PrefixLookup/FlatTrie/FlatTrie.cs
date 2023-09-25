@@ -2,6 +2,7 @@
 using System.Text.Unicode;
 using System.Threading.Channels;
 using TrieHard.Abstractions;
+using TrieHard.PrefixLookup;
 
 namespace TrieHard.Collections
 {
@@ -195,7 +196,7 @@ namespace TrieHard.Collections
 
         public static bool IsImmutable => false;
 
-        public static Concurrency ThreadSafety => Concurrency.Read;
+        public static Concurrency ThreadSafety => Concurrency.None;
 
         public T? this[string key] 
         { 
@@ -429,115 +430,6 @@ namespace TrieHard.Collections
         }
     }
 
-    public struct SearchResult<TElement> : IEnumerable<TElement?>, IEnumerator<TElement?>, IDisposable
-    {
 
 
-        private readonly ArrayPoolList<TElement>? BackingList;
-        internal readonly TElement[] items;
-        private int index = -1;
-        private int length;
-        private bool isDisposed = false;
-        public static readonly TElement[] Empty = new TElement[0];
-        public TElement? Current => items[index]!;
-        object IEnumerator.Current => items[index]!;
-        public SearchResult<TElement> GetEnumerator() => this;
-        internal SearchResult(ArrayPoolList<TElement>? arrayPoolList)
-        {
-            if (arrayPoolList is not null)
-            {
-                BackingList = arrayPoolList;
-                length = BackingList.Count;
-                items = arrayPoolList.Items;
-            }
-            else
-            {
-                length = 0;
-                items = Empty;
-            }
-        }
-        IEnumerator<TElement?> IEnumerable<TElement?>.GetEnumerator() => this;
-        IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
-        public bool MoveNext()
-        {
-            index++;
-            return index < length;
-        }
-        public void Reset()
-        {
-            // Since we are the IEnumerable AND the Enumerator, we've likely already
-            // returned out backing array to the pool
-            throw new NotImplementedException("The search result may only be enumerated once");
-        }
-        public void Dispose()
-        {
-            if (!isDisposed)
-            {
-                if (BackingList != null )
-                {
-                    ArrayPoolList<TElement>.Return(BackingList);
-                }
-                //BackingList?.Dispose();
-                isDisposed = true;
-            }
-        }
-    }
-    public ref struct SpanSearchResult<TElement>
-    {
-        public readonly ReadOnlySpan<TElement> Span;
-        internal readonly ArrayPoolList<TElement>? BackingList;
-        private int index = -1;
-        private int length;
-        public TElement? Current => Span[index]!;
-
-        public static readonly TElement[] Empty = new TElement[0];
-
-        internal SpanSearchResult(ArrayPoolList<TElement>? arrayPoolList)
-        {
-            this.BackingList = arrayPoolList;
-            if (arrayPoolList != null)
-            {
-                Span = arrayPoolList.Span;
-                length = Span.Length;
-            }
-            else
-            {
-                Span = Empty.AsSpan();
-            }
-        }
-
-        public SpanSearchResult<TElement> GetEnumerator()
-        {
-            return this;
-        }
-
-        public bool MoveNext()
-        {
-            index++;
-            return index < length;
-        }
-
-        public void Dispose()
-        {
-            if (BackingList is not null)
-            {
-                ArrayPoolList<TElement>.Return(BackingList);
-
-            }
-        }
-    }
-}
-
-public readonly struct ReadOnlyKeyValuePair<TElement>
-{
-    public ReadOnlyKeyValuePair(byte[] keyBuffer, short keyLength, TElement value)
-    {
-        Value = value;
-        KeyBuffer = keyBuffer;
-        KeyLength = keyLength;
-    }
-    public readonly TElement Value;
-    public ReadOnlySpan<byte> Key => KeyBuffer.AsSpan(0, KeyLength);
-    private readonly byte[] KeyBuffer;
-    private readonly short KeyLength;
 }

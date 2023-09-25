@@ -1,8 +1,8 @@
-using System;
-using System.Collections.Generic;
+using System.Buffers;
 using System.Diagnostics;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Threading.Channels;
+using TrieHard.PrefixLookup;
 
 namespace TrieHard.Collections;
 
@@ -10,34 +10,64 @@ namespace TrieHard.Collections;
 /// A typed Radix Tree Node containing a payload value of type <typeparamref name="T"/>.
 /// </summary>
 /// <typeparam name="T">The entity stored within this node</typeparam>
-internal class RadixTreeNode<T>
+internal class RadixTreeNode<T> : IDisposable
 {
-    public string KeySegment;
-    public RadixTreeNode<T>[] Children = Empty;
-    public static readonly RadixTreeNode<T>[] Empty = Array.Empty<RadixTreeNode<T>>();
+    public byte[] FullKey => KeySegment.Array;
+    private ArraySegment<byte> KeySegment;
+    public RadixTreeNode<T>[] childrenBuffer = EmptyNodes;
+    private ReadOnlySpan<RadixTreeNode<T>> Children => childrenBuffer.AsSpan(0, ChildCount);
+    private byte ChildCount = 0;
     public T? Value;
-    public char FirstChar;
+    public byte FirstChar;
+
+    public static readonly RadixTreeNode<T>[] EmptyNodes = Array.Empty<RadixTreeNode<T>>();
+    public static readonly byte[] EmptyBytes = [];
 
     public RadixTreeNode()
     {
-        this.KeySegment = String.Empty;
+        this.KeySegment = new ArraySegment<byte>(EmptyBytes);
     }
 
-    public RadixTreeNode(string label)
+    public RadixTreeNode(byte[] key, int offset, int count)
     {
-        this.KeySegment = label;
+        // It would be good if we could pool this array, but its shared
+        // non trivially with parents and children nodes created from the same key
+        this.KeySegment = new ArraySegment<byte>(key, offset, count);
         this.FirstChar = KeySegment[0];
     }
 
-    public void SetValue(ref RadixTreeNode<T> rootNode, in ReadOnlySpan<char> key, T? value)
+    public RadixTreeNode(ArraySegment<byte> key)
     {
-        var searchNode = rootNode;
+        this.KeySegment = key;
+        this.FirstChar = KeySegment[0];
+    }
+
+    /// <summary>
+    /// Steps down the child nodes of this node, creating missing key segments as necessary before
+    /// setting the value on the last matching child node.
+    /// </summary>
+    /// <param name="rootNode">A reference to the root node. Necessary for one fringe concurrency case</param>
+    /// <param name="key">The full key to set the value on</param>
+    /// <param name="value">The value to set on the matching node</param>
+    /// <param name="atomic">
+    /// Can be passed as false to skip expensive atomic operations if the caller of this method can ensure
+    /// no other threads will be accessing the trie concurrently. It can corrupt the trie if passed as
+    /// false when synchronized access is not assured.</param>
+    public void SetValue(ref RadixTreeNode<T> rootNode, ReadOnlySpan<byte> key, T? value)
+    {
+        ref RadixTreeNode<T> searchNode = ref rootNode;
         var searchKey = key;
+        int keyOffset = 0;
+        byte[]? keyBytes = null;
+
     FakeTailRecursion:
         // Set on a child
+        searchKey = key.Slice(keyOffset);
         var searchFirstChar = searchKey[0];
-        RadixTreeNode<T>? matchingChild = null;
+
         int childIndex = 0;
+        bool found = false;
+
         for (int i = 0; i < searchNode.Children.Length; i++)
         {
             RadixTreeNode<T> child = searchNode.Children[i];
@@ -45,7 +75,7 @@ internal class RadixTreeNode<T>
             if (child.FirstChar == searchFirstChar)
             {
                 childIndex = i;
-                matchingChild = child;
+                found = true;
                 break;
             }
             if (child.FirstChar > searchFirstChar)
@@ -55,12 +85,16 @@ internal class RadixTreeNode<T>
             childIndex = i + 1;
         }
 
-        if (matchingChild is not null)
+
+        if (found)
         {
-            var matchingLength = searchKey.CommonPrefixLength(matchingChild.KeySegment);
+            ref RadixTreeNode<T> matchingChild = ref searchNode.childrenBuffer[childIndex]!;
+
+            var childKeySegment = matchingChild.KeySegment.AsSpan();
+            var matchingLength = searchKey.CommonPrefixLength(childKeySegment);
             if (matchingLength == searchKey.Length)
             {
-                if (matchingLength == matchingChild.KeySegment.Length)
+                if (matchingLength == childKeySegment.Length)
                 {
                     // We found a child node that matches our key exactly
                     // E.g. Key = "apple" and child key = "apple"
@@ -68,13 +102,11 @@ internal class RadixTreeNode<T>
                 }
                 else
                 {
-
                     // https://en.wikipedia.org/wiki/Radix_tree#/media/File:Inserting_the_word_'team'_into_a_Patricia_trie_with_a_split.png
 
                     // We matched the whole set key, but not the entire child key. We need to split the child key
-                    //matchingChild.SplitKeySegmentAtLength(matchingLength);
-                    searchNode.SplitChild(matchingLength, childIndex);
-                    matchingChild = searchNode.Children[childIndex];
+                    searchNode.SplitChild(matchingLength, ref matchingChild);
+                    //matchingChild = searchNode.Children[childIndex];
                     matchingChild.Value = value;
                 }
 
@@ -82,22 +114,21 @@ internal class RadixTreeNode<T>
             else
             {
                 // We matched part of the set key on a child
-                if (matchingLength == matchingChild.KeySegment.Length)
+                if (matchingLength == childKeySegment.Length)
                 {
                     // and the entire child key
-                    searchKey = searchKey.Slice(matchingLength);
-                    searchNode = matchingChild;
+                    keyOffset += matchingLength;
+                    searchNode = ref matchingChild;
                     goto FakeTailRecursion;
                 }
                 else
                 {
                     // and only part of the child key
-                    searchNode.SplitChild(matchingLength, childIndex);
-                    matchingChild = searchNode.Children[childIndex];
-                    searchKey = searchKey.Slice(matchingLength);
-                    searchNode = matchingChild;
+                    searchNode.SplitChild(matchingLength, ref matchingChild);
+                    //matchingChild = searchNode.Children[childIndex];
+                    keyOffset += matchingLength;
+                    searchNode = ref matchingChild;
                     goto FakeTailRecursion;
-
                 }
             }
         }
@@ -105,43 +136,57 @@ internal class RadixTreeNode<T>
         {
             // There were no matching children. 
             // E.g. Key = "apple" and no child that even starts with 'a'. Add a new child node
-            string keySegment = new string(searchKey);
-            var newChild = new RadixTreeNode<T>(keySegment);
+
+            if (keyBytes is null) keyBytes = key.ToArray();
+            var newChild = NodePool.Rent();
+            newChild.KeySegment = new ArraySegment<byte>(keyBytes, keyOffset, searchKey.Length);
+            newChild.FirstChar = newChild.KeySegment[0];
             newChild.Value = value;
-            searchNode.AddChild(ref rootNode, newChild, childIndex);
+            
+            //var newChild = new RadixTreeNode<T>(keyBytes, keyOffset, searchKey.Length); //TODO: Pool these
+            //newChild.Value = value;
+            searchNode.AddChild(ref searchNode, newChild, childIndex);
         }
     }
 
     public RadixTreeNode<T> Clone()
     {
-        return new RadixTreeNode<T>(KeySegment)
-        {
-            Children = Children,
-            Parent = Parent,
-            ParentIndex = ParentIndex,
-            Value = Value
-        };
+        var newNode = NodePool.Rent();
+        newNode.KeySegment = KeySegment;
+        newNode.FirstChar = FirstChar;
+        newNode.Parent = Parent;
+        newNode.ParentIndex = ParentIndex;
+        newNode.Value = Value;
+        newNode.childrenBuffer = childrenBuffer;
+        newNode.ChildCount = ChildCount;
+        return newNode;
+
+        //return new RadixTreeNode<T>(KeySegment)
+        //{
+        //    newNode.Children = Children,
+        //    Parent = Parent,
+        //    ParentIndex = ParentIndex,
+        //    Value = Value,
+        //};
     }
 
-    public RadixTreeNode<T>? NextSibling => Parent!.Children.Length > ParentIndex + 1 ? Parent.Children[ParentIndex + 1] : null;
-    public RadixTreeNode<T>? FirstChild => Children.Length > 0 ? Children[0] : null;
-    public RadixTreeNode<T>? Back => Parent!.KeySegment.Length > 0 ? Parent : null;
-    public RadixTreeNode<T>? Next => FirstChild ?? NextSibling ?? Back;
-
-    private void AddChild(ref RadixTreeNode<T> rootNode, RadixTreeNode<T> newChild, int afterIndex)
+    private void AddChild(ref RadixTreeNode<T> self, RadixTreeNode<T> newChild, int afterIndex)
     {
         if (Children.Length == 0)
         {
             newChild.ParentIndex = 0;
             newChild.Parent = this;
-            Children = new RadixTreeNode<T>[1] { newChild };
+            var newChildrenBuffer = ArrayPool<RadixTreeNode<T>>.Shared.Rent(1);
+            newChildrenBuffer[0] = newChild;
+            childrenBuffer = newChildrenBuffer;
+            ChildCount = 1;
         }
         else
         {
             // This operation is messy.
             // We are inserting the new child into the correct place for it
             // to be sorted in the array, but we need to copy and replace
-            // any nodes that require patches to their Paret/ParentIndex values
+            // any nodes that require patches to their Parent/ParentIndex values
             // in a concurrent safe way.
 
             // Right now this patches the references on clones of the children
@@ -151,18 +196,15 @@ internal class RadixTreeNode<T>
 
             // Being done as a single assignment with a single writer allows this
             // to work and pass concurrency checks.
-            var newSelf = this.KeySegment == string.Empty ? this : this.Clone();
+
+            //var keySegment = this.KeySegment;
+            var newSelf = self.Clone();
             newChild.Parent = newSelf;
-            var newLength = newSelf.Children.Length + 1;
-            var newChildArray = new RadixTreeNode<T>[newLength];
+            byte newLength = Convert.ToByte(newSelf.ChildCount + 1);
+            var newChildArray = ArrayPool<RadixTreeNode<T>>.Shared.Rent(newLength);
 
             // Poor man's sorted insert
-            // We could probably greatly reduce the performance implications
-            // here by not doing a sorted insert and copy of the current node
-            // but for larger child collections (utilizing UTF8 keys for example)
-            // being able to use binary searches on sorted children should offer
-            // improved performance
-            for(int i = 0; i < newChildArray.Length; i++)
+            for(int i = 0; i < newLength; i++)
             {
                 if (i == afterIndex)
                 {
@@ -180,30 +222,24 @@ internal class RadixTreeNode<T>
                 }
             }
 
-            for(int i = 0; i < newChildArray.Length; i++)
+            for(int i = 0; i < newLength; i++)
             {
                 var child = newChildArray[i];
                 child.ParentIndex = i;
                 child.Parent = newSelf;
             }
 
-            newSelf.Children = newChildArray;
+            newSelf.childrenBuffer = newChildArray;
+            newSelf.ChildCount = newLength;
 
-            if (this != rootNode)
-            {
-                newSelf.Parent!.Children[newSelf.ParentIndex] = newSelf;
-            }
-            else
-            {
-                rootNode = newSelf;
-            }
+            self = newSelf;
 
         }
     }
 
-    private void SplitChild(int startingCharacter, int childIndex)
+
+    private void SplitChild(int startingCharacter, ref RadixTreeNode<T> child)
     {
-        var child = Children[childIndex];
         // We are taking a child node and splitting it at a specific number of
         // characters in its key segment
 
@@ -215,39 +251,48 @@ internal class RadixTreeNode<T>
         // B is the splitParent, and gets a null value
         // C is the new splitChild, it retains the original value and children of the 'BC' node
 
-        var splitChildKey = child.KeySegment.Substring(startingCharacter);
-        var splitChild = new RadixTreeNode<T>(splitChildKey) { Value = child.Value};
-        var splitChildChildren = new RadixTreeNode<T>[child.Children.Length];
-        for(int i = 0; i < child.Children.Length; i++)
-        {
-            var splitChildChild = child.Children[i].Clone();
-            splitChildChildren[i] = splitChildChild;
-            splitChildChild.ParentIndex = i;
-            splitChildChild.Parent = splitChild;
-        }
 
-        var splitParentKey = child.KeySegment.Substring(0, startingCharacter);
-        var splitParent = new RadixTreeNode<T>(splitParentKey) { Children = new RadixTreeNode<T>[] { splitChild } };
+        // We have to clone the child we split because we are changing its key size
+        var splitChild = child.Clone();
+        var newOffset = startingCharacter;
+        var newCount = splitChild.KeySegment.Count - startingCharacter;
+        splitChild.KeySegment =  splitChild.KeySegment.Slice(newOffset, newCount);
+        splitChild.FirstChar = splitChild.KeySegment[0];
+
+        var splitParentChildren = ArrayPool<RadixTreeNode<T>>.Shared.Rent(1);
+        splitParentChildren[0] = splitChild;
+
+        var splitParent = NodePool.Rent();
+        splitParent.KeySegment = new ArraySegment<byte>(child.FullKey, child.KeySegment.Offset, startingCharacter);
+        splitParent.FirstChar = splitParent.KeySegment[0];
+        splitParent.childrenBuffer = splitParentChildren;
+        splitParent.ChildCount = 1;
+
+        //var splitParent = new RadixTreeNode<T>(
+        //    child.FullKey,
+        //    offset: child.KeySegment.Offset,  
+        //    count: startingCharacter) { childrenBuffer = splitParentChildren, ChildCount = 1 };
+        //splitParent.FirstChar = splitParent.KeySegment[0];
 
         splitParent.Parent = this;
-        splitParent.ParentIndex = childIndex;
+        splitParent.ParentIndex = child.ParentIndex;
 
         splitChild.Parent = splitParent;
         splitChild.ParentIndex = 0;
 
         // The order we perform the above operations is very important for concurrency reasons
 
-        Children[childIndex] = splitParent;
+        child = splitParent;
     }
 
     private RadixTreeNode<T>? Parent;
     private int ParentIndex;
 
-    public RadixTreeNode<T>? GetValue(in ReadOnlySpan<char> key)
+    public T? GetValue(ReadOnlySpan<byte> key)
     {
         var searchNode = this;
         var searchKey = key;
-        char searchFirstChar;
+        byte searchFirstChar;
 
         FakeTailRecursion:
         var searchChildren = searchNode.Children;
@@ -258,15 +303,15 @@ internal class RadixTreeNode<T>
             RadixTreeNode<T> child = searchChildren[i];
             if (searchFirstChar != child.FirstChar) continue;
 
-            var matchingBytes = searchKey.CommonPrefixLength(child.KeySegment);
-            //var matchingBytes = GetMatchingBytes(key, child.KeySegment);
+            var childKeySegment = child.KeySegment.AsSpan();
+            var matchingBytes = searchKey.CommonPrefixLength(childKeySegment);
 
             if (matchingBytes == searchKey.Length)
             {
-                if (matchingBytes == child.KeySegment.Length)
+                if (matchingBytes == childKeySegment.Length)
                 {
                     // We found a key with an exact match
-                    return child;
+                    return child.Value;
                 }
                 else
                 {
@@ -275,7 +320,7 @@ internal class RadixTreeNode<T>
 
                     // In a radix tree, that means our key wasn't found, because if it
                     // existed, it would have been split at our length
-                    return null;
+                    return default;
                 }
             }
             else if (matchingBytes < searchKey.Length)
@@ -285,136 +330,71 @@ internal class RadixTreeNode<T>
                 goto FakeTailRecursion; // C# maintainers, please add tail call optimizations
             }
         }
-        return null;
+        return default;
 
     }
 
-    /// <summary>
-    /// Creates a representation of the node and its parent key segments connected by delimiters.
-    /// Example: ROOT > A > pp > l > e
-    /// </summary>
-    public string ToGraphNodeString()
-    {
-        var node = this;
-        Stack<RadixTreeNode<T>> stack = new();
-        stack.Push(node);
-        StringBuilder sb = new();
-        var parent = node.Parent;
-        while (parent != null)
-        {
-            stack.Push(parent);
-            parent = parent.Parent;
-        }
-        while(stack.TryPop(out var poppedNode))
-        {
-            if (poppedNode.KeySegment == string.Empty)
-            {
-                sb.Append("ROOT");
-            }
-            else
-            {
-                sb.Append(" > ");
-                sb.Append(poppedNode.KeySegment);
-            }
-        }
-        return sb.ToString();
-    }
-
-    public IEnumerable<KeyValuePair<string, T?>> Collect()
+    public void CollectKeyValues(ArrayPoolList<KeyValuePair<byte[], T?>> collector)
     {
         if (Value is not null)
         {
-            yield return new KeyValuePair<string, T?>(GetFullKey(this), Value);
+            collector.Add(new KeyValuePair<byte[], T?>(FullKey, Value));
         }
-        if (Children.Length == 0)
+        foreach(var child in Children)
         {
-            yield break;
+            child.CollectKeyValues(collector);
         }
-
-        // We are doing a depth first search for all the values to collect
-        // and using parent references and parent indexes (the index of the 
-        // iterator node within it's parent) to backtrack and find sibblings
-        // without having to allocate additional storage (such as using a stack)
-        var searchNode = Children[0];
-
-        // Due to the way that iterators work and the concurrency model for this
-        // graph, sometimes 'this' reference in this method is no longer in the 
-        // reference version of the radix tree. To understand when we have completed
-        // our search, we need to know when we are back at the depth we started at.
-        int depthFromRoot = 1;
-
-        while (true)
-        {
-
-            if (searchNode.Value is not null)
-            {
-                yield return new KeyValuePair<string, T?>(GetFullKey(searchNode), searchNode.Value);
-            }
-            if (searchNode.Children.Length != 0)
-            {
-                // Dig depth first
-                searchNode = searchNode.Children[0];
-                depthFromRoot++;
-                continue;
-            }
-            else
-            {
-                var nextSibbling = searchNode.NextSibling;
-                if (nextSibbling is not null)
-                {
-                    searchNode = nextSibbling;
-                }
-                else
-                {
-                    while(true)
-                    {
-                        depthFromRoot--;
-                        if (depthFromRoot == 0)
-                        {
-                            yield break;
-                        }
-                        var nextParentSibbling = searchNode.Parent!.NextSibling;
-                        if (nextParentSibbling is null)
-                        {
-                            searchNode = searchNode.Parent;
-                        }
-                        else
-                        {
-                            searchNode = nextParentSibbling;
-                            break;
-                        }
-                    }
-
-                }
-
-            }
-
-        }
-
     }
-    
-    public IEnumerable<KeyValuePair<string, T?>> EnumeratePrefix(ReadOnlySpan<char> key)
+
+    public void CollectKeyValueStrings(ArrayPoolList<KeyValuePair<string, T?>> collector)
     {
-        if (Children.Length == 0) return Array.Empty<KeyValuePair<string, T?>>();
+        if (Value is not null)
+        {
+            collector.Add(new KeyValuePair<string, T?>(System.Text.Encoding.UTF8.GetString(FullKey), Value));
+        }
+        foreach (var child in Children)
+        {
+            child.CollectKeyValueStrings(collector);
+        }
+    }
+
+    public void CollectValues(ArrayPoolList<T?> collector)
+    {
+        if (Value is not null)
+        {
+            collector.Add(Value);
+        }
+        foreach (var child in Children)
+        {
+            child.CollectValues(collector);
+        }
+    }
+
+    private bool TryFindFirstPrefixMatch(ReadOnlySpan<byte> key, out RadixTreeNode<T> matchingNode)
+    {
+        matchingNode = default!;
+
+        if (Children.Length == 0) return false;
         var searchRoot = this;
 
-        TailRecursionWhen:
+    TailRecursionWhen:
 
-        foreach(var child in searchRoot.Children)
+        foreach (var child in searchRoot.Children)
         {
             if (key[0] != child.FirstChar) continue;
-
-            var matchingCharacters = key.CommonPrefixLength(child.KeySegment);
+            var childKeySegment = child.KeySegment.AsSpan();
+            var matchingCharacters = key.CommonPrefixLength(childKeySegment);
 
             if (matchingCharacters == key.Length)
             {
                 // We found a key that matched the entire prefix search
-                return child.Collect();
+                matchingNode = child;
+                return true;
             }
             else
             {
 
-                if (matchingCharacters == child.KeySegment.Length)
+                if (matchingCharacters == childKeySegment.Length)
                 {
                     // We matched the whole child key, check the remainder of
                     // the prefix search against that child's children
@@ -422,46 +402,39 @@ internal class RadixTreeNode<T>
                     searchRoot = child;
 
                     // This could probably be rewritten as a while loop
-                    goto TailRecursionWhen; 
+                    goto TailRecursionWhen;
                 }
 
                 // We partial matched, but the remainder is a mismatch
-                return Array.Empty<KeyValuePair<string, T?>>();
+                return false;
 
             }
         }
-
-        return Array.Empty<KeyValuePair<string, T?>>();
+        return false;
     }
 
-    public string GetFullKey(RadixTreeNode<T> node)
+    public void SearchPrefixValues(ReadOnlySpan<byte> key, ArrayPoolList<T?> collector)
     {
-        RadixTreeNode<T> searchNode = node;
-        int depth = 0;
-        int fullKeyLength = 0;
-
-        while(searchNode!.KeySegment.Length > 0)
+        if (TryFindFirstPrefixMatch(key, out var matchingNode))
         {
-            depth++;
-            fullKeyLength += searchNode.KeySegment.Length;
-            searchNode = searchNode.Parent!;
+            matchingNode.CollectValues(collector);
         }
+    }
 
-        searchNode = node;
-        Span<char> result = stackalloc char[fullKeyLength];
-        int segmentEndIndex = fullKeyLength - 1;
-
-        for (int i = depth - 1; i >= 0; i--)
+    public void SearchPrefix(ReadOnlySpan<byte> key, ArrayPoolList<KeyValuePair<byte[], T?>> collector)
+    {
+        if (TryFindFirstPrefixMatch(key, out var matchingNode))
         {
-            var segmentLength = searchNode!.KeySegment.Length;
-            int segmentStartIndex = segmentEndIndex - (segmentLength - 1);
-            Span<char> keySegmentTarget = result.Slice(segmentStartIndex, segmentLength);
-            searchNode.KeySegment.CopyTo(keySegmentTarget);
-            searchNode = searchNode.Parent!;
-            segmentEndIndex = segmentEndIndex - segmentLength;
+            matchingNode.CollectKeyValues(collector);
         }
-        
-        return result.ToString();
+    }
+
+    public void SearchPrefixStrings(ReadOnlySpan<byte> key, ArrayPoolList<KeyValuePair<string, T?>> collector)
+    {
+        if (TryFindFirstPrefixMatch(key, out var matchingNode))
+        {
+            matchingNode.CollectKeyValueStrings(collector);
+        }
     }
 
     public int GetChildrenCount()
@@ -514,6 +487,78 @@ internal class RadixTreeNode<T>
 
     public override string ToString()
     {
-        return ToGraphNodeString();
+        return System.Text.Encoding.UTF8.GetString(KeySegment);
+    }
+
+    /// <summary>
+    /// Preps the instance for reuse
+    /// </summary>
+    internal void Reset()
+    {
+        this.Value = default;
+        this.Parent = null;
+        this.ChildCount = 0;
+        this.FirstChar = 0;
+        this.ParentIndex = 0;
+        if (Children != null && Children.Length > 0)
+        {
+            ArrayPool<RadixTreeNode<T>>.Shared.Return(this.childrenBuffer, true);
+        }
+        KeySegment = default;
+    }    
+    public void Dispose()
+    {
+        GC.SuppressFinalize(this);
+    }
+
+    ~RadixTreeNode()
+    {
+        if (NodePool.Return(this))
+        {
+            GC.ReRegisterForFinalize(this);
+        }
+    }
+
+    private static class NodePool
+    {
+        //private static int Dropped = 0;
+        public static RadixTreeNode<T> Rent()
+        {
+            if (Pool.Reader.TryRead(out var item))
+            {
+                //Rented++;
+                //if (Rented % 10_000 == 0) Console.WriteLine("Rented: " + Rented);
+                return item;
+            }
+            else
+            {
+                //Created++;
+                //if (Created % 10_000 == 0) Console.WriteLine("Created: " + Created);
+                return new RadixTreeNode<T>();
+            }
+        }
+
+        public static bool Return(RadixTreeNode<T> node)
+        {
+            node.Reset();
+            return Pool.Writer.TryWrite(node);
+            //if (returned) Returned++;
+            //if (Returned > 0 && Returned % 10_000 == 0) Console.WriteLine("Returned: " + Returned);
+            //return returned;
+        }
+
+        internal static Channel<RadixTreeNode<T>> Pool =
+            Channel.CreateBounded<RadixTreeNode<T>>(
+            new BoundedChannelOptions(1_000_000)
+            {
+                FullMode = BoundedChannelFullMode.DropNewest
+            }, x => {
+                //Dropped++;
+                //if (Dropped > 0 && Dropped % 1_000 == 0) Console.WriteLine("Dropped: " + Dropped);
+
+                x.Dispose(); 
+            }
+        );
+
     }
 }

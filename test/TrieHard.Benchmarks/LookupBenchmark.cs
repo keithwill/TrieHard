@@ -11,7 +11,6 @@ namespace TrieHard.Benchmarks
 
     public class Simple : LookupBenchmark<SimpleTrie<string>> { }
     public class Indirect : LookupBenchmark<IndirectTrie<string>> { }
-    public class Radix : LookupBenchmark<RadixTree<string>> { }
     public class SQLite : LookupBenchmark<SQLiteLookup<string>> { }
     public class rmTrie : LookupBenchmark<rmTrie<string>> { }
     public class NaiveList : LookupBenchmark<ListPrefixLookup<string>> { }

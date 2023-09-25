@@ -14,7 +14,7 @@ namespace TrieHard.Collections
     public unsafe class CompactTrie<T>  : IPrefixLookup<string, T?>, IDisposable
     {
         public static bool IsImmutable => false;
-        public static Concurrency ThreadSafety => Concurrency.Read;
+        public static Concurrency ThreadSafety => Concurrency.None;
 
         private List<CompactTrieNodeBuffer> buffers = new List<CompactTrieNodeBuffer>();
         private CompactTrieNodeBuffer buffer;
