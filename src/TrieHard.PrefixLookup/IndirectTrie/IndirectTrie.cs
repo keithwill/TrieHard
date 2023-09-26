@@ -29,6 +29,7 @@ namespace TrieHard.Collections
     {
         public static bool IsImmutable => false;
         public static Concurrency ThreadSafety => Concurrency.Read;
+        public static bool IsSorted => true;
 
         private const int BUCKET_SIZE = 10000;
         private IndirectTrieNode<T?>[][] Nodes = new IndirectTrieNode<T?>[1][];

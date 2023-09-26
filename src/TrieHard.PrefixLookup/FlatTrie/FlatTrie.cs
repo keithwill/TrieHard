@@ -20,6 +20,13 @@ namespace TrieHard.Collections
     public class FlatTrie<T> : IPrefixLookup<string, T>
     {
 
+
+        public static bool IsImmutable => false;
+
+        public static Concurrency ThreadSafety => Concurrency.Read;
+
+        public static bool IsSorted => true;
+
         private static readonly int[] EmptyChildIndexes = new int[0];
         private static readonly byte[] EmptyKeyBytes = new byte[0];
 
@@ -196,9 +203,6 @@ namespace TrieHard.Collections
 
         public int Count => Values.Count;
 
-        public static bool IsImmutable => false;
-
-        public static Concurrency ThreadSafety => Concurrency.None;
 
         public T? this[string key] 
         { 
@@ -241,7 +245,6 @@ namespace TrieHard.Collections
             // child that gets created with that key at a time
             byte[]? keyBytes = null;
 
-            //ref readonly byte[][] fullKeys = ref FullKeys.Items;
             ref readonly int[][] childIndexes = ref ChildIndexes.Items;
             ref readonly byte[][] childKeys = ref ChildKeys.Items;
 

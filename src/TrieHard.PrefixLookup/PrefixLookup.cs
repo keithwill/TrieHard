@@ -19,6 +19,7 @@ public class PrefixLookup<T> : IPrefixLookup<string, T?>, IDisposable
 
     public static bool IsImmutable => UnsafeTrie<T>.IsImmutable;
     public static Concurrency ThreadSafety => UnsafeTrie<T>.ThreadSafety;
+    public static bool IsSorted => RadixTree<T>.IsSorted;
 
     public int Count => trie.Count;
 

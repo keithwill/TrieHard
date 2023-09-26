@@ -33,7 +33,15 @@ public class RadixTree<T> : IPrefixLookup<string, T>
 {
 
     public static bool IsImmutable => false;
+
+    /// <summary>
+    /// This lookup is thought to have the best support for single writer,
+    /// multiple reader. All updates are done on cloned records and the
+    /// update to the graph relies on a single object reference assignment
+    /// (which is atomic).
+    /// </summary>
     public static Concurrency ThreadSafety => Concurrency.Read;
+    public static bool IsSorted => true;
 
     private RadixTreeNode<T> root;
 

@@ -14,7 +14,13 @@ namespace TrieHard.Collections
     public unsafe class UnsafeTrie<T>  : IPrefixLookup<string, T?>, IDisposable
     {
         public static bool IsImmutable => false;
+        /// <summary>
+        /// This lookup passes the concurrency tests in the project, but I have
+        /// reason to suspect that on 32bit architectures a few of its writes could
+        /// be torn across structs.
+        /// </summary>
         public static Concurrency ThreadSafety => Concurrency.None;
+        public static bool IsSorted => true;
 
         private List<UnsafeTrieNodeBuffer> buffers = new List<UnsafeTrieNodeBuffer>();
         private UnsafeTrieNodeBuffer buffer;

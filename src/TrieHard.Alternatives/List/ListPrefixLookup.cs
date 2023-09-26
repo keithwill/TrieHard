@@ -14,6 +14,13 @@ namespace TrieHard.Alternatives.List
     /// </summary>
     public class ListPrefixLookup<T> : IPrefixLookup<string, T>
     {
+
+        public static bool IsImmutable => false;
+
+        public static Concurrency ThreadSafety => Concurrency.None;
+
+        public static bool IsSorted => true;
+
         private List<KeyValuePair<string, T?>> values = new();
         public T? this[string key] {
             get => values.FirstOrDefault(x => x.Key == key).Value;
@@ -32,9 +39,6 @@ namespace TrieHard.Alternatives.List
             }
         }
 
-        public static bool IsImmutable => false;
-
-        public static Concurrency ThreadSafety => Concurrency.None;
 
         public int Count => values.Count;
 

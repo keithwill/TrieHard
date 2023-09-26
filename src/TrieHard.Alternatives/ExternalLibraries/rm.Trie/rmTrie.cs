@@ -11,6 +11,15 @@ namespace TrieHard.Alternatives.ExternalLibraries.rm.Trie
     /// </summary>
     public class rmTrie<T> : IPrefixLookup<string, T>
     {
+
+        public static bool IsImmutable => false;
+
+        /// <summary>
+        /// Throws errors about the underlying collection being modified while enumerating.
+        /// </summary>
+        public static Concurrency ThreadSafety => Concurrency.None;
+        public static bool IsSorted => true;
+
         TrieMap<T> trieMap;
 
         public rmTrie() 
@@ -24,9 +33,7 @@ namespace TrieHard.Alternatives.ExternalLibraries.rm.Trie
             set => trieMap.Add(key, value!); 
         }
 
-        public static bool IsImmutable => false;
 
-        public static Concurrency ThreadSafety => Concurrency.None;
 
         public int Count => trieMap.Values().Count();
 

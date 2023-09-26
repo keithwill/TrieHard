@@ -24,6 +24,7 @@ namespace TrieHard.Collections
     {
         public static bool IsImmutable => false;
         public static Concurrency ThreadSafety => Concurrency.Read;
+        public static bool IsSorted => false;
 
         private SimpleNode<T> rootNode = new();
         private int count;        

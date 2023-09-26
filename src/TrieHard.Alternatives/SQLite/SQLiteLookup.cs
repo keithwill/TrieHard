@@ -12,6 +12,10 @@ namespace TrieHard.Alternatives.SQLite
     /// <typeparam name="T"></typeparam>
     public class SQLiteLookup<T> : IPrefixLookup<string, T?>, IDisposable
     {
+        public static bool IsImmutable => true;
+        public static Concurrency ThreadSafety => Concurrency.None;
+
+        public static bool IsSorted => true;
 
         private SqliteConnection connection;
         private T?[] values = Array.Empty<T>();
@@ -35,9 +39,6 @@ namespace TrieHard.Alternatives.SQLite
             set => throw new NotImplementedException(); 
         }
 
-        public static bool IsImmutable => true;
-
-        public static Concurrency ThreadSafety => Concurrency.None;
 
         public int Count => values.Length;
 
