@@ -17,7 +17,7 @@ namespace TrieHard.Benchmarks
             var benchmarkConfig = new BenchmarkConfig();
             var summary = BenchmarkRunner.Run(new Type[]
             {
-                typeof(Compact),
+                typeof(Unsafe),
                 typeof(Simple),
                 typeof(Radix),
                 typeof(NaiveList),

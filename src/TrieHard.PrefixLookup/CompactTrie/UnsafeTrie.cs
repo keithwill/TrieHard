@@ -11,18 +11,18 @@ using TrieHard.Abstractions;
 namespace TrieHard.Collections
 {
     [SkipLocalsInit]
-    public unsafe class CompactTrie<T>  : IPrefixLookup<string, T?>, IDisposable
+    public unsafe class UnsafeTrie<T>  : IPrefixLookup<string, T?>, IDisposable
     {
         public static bool IsImmutable => false;
         public static Concurrency ThreadSafety => Concurrency.None;
 
-        private List<CompactTrieNodeBuffer> buffers = new List<CompactTrieNodeBuffer>();
-        private CompactTrieNodeBuffer buffer;
+        private List<UnsafeTrieNodeBuffer> buffers = new List<UnsafeTrieNodeBuffer>();
+        private UnsafeTrieNodeBuffer buffer;
         private nuint nodeCount = 0;
 
         private List<T?> values = new();
         private bool isDisposed = false;
-        private CompactTrieNode* rootPointer;
+        private UnsafeTrieNode* rootPointer;
 
         internal List<T?> Values => values;
 
@@ -36,28 +36,28 @@ namespace TrieHard.Collections
             set => Set(key, value);
         }
 
-        public CompactTrie()
+        public UnsafeTrie()
         {
-            this.buffer = new CompactTrieNodeBuffer(4096);
+            this.buffer = new UnsafeTrieNodeBuffer(4096);
             this.buffers.Add(buffer);
             CreateRoot();
         }
 
         private void CreateRoot()
         {
-            var nodeSize = CompactTrieNode.Size;
+            var nodeSize = UnsafeTrieNode.Size;
             EnsureNodeSpace();
-            rootPointer = (CompactTrieNode*)buffer.CurrentAddress;
-            *rootPointer = new CompactTrieNode();
+            rootPointer = (UnsafeTrieNode*)buffer.CurrentAddress;
+            *rootPointer = new UnsafeTrieNode();
             RecordNode();
         }
 
         private void EnsureNodeSpace()
         {
-            if (!buffer.IsAvailable(CompactTrieNode.Size))
+            if (!buffer.IsAvailable(UnsafeTrieNode.Size))
             {
                 var newCapacity = buffer.Size * 2;
-                var newBuffer = new CompactTrieNodeBuffer(newCapacity);
+                var newBuffer = new UnsafeTrieNodeBuffer(newCapacity);
                 buffers.Add(newBuffer);
                 this.buffer = newBuffer;
             }
@@ -65,7 +65,7 @@ namespace TrieHard.Collections
 
         private void RecordNode()
         {
-            this.buffer.Advance(CompactTrieNode.Size);
+            this.buffer.Advance(UnsafeTrieNode.Size);
             nodeCount++;
         }
 
@@ -95,7 +95,7 @@ namespace TrieHard.Collections
         {
             int keyIndex = 0;
 
-            CompactTrieNode* searchNode = rootPointer;
+            UnsafeTrieNode* searchNode = rootPointer;
             while (true)
             {
                 byte byteToMatch = key[keyIndex];
@@ -105,13 +105,13 @@ namespace TrieHard.Collections
                 {
                     matchingIndex = ~matchingIndex;
                     EnsureNodeSpace();
-                    CompactTrieNode* newNode = (CompactTrieNode*)buffer.CurrentAddress;
-                    *newNode = new CompactTrieNode { ValueLocation = -1 };
+                    UnsafeTrieNode* newNode = (UnsafeTrieNode*)buffer.CurrentAddress;
+                    *newNode = new UnsafeTrieNode { ValueLocation = -1 };
                     RecordNode();
                     searchNode->AddChild(new nint(newNode), byteToMatch, matchingIndex);
                 }
 
-                searchNode = (CompactTrieNode*)searchNode->GetChild(matchingIndex).ToPointer();
+                searchNode = (UnsafeTrieNode*)searchNode->GetChild(matchingIndex).ToPointer();
 
                 keyIndex++;
                 if (key.Length == keyIndex)
@@ -132,7 +132,7 @@ namespace TrieHard.Collections
 
         private static readonly byte[] EmptyKeyBytes = new byte[0];
 
-        public CompactTrieEnumerator<T> Search(string key)
+        public UnsafeTrieEnumerator<T> Search(string key)
         {
             if (key.Length == 0)
             {
@@ -146,14 +146,14 @@ namespace TrieHard.Collections
             return Search(buffer.AsMemory(0, bytesWritten));
         }
 
-        private CompactTrieUtf8Enumerator<T> SearchUtf8(ReadOnlyMemory<byte> key, byte[] keyBuffer = null!)
+        private UnsafeTrieUtf8Enumerator<T> SearchUtf8(ReadOnlyMemory<byte> key, byte[] keyBuffer = null!)
         {
             nint matchingNode = FindNodeAddress(key.Span);
             if (matchingNode > 0)
             {
-                return new CompactTrieUtf8Enumerator<T>(this, key, matchingNode, keyBuffer);
+                return new UnsafeTrieUtf8Enumerator<T>(this, key, matchingNode, keyBuffer);
             }
-            return new CompactTrieUtf8Enumerator<T>(null!, key, 0, keyBuffer);
+            return new UnsafeTrieUtf8Enumerator<T>(null!, key, 0, keyBuffer);
         }
 
         /// <summary>
@@ -171,33 +171,33 @@ namespace TrieHard.Collections
 
             if (nodeAddress > 0)
             {
-                ref readonly CompactTrieNode matchingNode = ref *(CompactTrieNode*)nodeAddress.ToPointer();
+                ref readonly UnsafeTrieNode matchingNode = ref *(UnsafeTrieNode*)nodeAddress.ToPointer();
                 return new CompactTrieNodeSpanEnumerable<T>(this, key, matchingNode);
             }
             return new CompactTrieNodeSpanEnumerable<T>();
         }
 
-        public CompactTrieEnumerator<T> Search(ReadOnlyMemory<byte> key, byte[]? keyBuffer = null)
+        public UnsafeTrieEnumerator<T> Search(ReadOnlyMemory<byte> key, byte[]? keyBuffer = null)
         {
             nint matchingNode = FindNodeAddress(key.Span);
             if (matchingNode > 0)
             {
-                return new CompactTrieEnumerator<T>(this, key, matchingNode, keyBuffer);
+                return new UnsafeTrieEnumerator<T>(this, key, matchingNode, keyBuffer);
             }
-            return new CompactTrieEnumerator<T>(null!, key, 0, keyBuffer);
+            return new UnsafeTrieEnumerator<T>(null!, key, 0, keyBuffer);
         }
 
-        public CompactTrieValueEnumerator<T?> SearchValues(ReadOnlySpan<byte> keyPrefix)
+        public UnsafeTrieValueEnumerator<T?> SearchValues(ReadOnlySpan<byte> keyPrefix)
         {
             nint matchingNode = FindNodeAddress(keyPrefix);
             if (matchingNode > 0)
             {
-                return new CompactTrieValueEnumerator<T?>(this, matchingNode);
+                return new UnsafeTrieValueEnumerator<T?>(this, matchingNode);
             }
-            return CompactTrieValueEnumerator<T?>.None;
+            return UnsafeTrieValueEnumerator<T?>.None;
         }
 
-        public CompactTrieValueEnumerator<T?> SearchValues(string keyPrefix)
+        public UnsafeTrieValueEnumerator<T?> SearchValues(string keyPrefix)
         {
             var maxByteSize = keyPrefix.Length * 3;
             if (maxByteSize > 4096)
@@ -206,7 +206,7 @@ namespace TrieHard.Collections
                 Span<byte> keySpan = buffer.AsSpan();
                 Utf8.FromUtf16(keyPrefix, keySpan, out var _, out var bytesWritten, false, true);
                 keySpan = keySpan.Slice(0, bytesWritten);
-                CompactTrieValueEnumerator<T?> result = SearchValues(keySpan);
+                UnsafeTrieValueEnumerator<T?> result = SearchValues(keySpan);
                 ArrayPool<byte>.Shared.Return(buffer);
                 return result;
             }
@@ -222,7 +222,7 @@ namespace TrieHard.Collections
         private nint FindNodeAddress(ReadOnlySpan<byte> key)
         {
             int keyIndex = 0;
-            CompactTrieNode* searchNode = rootPointer;
+            UnsafeTrieNode* searchNode = rootPointer;
             while (true)
             {
                 byte byteToMatch = key[keyIndex];
@@ -234,7 +234,7 @@ namespace TrieHard.Collections
                 }
 
                 var matchingChildAddress = searchNode->GetChild(matchingIndex);
-                searchNode = (CompactTrieNode*)matchingChildAddress.ToPointer();
+                searchNode = (UnsafeTrieNode*)matchingChildAddress.ToPointer();
 
                 keyIndex++;
                 if (key.Length == keyIndex)
@@ -275,7 +275,7 @@ namespace TrieHard.Collections
             {
                 return default!;
             }
-            CompactTrieNode* node = (CompactTrieNode*)nodeAddress;
+            UnsafeTrieNode* node = (UnsafeTrieNode*)nodeAddress;
             if (node->ValueLocation == -1)
             {
                 return default!;
@@ -305,14 +305,14 @@ namespace TrieHard.Collections
 
         private static readonly byte[] EmptyByteArray = Array.Empty<byte>();
 
-        public CompactTrieEnumerator<T> GetEnumerator()
+        public UnsafeTrieEnumerator<T> GetEnumerator()
         {
-            return new CompactTrieEnumerator<T>(this, EmptyByteArray, new nint(rootPointer));
+            return new UnsafeTrieEnumerator<T>(this, EmptyByteArray, new nint(rootPointer));
         }
 
         private void GetNodeFreeAddresses(nint searchNode, List<nint> freeList)
         {
-            CompactTrieNode* node = (CompactTrieNode*)searchNode.ToPointer();
+            UnsafeTrieNode* node = (UnsafeTrieNode*)searchNode.ToPointer();
             freeList.Add(new nint((void*)node->ChildKeysAddress));
             byte childCount = node->ChildCount;
             for (int i = 0; i < childCount; i++)
@@ -330,7 +330,7 @@ namespace TrieHard.Collections
 
         public void ClearNodeRecursive(nint nodeAddress)
         {
-            var node = (CompactTrieNode*)nodeAddress.ToPointer();
+            var node = (UnsafeTrieNode*)nodeAddress.ToPointer();
             node->ValueLocation = -1;
             for(int i = 0; i < node->ChildCount; i++)
             {
@@ -357,7 +357,7 @@ namespace TrieHard.Collections
 
         public static IPrefixLookup<string, TValue?> Create<TValue>(IEnumerable<KeyValuePair<string, TValue?>> source)
         {
-            var result = new CompactTrie<TValue>();
+            var result = new UnsafeTrie<TValue>();
             foreach (var kvp in source)
             {
                 result.Set(kvp.Key, kvp.Value);
@@ -375,7 +375,7 @@ namespace TrieHard.Collections
 
         public static IPrefixLookup<string, TValue?> Create<TValue>()
         {
-            return new CompactTrie<TValue>();
+            return new UnsafeTrie<TValue>();
         }
 
     }

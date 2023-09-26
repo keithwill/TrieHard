@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <PackageId>PrefixLookup</PackageId>
     <Title>PrefixLookup</Title>
-    <Version>0.1.2</Version>
+    <Version>0.1.3</Version>
     <Authors>keithwill</Authors>
     <Description>
       A library containing an optimized PrefixLookup collection, useful for implementation an 

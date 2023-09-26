@@ -1,33 +1,25 @@
 ﻿// This project is convenient for running VS Performance Profiler tests, but otherwise serves no important purpose.
 
+using System.Buffers;
+using TrieHard.Alternatives.ExternalLibraries.rm.Trie;
+using TrieHard.Alternatives.List;
+using TrieHard.Alternatives.SQLite;
 using TrieHard.Collections;
 
-//var trie = new CompactTrie<string>();
 var kvps = new List<KeyValuePair<string, string?>>();
 
-
-for (int i = 0; i < 1_000; i++)
+for (int i = 0; i < 1_000_000; i++)
 {
-    var key = "/Customer/" + i.ToString() + "/Config/Key/" + i.ToString();
-
+    //var key = i.ToString();
+    var key = $"/customer/{i}/entity/{1_000_000 - i}/";
     kvps.Add(new KeyValuePair<string, string?>(key, key));
 }
 
-//GC.Collect(2, GCCollectionMode.Forced, true, true);
-//Console.WriteLine("Keys Generated");
-//System.Threading.Thread.Sleep(2000);
+var trie = (FlatTrie<string>)FlatTrie<string>.Create(kvps);
 
-//for (int i = 0; i < 1000; i++)
+//for (int i = 0; i < 10; i++)
 //{
-//    var trie = (RadixTree<string>)RadixTree<string>.Create(kvps);
-//}
-
-var trie = (RadixTree<string>)RadixTree<string>.Create(kvps);
-var tmp = trie.SearchUtf8("/Customer/12"u8).ToArray();
-;
-//for (int i = 0; i < 100_000_000; i++)
-//{
-//    foreach(var kvp in trie.Search("/Customer/1234/"u8))
+//    foreach (var kvp in trie.Search("12345"))
 //    {
 //        if (kvp.Value == null)
 //        {
@@ -35,13 +27,27 @@ var tmp = trie.SearchUtf8("/Customer/12"u8).ToArray();
 //        }
 //    }
 //}
-//GC.Collect(2, GCCollectionMode.Forced, true, true);
-//GC.Collect(2, GCCollectionMode.Forced, true, true);
-//Console.WriteLine("Trie Generated");
-//Console.ReadKey();
-//System.Threading.Thread.Sleep(2000);
-//Console.WriteLine(trie);
-//Console.WriteLine(kvps.Count.ToString());
 
+GC.Collect(2, GCCollectionMode.Forced, true, true);
+System.Threading.Thread.Sleep(5000);
+var workingMb = Environment.WorkingSet / 1_000_000.00;
+Console.WriteLine("Working Set: " + workingMb.ToString());
+Console.WriteLine(trie);
 
+Console.ReadLine();
+
+foreach(var item in kvps)
+{
+    if (item.Value is null)
+    {
+        throw new ArgumentException();
+    }
+}
+foreach (var kvp in trie.Search("12345"))
+{
+    if (kvp.Value == null)
+    {
+        throw new ArgumentException();
+    }
+}
 

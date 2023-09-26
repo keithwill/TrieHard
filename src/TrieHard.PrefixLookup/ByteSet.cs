@@ -10,7 +10,8 @@ namespace TrieHard.PrefixLookup
 {
     /// <summary>
     /// Eight 32 bit integers which contain flags for all possible byte values.
-    /// This can be used instead of storing 256 bytes.
+    /// This can be used instead of storing 256 bytes in cases where an existence
+    /// check is the only thing needed.
     /// </summary>
     public struct ByteSet
     {
@@ -26,7 +27,6 @@ namespace TrieHard.PrefixLookup
         public static readonly int[] BitMasks = new int[32];
         public static readonly int[] Sections = new int[256];
         public static readonly int[] Masks = new int[256];
-
 
         static ByteSet()
         {

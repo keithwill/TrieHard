@@ -80,13 +80,22 @@ namespace TrieHard.Benchmarks
         [Benchmark]
         public int Create()
         {
-            var lookup = (T)T.Create(PrefixLookupTestValues.EnglishWords);
-            int count = lookup.Count;
-            if (lookup is IDisposable disposable)
+            try
             {
-                disposable.Dispose();
+                var lookup = (T)T.Create(PrefixLookupTestValues.EnglishWords);
+                int count = lookup.Count;
+                if (lookup is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+                return count;
             }
-            return count;
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+            return 0;
+
         }
 
 

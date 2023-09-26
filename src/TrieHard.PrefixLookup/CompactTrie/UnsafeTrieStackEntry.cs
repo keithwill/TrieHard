@@ -7,9 +7,9 @@ namespace TrieHard.Collections
     /// during CompactTrie node transversals.
     /// </summary>
     [StructLayout(LayoutKind.Explicit, Size = 10)]
-    internal unsafe readonly struct CompactTrieStackEntry
+    internal unsafe readonly struct UnsafeTrieStackEntry
     {
-        public CompactTrieStackEntry(long node, byte childIndex, byte key)
+        public UnsafeTrieStackEntry(long node, byte childIndex, byte key)
         {
             this.Node = node;
             this.ChildIndex = childIndex;

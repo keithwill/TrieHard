@@ -6,7 +6,7 @@ using TrieHard.Collections;
 namespace TrieHard.Benchmarks
 {
 
-    public class Compact : LookupBenchmark<CompactTrie<string>>
+    public class Unsafe : LookupBenchmark<UnsafeTrie<string>>
     {
 
         private ReadOnlyMemory<byte> testKeyUtf8 = Encoding.UTF8.GetBytes(testKey);

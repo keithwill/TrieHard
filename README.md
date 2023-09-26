@@ -98,9 +98,7 @@ can be found that implement a similar approach.
 This is similar to a trie, but key values that don't branch can be combined. When keys
 are longer and highly unique, then this approach can perform well. This particular
 implementation was tuned to reduce recursion and can can be modified
-by a single thread while reads are going on concurrently. It is not an immutable
-trie though, and if changes are performed while readers are enumerating, they may
-see values that may have been modified after they started enumerating.
+by a single thread while reads are going on concurrently.
 
 ### [Indirect Trie](https://github.com/keithwill/TrieHard/tree/main/src/TrieHard.PrefixLookup/IndirectTrie)
 
@@ -110,7 +108,7 @@ index locations where connected nodes are stored instead. Nodes only store links
 parent, their first child and to their first in-order sibling. It has similar concurrency
 characteristics to the RadixTree.
 
-### [Compact Trie](https://github.com/keithwill/TrieHard/tree/main/src/TrieHard.PrefixLookup/CompactTrie)
+### [Unsafe Trie](https://github.com/keithwill/TrieHard/tree/main/src/TrieHard.PrefixLookup/UnsafeTrie)
 
 This Trie uses unmanaged memory as storage for nodes and utilizes Spans and inline
 arrays to reduce allocations during operations. It offers a few specialized APIs beyond
@@ -120,17 +118,15 @@ to keys as UTF8 spans.
 The string keys are converted to UTF8 bytes before they are stored and when retrieved.
 Performance is better when using the UTF8 specific search methods or when retrieving values.
 
-It can support any number of readers, but cannot be concurrently written to while reads are
-ongoing.
+It lives up to its name, as 0.1.3 this trie has a memory leak issue (related to memory management
+of native memory during search operations) and its use outside of experimentation
+is not recommended at this time.
 
 ### [Flat Trie](https://github.com/keithwill/TrieHard/tree/main/src/TrieHard.PrefixLookup/FlatTrie)
 This Trie backs all of the node data in arrays and takes advantage of lower allocation
 patterns similar to the Compact Trie, such as the usage of structs and array pooling.
 Additional Key data is stored with each node to optimize for read heavy workloads. Several
-APIs unique to this trie also exist (such as paginating through page data.
-
-It can support any number of readers, but cannot be concurrently written to while reads are
-ongoing.
+APIs unique to this trie also exist (such as paginating through page data).
 
 ### rm.Trie
 
@@ -164,15 +160,15 @@ made to support updates.
 ### Nuget Package [PrefixLookup](https://camo.githubusercontent.com/887adb22225c0f98b23fecc0aca4b12ae232332941c37fc0615ab57d4dc03ade/68747470733a2f2f696d672e736869656c64732e696f2f6e756765742f762f5072656669784c6f6f6b7570)
 
 Also included is a project for building a Nuget package. Currently this utilizes
-a wrapper around the FlatTrie implementation. This package should be considered
+a wrapper around the RadixTree implementation. This package should be considered
 experimental at this time and plans are to target the most recent LTS of .NET
 
 ## Benchmarks
 
 Benchmarks are contained in TrieHard.Benchmarks. Most of the tests are contained in
 the [LookupBenchmark.cs](https://github.com/keithwill/TrieHard/blob/main/test/TrieHard.Benchmarks/LookupBenchmark.cs), but
-there are a few tests in [CompatBench.cs](https://github.com/keithwill/TrieHard/blob/main/test/TrieHard.Benchmarks/CompactBench.cs) which
-are specific to the CompactTrie.
+there are a few tests in [CompatBench.cs](https://github.com/keithwill/TrieHard/blob/main/test/TrieHard.Benchmarks/UnsafeBench.cs) which
+are specific to the UnsafeTrie.
 
 ### Creating a lookup with a million sequential entries (strings for keys and values)
 `dotnet run -c Release --filter *Create*`
@@ -180,13 +176,14 @@ are specific to the CompactTrie.
 ```console
 | Type      | Method | Mean     | Error    | StdDev   | Gen0   | Gen1   | Gen2   | Allocated  |
 |---------- |------- |---------:|---------:|---------:|-------:|-------:|-------:|-----------:|
-| Simple    | Create | 153.4 us |  9.03 us |  0.49 us | 3.4180 | 1.2207 |      - |  569.18 KB |
-| Radix     | Create | 193.0 us |  9.21 us |  1.43 us | 2.4414 | 0.4883 |      - |  417.63 KB |
-| Compact   | Create | 238.4 us | 14.51 us |  5.17 us | 0.4883 |      - |      - |   80.87 KB |
-| Indirect  | Create | 307.1 us | 22.58 us | 11.81 us | 1.4648 | 1.4648 | 1.4648 |  468.88 KB |
-| NaiveList | Create | 370.0 us | 20.65 us |  1.13 us |      - |      - |      - |   43.35 KB |
-| rmTrie    | Create | 446.1 us | 16.12 us |  2.49 us | 6.8359 | 2.4414 |      - | 1097.82 KB |
-| SQLite    | Create | 935.2 us | 44.28 us |  2.43 us | 1.9531 |      - |      - |  381.76 KB |
+| Simple    | Create | 155.3 us |  6.93 us |  1.07 us | 3.4180 | 1.2207 |      - |  569.18 KB |
+| Unsafe    | Create | 240.3 us |  9.23 us |  0.51 us | 0.4883 |      - |      - |   80.87 KB |
+| Flat      | Create | 295.7 us | 23.23 us |  1.27 us | 1.9531 | 0.4883 |      - |  329.67 KB |
+| Indirect  | Create | 302.1 us | 23.19 us | 15.34 us | 1.4648 | 1.4648 | 1.4648 |  468.88 KB |
+| NaiveList | Create | 375.4 us | 22.66 us |  3.51 us |      - |      - |      - |   43.35 KB |
+| rmTrie    | Create | 442.5 us | 31.50 us |  1.73 us | 6.8359 | 2.4414 |      - | 1097.82 KB |
+| Radix     | Create | 721.0 us | 39.26 us |  6.08 us | 1.9531 | 0.9766 |      - |  311.33 KB |
+| SQLite    | Create | 968.9 us | 60.55 us |  3.32 us | 1.9531 |      - |      - |  381.76 KB |
 ```
 
 ### Getting a value by key
@@ -195,13 +192,14 @@ are specific to the CompactTrie.
 ```console
 | Type      | Method   | Mean            | Error          | StdDev        | Gen0   | Allocated |
 |---------- |--------- |----------------:|---------------:|--------------:|-------:|----------:|
-| Compact   | Get      |        29.66 ns |       1.060 ns |      0.058 ns |      - |         - |
-| Radix     | Get      |        30.13 ns |       1.712 ns |      0.265 ns |      - |         - |
-| Simple    | Get      |        32.94 ns |       0.875 ns |      0.048 ns |      - |         - |
-| rmTrie    | Get      |        35.13 ns |       0.490 ns |      0.027 ns |      - |         - |
-| Indirect  | Get      |        84.71 ns |       0.812 ns |      0.044 ns |      - |         - |
-| SQLite    | Get      |       832.92 ns |      32.031 ns |      4.957 ns | 0.0019 |     416 B |
-| NaiveList | Get      | 8,030,960.16 ns | 610,192.498 ns | 33,446.710 ns |      - |     189 B |
+| Unsafe    | Get      |        28.95 ns |       0.908 ns |      0.050 ns |      - |         - |
+| Simple    | Get      |        32.99 ns |       1.458 ns |      0.080 ns |      - |         - |
+| Flat      | Get      |        39.63 ns |       0.897 ns |      0.049 ns |      - |         - |
+| rmTrie    | Get      |        40.81 ns |       0.590 ns |      0.032 ns |      - |         - |
+| Radix     | Get      |        51.08 ns |       1.258 ns |      0.069 ns |      - |         - |
+| Indirect  | Get      |        82.87 ns |       0.489 ns |      0.027 ns |      - |         - |
+| SQLite    | Get      |       871.57 ns |      20.913 ns |      3.236 ns | 0.0019 |     416 B |
+| NaiveList | Get      | 7,967,827.47 ns | 293,004.700 ns | 16,060.576 ns |      - |     142 B |
 ```
 
 A plain list struggles a bit at one million records.
@@ -210,81 +208,105 @@ A plain list struggles a bit at one million records.
 `dotnet run -c Release --filter *Set*`
 
 ```console
-| Type      | Method | Mean            | Error         | StdDev       | Allocated |
-|---------- |------- |----------------:|--------------:|-------------:|----------:|
-| Compact   | Set    |        34.72 ns |      1.022 ns |     0.056 ns |         - |
-| Radix     | Set    |        38.15 ns |      0.963 ns |     0.053 ns |         - |
-| rmTrie    | Set    |        41.82 ns |      1.998 ns |     0.110 ns |         - |
-| Simple    | Set    |        50.84 ns |      0.474 ns |     0.026 ns |         - |
-| Indirect  | Set    |       189.52 ns |      1.363 ns |     0.075 ns |         - |
-| NaiveList | Set    | 1,386,196.61 ns | 40,324.607 ns | 2,210.328 ns |      13 B |
+| Type      | Method   | Mean            | Error         | StdDev     | Allocated |
+|---------- |--------- |----------------:|--------------:|-----------:|----------:|
+| Unsafe    | Set      |        34.81 ns |      0.253 ns |   0.014 ns |         - |
+| Simple    | Set      |        39.85 ns |      0.839 ns |   0.046 ns |         - |
+| rmTrie    | Set      |        43.46 ns |      0.175 ns |   0.010 ns |         - |
+| Flat      | Set      |        44.59 ns |      1.228 ns |   0.190 ns |         - |
+| Radix     | Set      |        89.03 ns |      3.358 ns |   0.184 ns |         - |
+| Indirect  | Set      |       198.78 ns |     11.151 ns |   0.611 ns |         - |
+| NaiveList | Set      | 1,504,546.19 ns | 14,195.198 ns | 778.087 ns |       1 B |
 ```
 
 ### Searching Key Value Pairs by prefix (100 results enumerated)
 `dotnet run -c Release --filter *SearchKVP*`
 
 ```console
-| Type      | Method    | Mean            | Error           | StdDev        | Gen0   | Allocated |
-|---------- |---------- |----------------:|----------------:|--------------:|-------:|----------:|
-| Radix     | SearchKVP |        434.0 ns |        17.03 ns |       0.93 ns | 0.0029 |     496 B |
-| Indirect  | SearchKVP |        478.8 ns |         9.61 ns |       0.53 ns | 0.0029 |     544 B |
-| Simple    | SearchKVP |        837.8 ns |        36.14 ns |       5.59 ns | 0.0124 |    2120 B |
-| rmTrie    | SearchKVP |      1,269.4 ns |        69.62 ns |       3.82 ns | 0.0153 |    2496 B |
-| Compact   | SearchKVP |      1,620.1 ns |       109.85 ns |      65.37 ns | 0.0038 |     696 B |
-| NaiveList | SearchKVP | 14,945,116.1 ns | 1,004,783.84 ns |  55,075.59 ns |      - |     378 B |
-| SQLite    | SearchKVP | 33,577,520.0 ns | 1,675,232.52 ns | 259,244.09 ns |      - |    1368 B |
+| Type      | Method    | Mean            | Error         | StdDev       | Gen0   | Allocated |
+|---------- |---------- |----------------:|--------------:|-------------:|-------:|----------:|
+| Flat      | SearchKVP |        421.6 ns |      11.97 ns |      0.66 ns | 0.0029 |     528 B |
+| Radix     | SearchKVP |        451.1 ns |      13.68 ns |      2.12 ns | 0.0029 |     528 B |
+| Indirect  | SearchKVP |        477.3 ns |      15.03 ns |      0.82 ns | 0.0033 |     544 B |
+| Simple    | SearchKVP |        828.7 ns |      37.04 ns |      2.03 ns | 0.0124 |    2120 B |
+| rmTrie    | SearchKVP |      1,269.4 ns |      16.72 ns |      0.92 ns | 0.0153 |    2496 B |
+| Unsafe    | SearchKVP |      1,672.3 ns |      90.25 ns |      4.95 ns | 0.0038 |     696 B |
+| NaiveList | SearchKVP | 15,277,728.6 ns | 610,732.64 ns | 33,476.32 ns |      - |     208 B |
+| SQLite    | SearchKVP | 34,304,568.9 ns | 874,812.75 ns | 47,951.44 ns |      - |     966 B |
 ```
 
 ### Searching Values by prefix (100 results enumerated)
 `dotnet run -c Release --filter *SearchValues*`
 
 ```console
-| Type      | Method            | Mean            | Error           | StdDev       | Gen0   | Allocated |
-|---------- |------------------ |----------------:|----------------:|-------------:|-------:|----------:|
-| Compact   | SearchValues      |        540.4 ns |        21.30 ns |      3.30 ns | 0.0010 |     176 B |
-| Radix     | SearchValues      |        559.3 ns |        41.35 ns |      2.27 ns | 0.0029 |     560 B |
-| Indirect  | SearchValues      |        568.2 ns |        34.20 ns |      1.87 ns | 0.0029 |     528 B |
-| Simple    | SearchValues      |        919.1 ns |        25.41 ns |      3.93 ns | 0.0134 |    2184 B |
-| rmTrie    | SearchValues      |      1,039.2 ns |        33.74 ns |      1.85 ns | 0.0114 |    1968 B |
-| NaiveList | SearchValues      | 15,526,997.4 ns |   729,173.19 ns | 39,968.44 ns |      - |     466 B |
-| SQLite    | SearchValues      | 33,621,077.8 ns | 1,386,184.98 ns | 75,981.48 ns |      - |     928 B |
+| Type      | Method            | Mean            | Error           | StdDev        | Gen0   | Allocated |
+|---------- |------------------ |----------------:|----------------:|--------------:|-------:|----------:|
+| Flat      | SearchValues      |        195.9 ns |        10.59 ns |       0.58 ns | 0.0005 |      96 B |
+| Radix     | SearchValues      |        252.2 ns |         3.43 ns |       0.19 ns | 0.0005 |      96 B |
+| Unsafe    | SearchValues      |        541.4 ns |         3.53 ns |       0.19 ns | 0.0010 |     176 B |
+| Indirect  | SearchValues      |        567.2 ns |        14.24 ns |       0.78 ns | 0.0029 |     528 B |
+| Simple    | SearchValues      |        918.0 ns |        37.53 ns |       2.06 ns | 0.0134 |    2184 B |
+| rmTrie    | SearchValues      |      1,045.0 ns |        49.76 ns |       2.73 ns | 0.0114 |    1968 B |
+| NaiveList | SearchValues      | 15,389,530.2 ns |   451,202.11 ns |  24,731.91 ns |      - |     278 B |
+| SQLite    | SearchValues      | 33,978,553.3 ns | 1,645,314.16 ns | 427,282.86 ns |      - |     564 B |
 ```
 
-### Compact additional APIs
-`dotnet run -c Release --filter *Compact*`
+### UTF8 Methods
+`dotnet run -c Release --filter *Utf8*`
 
 ```console
-| Method            | Mean            | Error          | StdDev      | Gen0   | Allocated |
-|------------------ |----------------:|---------------:|------------:|-------:|----------:|
-| Get_Utf8          |      23.5229 ns |      0.4000 ns |   0.0219 ns |      - |         - |
-| SearchSpans       |     327.7641 ns |      7.8114 ns |   0.4282 ns |      - |         - |
-| SearchValues_Utf8 |     439.9298 ns |     19.6796 ns |   1.0787 ns |      - |         - |
+| Type    | Method            | Mean      | Error     | StdDev   | Allocated |
+|-------- |------------------ |----------:|----------:|---------:|----------:|
+| Unsafe  | Get_Utf8          |  23.65 ns |  1.614 ns | 0.088 ns |         - |
+| Flat    | Get_Utf8          |  30.74 ns |  1.701 ns | 0.263 ns |         - |
+| Radix   | Get_Utf8          |  35.17 ns |  0.795 ns | 0.044 ns |         - |
+| Radix   | Set_Utf8          |  61.55 ns |  0.654 ns | 0.036 ns |         - |
+| Flat    | SearchValues_Utf8 | 133.28 ns |  4.329 ns | 0.237 ns |         - |
+| Radix   | SearchValues_Utf8 | 163.66 ns |  3.148 ns | 0.173 ns |         - |
+| Radix   | Search_Utf8       | 173.24 ns |  0.468 ns | 0.026 ns |         - |
+| Unsafe  | SearchValues_Utf8 | 449.75 ns | 25.694 ns | 3.976 ns |         - |
 ```
 
-These methods require searching with UTF8 byte data. The SearchSpans method returns an enumerator
-which only has access to the key for the duration of the loop body and will cause boxing if used
-with any LINQ operations (or anything casting the result to IEnumerable). It avoids the cost
-and garbage collection of converting the keys back to strings, but has much more limited utility
-since a consumer has to use the search results in a narrow scope.
+Several of these implementations store UTF8 data in the graph instead of strings or
+character arrays. These implementations have additional methods that are not part of
+the IPrefixLookup interface that should perform better when using UTF8 byte data instead
+of C# strings when searching or setting values.
 
 ### Working set to create one million sequential entries
 ```console
 | Method            | Working Set MiB |
 |------------------ |----------------:|
-| Baseline          |       93.15 MiB |
-| Compact           |      132.00 MiB |
-| Naive List        |      135.87 MiB |
-| Indirect          |      139.03 MiB |
-| SQLite            |      141.62 MiB |
-| Radix             |      214.34 MiB |
-| Simple            |      289.73 MiB |
-| rmTrie            |      290.02 MiB |
+| Baseline          |        53.20 MB |
+| Naive List        |        85.62 MB |
+| Unsafe            |       110.30 MB |
+| Indirect          |       116.33 MB |
+| SQLite            |       110.98 MB |
+| Flat              |       116.85 MB |
+| Simple            |       249.98 MB |
+| rmTrie            |       242.04 MB |
+| Radix             |       299.40 MB |
 ```
 Baseline in this case means creating one million key value pairs without putting them into
-one of the lookups. This last 'benchmark' is meant to be illustrative, it is not a formal
-benchmark. It was done using a console application and the Visual Studio performance profiler.
+one of the lookups. This last is meant to be illustrative, it is not a formal
+benchmark. It was done using a console application and the reported Environment.WorkingSet size.
 
-To properly compare the memory characteristics of the various implementations would require
-testing more key and payload types (particularly value type payloads), as well as utilizing
-keys that would exhibit various levels of branching (e.g. sequential vs random words vs
-highly random like GUIDs).
+The size of the Radix is misleading. Nearly 80mb of the working set is pooled arrays that are
+waiting to be reused.
+
+### Working set to create one million sequential entries with a longer key pattern of \/customer/{i}/entity/{1_000_000 - i}/\
+```console
+| Method            | Working Set MiB |
+|------------------ |----------------:|
+| Baseline          |       150.26 MB |
+| Naive List        |       169.05 MB |
+| SQLite            |       222.04 MB |
+| Radix             |       422.15 MB |
+| Indirect          |       795.04 MB |
+| Unsafe            |       846.19 MB |
+| Flat              |      2171.89 MB |
+| Simple            |      4149.96 MB |
+| rmTrie            |      4139.12 MB |
+```
+
+Tries can struggle with longer keys. The strength of the RadixTree is more evident with longer
+keys that have repeated patterns embedded.

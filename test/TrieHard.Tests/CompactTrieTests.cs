@@ -2,7 +2,7 @@ using TrieHard.Collections;
 
 namespace TrieHard.Tests;
 
-public class CompactTrieTests : PrefixLookupTests<CompactTrie<TestRecord?>>
+public class CompactTrieTests : PrefixLookupTests<UnsafeTrie<TestRecord?>>
 {
 
     [TestCase(0)]
@@ -12,7 +12,7 @@ public class CompactTrieTests : PrefixLookupTests<CompactTrie<TestRecord?>>
     {
         Assume.That(CreateWithValues, Throws.Nothing);
         var testKeyValues = GetTestRecords(valuesToAdd);
-        var lookup = (CompactTrie<TestRecord?>)CompactTrie<TestRecord?>.Create(testKeyValues!);
+        var lookup = (UnsafeTrie<TestRecord?>)UnsafeTrie<TestRecord?>.Create(testKeyValues!);
 
         var prefix = "1";
         Span<byte> utf8Prefix = System.Text.Encoding.UTF8.GetBytes(prefix).AsSpan();

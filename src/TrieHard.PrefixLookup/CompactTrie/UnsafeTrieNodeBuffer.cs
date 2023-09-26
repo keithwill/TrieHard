@@ -7,7 +7,7 @@ namespace TrieHard.Collections
     /// <summary>
     /// A backing buffer for storing CompactTrieNodes instead of storing them in managed arrays.
     /// </summary>
-    internal unsafe class CompactTrieNodeBuffer : IDisposable
+    internal unsafe class UnsafeTrieNodeBuffer : IDisposable
     {
         private bool isDisposed = false;
         private void* pointer;
@@ -16,7 +16,7 @@ namespace TrieHard.Collections
         private long size;
         private long consumed;
 
-        public CompactTrieNodeBuffer(long size)
+        public UnsafeTrieNodeBuffer(long size)
         {
             var sizeNint = (nuint)Convert.ToUInt64(size);
             pointer = NativeMemory.Alloc(sizeNint);
@@ -49,7 +49,7 @@ namespace TrieHard.Collections
             GC.SuppressFinalize(this);
         }
 
-        ~CompactTrieNodeBuffer()
+        ~UnsafeTrieNodeBuffer()
         {
             if (!isDisposed)
             {

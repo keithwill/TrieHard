@@ -8,11 +8,11 @@ using System.Runtime.InteropServices;
 namespace TrieHard.Collections
 {
     [SkipLocalsInit]
-    public unsafe struct CompactTrieValueEnumerator<T> : IEnumerable<T?>, IEnumerator<T?>
+    public unsafe struct UnsafeTrieValueEnumerator<T> : IEnumerable<T?>, IEnumerator<T?>
     {
         private static nuint StackEntrySize = (nuint)Convert.ToUInt64(sizeof(StackValueEntry));
 
-        private readonly CompactTrie<T>? trie;
+        private readonly UnsafeTrie<T>? trie;
         private nint collectNode;
         private nint currentNodeAddress;
         private int stackCount;
@@ -22,9 +22,9 @@ namespace TrieHard.Collections
         private T? currentValue;
         private bool finished = false;
 
-        public readonly static CompactTrieValueEnumerator<T> None = new CompactTrieValueEnumerator<T>(null, 0) { finished = true};
+        public readonly static UnsafeTrieValueEnumerator<T> None = new UnsafeTrieValueEnumerator<T>(null, 0) { finished = true};
 
-        internal CompactTrieValueEnumerator(CompactTrie<T>? trie, nint collectNode)
+        internal UnsafeTrieValueEnumerator(UnsafeTrie<T>? trie, nint collectNode)
         {
             this.trie = trie;
             this.collectNode = collectNode;
@@ -35,7 +35,7 @@ namespace TrieHard.Collections
             }
         }
 
-        public CompactTrieValueEnumerator()
+        public UnsafeTrieValueEnumerator()
         {
             finished = true;
         }
@@ -88,7 +88,7 @@ namespace TrieHard.Collections
 
             while (true)
             {
-                CompactTrieNode* currentNode = (CompactTrieNode*)currentNodeAddress.ToPointer();
+                UnsafeTrieNode* currentNode = (UnsafeTrieNode*)currentNodeAddress.ToPointer();
                 bool hasValue = false;
 
                 if (currentNode->ValueLocation > -1)
@@ -117,7 +117,7 @@ namespace TrieHard.Collections
                     }
                     StackValueEntry parentEntry = Pop();
                     nint parentNodeAddress = (nint)parentEntry.Node;
-                    CompactTrieNode* parentNode = (CompactTrieNode*)parentNodeAddress.ToPointer();
+                    UnsafeTrieNode* parentNode = (UnsafeTrieNode*)parentNodeAddress.ToPointer();
 
                     if (parentEntry.ChildIndex >= parentNode->ChildCount - 1)
                     {
@@ -168,7 +168,7 @@ namespace TrieHard.Collections
                 this.currentNodeAddress = collectNode;
             }
         }
-        public CompactTrieValueEnumerator<T> GetEnumerator() { return this; }
+        public UnsafeTrieValueEnumerator<T> GetEnumerator() { return this; }
         IEnumerator<T?> IEnumerable<T?>.GetEnumerator() { return this; }
         IEnumerator IEnumerable.GetEnumerator() { return this; }
         public T? Current => this.currentValue;

@@ -31,6 +31,12 @@ namespace TrieHard.Benchmarks
         }
 
         [Benchmark]
+        public void Set_Utf8()
+        {
+            lookup.Set(testPrefixKeyUtf8.AsSpan(), testKey);
+        }
+
+        [Benchmark]
         public string SearchValues_Utf8()
         {
             string result = null;

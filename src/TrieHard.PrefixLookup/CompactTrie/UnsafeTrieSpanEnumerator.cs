@@ -1,16 +1,16 @@
 using System;
 using TrieHard.Collections;
 
-public unsafe struct CompactTrieSpanEnumerator<T>
+public unsafe struct UnsafeTrieSpanEnumerator<T>
 {
 
     private HybridStack<byte> keyStack;
     private HybridStack<NodeTransversal> nodeStack;
 
-    private CompactTrie<T>? trie;
-    private readonly CompactTrieNode collectNode;
+    private UnsafeTrie<T>? trie;
+    private readonly UnsafeTrieNode collectNode;
 
-    private CompactTrieNode currentNodeBacking;
+    private UnsafeTrieNode currentNodeBacking;
 
     private KeyValue<byte, T?> currentKeyValue;
 
@@ -26,7 +26,7 @@ public unsafe struct CompactTrieSpanEnumerator<T>
     /// <param name="trie">The trie to enumerate</param>
     /// <param name="prefix">The key prefix that matches the collect node</param>
     /// <param name="collectNodePtr">The node to start collecting values at</param>
-    public CompactTrieSpanEnumerator(CompactTrie<T> trie, scoped ReadOnlySpan<byte> prefix, in CompactTrieNode collectNodePtr)
+    public UnsafeTrieSpanEnumerator(UnsafeTrie<T> trie, scoped ReadOnlySpan<byte> prefix, in UnsafeTrieNode collectNodePtr)
     {
         keyStack = new HybridStack<byte>();
         keyStack.Write(prefix);
@@ -48,7 +48,7 @@ public unsafe struct CompactTrieSpanEnumerator<T>
     /// </summary>
     /// <param name="node"></param>
     /// <returns></returns>
-    private bool TrySetCurrentKeyValue(in CompactTrieNode node)
+    private bool TrySetCurrentKeyValue(in UnsafeTrieNode node)
     {
         if (node.ValueLocation == -1) return false;
 
@@ -58,12 +58,12 @@ public unsafe struct CompactTrieSpanEnumerator<T>
         return true;
     }
 
-    public static CompactTrieSpanEnumerator<T> Empty()
+    public static UnsafeTrieSpanEnumerator<T> Empty()
     {
-        return new CompactTrieSpanEnumerator<T>();
+        return new UnsafeTrieSpanEnumerator<T>();
     }
 
-    public CompactTrieSpanEnumerator()
+    public UnsafeTrieSpanEnumerator()
     {
     }
 
@@ -77,7 +77,7 @@ public unsafe struct CompactTrieSpanEnumerator<T>
 
         if (trie == null) return false;
 
-        ref readonly CompactTrieNode current = ref currentNodeBacking;
+        ref readonly UnsafeTrieNode current = ref currentNodeBacking;
 
         while (true)
         {
@@ -101,7 +101,7 @@ public unsafe struct CompactTrieSpanEnumerator<T>
                 }
 
                 ref readonly NodeTransversal lastTransversal = ref Pop();
-                CompactTrieNode parentNode = lastTransversal.FromParent;
+                UnsafeTrieNode parentNode = lastTransversal.FromParent;
                 //fix // We are pointing to a ref of an element in the 'stack'
                 // but that means our 'currentNode' points to something else as the stack is changed
 
@@ -128,7 +128,7 @@ public unsafe struct CompactTrieSpanEnumerator<T>
         }
     }
 
-    private void Push(in CompactTrieNode fromParent, byte toChildIndex)
+    private void Push(in UnsafeTrieNode fromParent, byte toChildIndex)
     {
         byte childKey = fromParent.GetChildKey(toChildIndex);
         keyStack.Push(childKey);
@@ -145,13 +145,13 @@ public unsafe struct CompactTrieSpanEnumerator<T>
     private readonly struct NodeTransversal
     {
 
-        public NodeTransversal(in CompactTrieNode parent, byte childIndex, byte childKey)
+        public NodeTransversal(in UnsafeTrieNode parent, byte childIndex, byte childKey)
         {
             FromParent = parent;
             ToChildIndex = childIndex;
             this.ChildKey = childKey;
         }
-        public readonly CompactTrieNode FromParent;
+        public readonly UnsafeTrieNode FromParent;
         public readonly byte ToChildIndex;
         public readonly byte ChildKey;
 
@@ -167,24 +167,24 @@ public unsafe struct CompactTrieSpanEnumerator<T>
 
 public unsafe ref struct CompactTrieNodeSpanEnumerable<T>
 {
-    private readonly CompactTrie<T> trie;
+    private readonly UnsafeTrie<T> trie;
     private readonly ReadOnlySpan<byte> keyPrefix;
-    private readonly ref readonly CompactTrieNode node;
+    private readonly ref readonly UnsafeTrieNode node;
 
-    public CompactTrieNodeSpanEnumerable(CompactTrie<T> trie, ReadOnlySpan<byte> keyPrefix, in CompactTrieNode node)
+    public CompactTrieNodeSpanEnumerable(UnsafeTrie<T> trie, ReadOnlySpan<byte> keyPrefix, in UnsafeTrieNode node)
     {
         this.trie = trie;
         this.keyPrefix = keyPrefix;
         this.node = ref node;
     }
 
-    public CompactTrieSpanEnumerator<T> GetEnumerator()
+    public UnsafeTrieSpanEnumerator<T> GetEnumerator()
     {
         if (trie == null)
         {
-            return CompactTrieSpanEnumerator<T>.Empty();
+            return UnsafeTrieSpanEnumerator<T>.Empty();
         }
-        return new CompactTrieSpanEnumerator<T>(trie, keyPrefix, node);
+        return new UnsafeTrieSpanEnumerator<T>(trie, keyPrefix, node);
     }
 
 }

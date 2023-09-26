@@ -5,7 +5,7 @@ using TrieHard.PrefixLookup;
 
 public class PrefixLookup<T> : IPrefixLookup<string, T?>, IDisposable
 {
-    private FlatTrie<T> trie;
+    private RadixTree<T> trie;
     public T? this[string key]
     {
         get => trie[key];
@@ -14,25 +14,25 @@ public class PrefixLookup<T> : IPrefixLookup<string, T?>, IDisposable
 
     public PrefixLookup()
     {
-        trie = new FlatTrie<T>();
+        trie = new RadixTree<T>();
     }
 
-    public static bool IsImmutable => CompactTrie<T>.IsImmutable;
-    public static Concurrency ThreadSafety => CompactTrie<T>.ThreadSafety;
+    public static bool IsImmutable => UnsafeTrie<T>.IsImmutable;
+    public static Concurrency ThreadSafety => UnsafeTrie<T>.ThreadSafety;
 
     public int Count => trie.Count;
 
     public static IPrefixLookup<string, TValue?> Create<TValue>(IEnumerable<KeyValuePair<string, TValue?>> source)
     {
         var result = new PrefixLookup<TValue?>();
-        result.trie = (FlatTrie<TValue?>)FlatTrie<TValue?>.Create(source);
+        result.trie = (RadixTree<TValue?>)RadixTree<TValue?>.Create(source);
         return result;
     }
 
     public static IPrefixLookup<string, TValue?> Create<TValue>()
     {
         var result = new PrefixLookup<TValue?>();
-        result.trie = (FlatTrie<TValue?>)FlatTrie<TValue>.Create<TValue?>();
+        result.trie = (RadixTree<TValue?>)RadixTree<TValue>.Create<TValue?>();
         return result;
     }
 
@@ -43,7 +43,7 @@ public class PrefixLookup<T> : IPrefixLookup<string, T?>, IDisposable
 
     public IEnumerator<KeyValuePair<string, T?>> GetEnumerator()
     {
-        return trie.GetEnumerator();
+        return trie.Search(string.Empty);
     }
 
     IEnumerator<KeyValuePair<string, T?>> IEnumerable<KeyValuePair<string, T?>>.GetEnumerator()
@@ -53,6 +53,7 @@ public class PrefixLookup<T> : IPrefixLookup<string, T?>, IDisposable
 
     public SearchResult<KeyValuePair<string, T?>> Search(string keyPrefix)
     {
+
         return trie.Search(keyPrefix);
     }
 

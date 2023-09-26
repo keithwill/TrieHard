@@ -8,16 +8,16 @@ using System.Runtime.InteropServices;
 namespace TrieHard.Collections
 {
     [SkipLocalsInit]
-    public unsafe struct CompactTrieUtf8Enumerator<T> : IEnumerable<KeyValuePair<ReadOnlyMemory<byte>, T?>>, IEnumerator<KeyValuePair<ReadOnlyMemory<byte>, T?>>
+    public unsafe struct UnsafeTrieUtf8Enumerator<T> : IEnumerable<KeyValuePair<ReadOnlyMemory<byte>, T?>>, IEnumerator<KeyValuePair<ReadOnlyMemory<byte>, T?>>
     {
-        private static nuint StackEntrySize = (nuint)Convert.ToUInt64(sizeof(CompactTrieStackEntry));
+        private static nuint StackEntrySize = (nuint)Convert.ToUInt64(sizeof(UnsafeTrieStackEntry));
 
-        private readonly CompactTrie<T>? trie;
+        private readonly UnsafeTrie<T>? trie;
         private readonly ReadOnlyMemory<byte> rootPrefix;
         private nint collectNode;
         private nint currentNodeAddress;
 
-        private CompactTrieStackEntry[] nodeStack = Array.Empty<CompactTrieStackEntry>();
+        private UnsafeTrieStackEntry[] nodeStack = Array.Empty<UnsafeTrieStackEntry>();
         private int nodeStackCount;
         private int nodeStackCapacity;
         
@@ -33,9 +33,9 @@ namespace TrieHard.Collections
 
     
 
-        public readonly static CompactTrieUtf8Enumerator<T> None = new CompactTrieUtf8Enumerator<T>(null!, ReadOnlyMemory<byte>.Empty, 0);
+        public readonly static UnsafeTrieUtf8Enumerator<T> None = new UnsafeTrieUtf8Enumerator<T>(null!, ReadOnlyMemory<byte>.Empty, 0);
 
-        internal CompactTrieUtf8Enumerator(CompactTrie<T> trie, ReadOnlyMemory<byte> rootPrefix, nint collectNode, byte[] keyBuffer = null!)
+        internal UnsafeTrieUtf8Enumerator(UnsafeTrie<T> trie, ReadOnlyMemory<byte> rootPrefix, nint collectNode, byte[] keyBuffer = null!)
         {
             this.trie = trie;
             this.rootPrefix = rootPrefix;
@@ -48,7 +48,7 @@ namespace TrieHard.Collections
             }
         }
 
-        public CompactTrieUtf8Enumerator()
+        public UnsafeTrieUtf8Enumerator()
         {
             finished = true;
         }
@@ -58,24 +58,24 @@ namespace TrieHard.Collections
 
             if (nodeStackCount == 0)
             {
-                nodeStack = ArrayPool<CompactTrieStackEntry>.Shared.Rent(64);
+                nodeStack = ArrayPool<UnsafeTrieStackEntry>.Shared.Rent(64);
                 nodeStackCapacity = 64;
             }
             if (nodeStackCapacity <= nodeStackCount)
             {
-                var newStack = ArrayPool<CompactTrieStackEntry>.Shared.Rent(nodeStackCapacity * 2);
+                var newStack = ArrayPool<UnsafeTrieStackEntry>.Shared.Rent(nodeStackCapacity * 2);
                 var oldNodeStack = nodeStack;
 
                 Array.Copy(oldNodeStack, newStack, nodeStackCount);
-                ArrayPool<CompactTrieStackEntry>.Shared.Return(oldNodeStack);
+                ArrayPool<UnsafeTrieStackEntry>.Shared.Return(oldNodeStack);
                 nodeStack = newStack;
             }
-            nodeStack[nodeStackCount] = new CompactTrieStackEntry(node, childIndex, key);
+            nodeStack[nodeStackCount] = new UnsafeTrieStackEntry(node, childIndex, key);
             nodeStackCount++;
         }
 
 
-        private CompactTrieStackEntry Pop()
+        private UnsafeTrieStackEntry Pop()
         {
             var entry = nodeStack[nodeStackCount - 1];
             nodeStackCount--;
@@ -92,7 +92,7 @@ namespace TrieHard.Collections
 
             while (true)
             {
-                CompactTrieNode* currentNode = (CompactTrieNode*)currentNodeAddress.ToPointer();
+                UnsafeTrieNode* currentNode = (UnsafeTrieNode*)currentNodeAddress.ToPointer();
                 bool hasValue = false;
 
                 if (currentNode->ValueLocation > -1)
@@ -119,9 +119,9 @@ namespace TrieHard.Collections
                         finished = true;
                         return hasValue;
                     }
-                    CompactTrieStackEntry parentEntry = Pop();
+                    UnsafeTrieStackEntry parentEntry = Pop();
                     nint parentNodeAddress = (nint)parentEntry.Node;
-                    CompactTrieNode* parentNode = (CompactTrieNode*)parentNodeAddress.ToPointer();
+                    UnsafeTrieNode* parentNode = (UnsafeTrieNode*)parentNodeAddress.ToPointer();
 
                     if (parentEntry.ChildIndex >= parentNode->ChildCount - 1)
                     {
@@ -163,7 +163,7 @@ namespace TrieHard.Collections
                 }
                 resultKeyBuffer = ArrayPool<byte>.Shared.Rent(keyByteLength);
             }
-            Span<CompactTrieStackEntry> stackEntries = nodeStack.AsSpan(0, nodeStackCount);
+            Span<UnsafeTrieStackEntry> stackEntries = nodeStack.AsSpan(0, nodeStackCount);
             Span<byte> keyBytes = resultKeyBuffer.AsSpan(0, keyByteLength);
 
             var prefixTarget = keyBytes.Slice(0, rootPrefix.Length);
@@ -183,7 +183,7 @@ namespace TrieHard.Collections
             {
                 if (nodeStackCapacity > 0)
                 {
-                    ArrayPool<CompactTrieStackEntry>.Shared.Return(nodeStack);
+                    ArrayPool<UnsafeTrieStackEntry>.Shared.Return(nodeStack);
                 }
                 if (resultKeyBuffer.Length > 0)
                 {
@@ -214,7 +214,7 @@ namespace TrieHard.Collections
                 this.currentNodeAddress = collectNode;
             }
         }
-        public CompactTrieUtf8Enumerator<T> GetEnumerator() { return this; }
+        public UnsafeTrieUtf8Enumerator<T> GetEnumerator() { return this; }
         IEnumerator<KeyValuePair<ReadOnlyMemory<byte>, T?>> IEnumerable<KeyValuePair<ReadOnlyMemory<byte>, T?>>.GetEnumerator() { return this; }
         IEnumerator IEnumerable.GetEnumerator() { return this; }
         public KeyValuePair<ReadOnlyMemory<byte>, T?> Current => this.currentValue;
