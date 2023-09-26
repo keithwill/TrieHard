@@ -9,7 +9,7 @@ namespace TrieHard.Alternatives.ExternalLibraries.rm.Trie
     /// This trie has more downloads than most of the other nuget or github repos I could find, and works
     /// on .NET standard / 5.0+
     /// </summary>
-    public class rmTrie<T> : IPrefixLookup<string, T?>
+    public class rmTrie<T> : IPrefixLookup<string, T>
     {
         TrieMap<T> trieMap;
 

@@ -85,9 +85,9 @@ public class RadixTree<T> : IPrefixLookup<string, T>
         this.root.Reset();
     }
 
-    public SearchResult<KeyValuePair<byte[], T?>> SearchUtf8(ReadOnlySpan<byte> keyPrefix)
+    public SearchResult<KeyValuePair<ReadOnlyMemory<byte>, T?>> SearchUtf8(ReadOnlySpan<byte> keyPrefix)
     {
-        var collector = ArrayPoolList<KeyValuePair<byte[], T?>>.Rent();
+        var collector = ArrayPoolList<KeyValuePair<ReadOnlyMemory<byte>, T?>>.Rent();
         if (keyPrefix.Length == 0)
         {
             root.CollectKeyValues(collector);
@@ -96,7 +96,7 @@ public class RadixTree<T> : IPrefixLookup<string, T>
         {
             root.SearchPrefix(keyPrefix, collector);
         }
-        return new SearchResult<KeyValuePair<byte[], T?>>(collector);
+        return new SearchResult<KeyValuePair<ReadOnlyMemory<byte>, T?>>(collector);
     }
 
     public SearchResult<KeyValuePair<string, T?>> Search(ReadOnlySpan<byte> keyPrefix)
@@ -113,7 +113,7 @@ public class RadixTree<T> : IPrefixLookup<string, T>
         return new SearchResult<KeyValuePair<string, T?>>(collector);
     }
 
-    public IEnumerator<KeyValuePair<byte[], T?>> GetEnumerator()
+    public IEnumerator<KeyValuePair<ReadOnlyMemory<byte>, T?>> GetEnumerator()
     {
         return SearchUtf8(ReadOnlySpan<byte>.Empty).GetEnumerator();
     }

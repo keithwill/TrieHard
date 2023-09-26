@@ -2,7 +2,7 @@ using TrieHard.Collections;
 
 namespace TrieHard.Tests;
 
-public class CompactTrieTests : PrefixLookupTests<UnsafeTrie<TestRecord?>>
+public class UnsafeTrieTests : PrefixLookupTests<UnsafeTrie<TestRecord?>>
 {
 
     [TestCase(0)]

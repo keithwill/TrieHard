@@ -11,34 +11,18 @@ namespace TrieHard.Collections;
 /// <typeparam name="T">The entity stored within this node</typeparam>
 internal class RadixTreeNode<T> : IDisposable
 {
-    public byte[] FullKey => KeySegment.Array;
-    private ArraySegment<byte> KeySegment;
+    public byte[] FullKey => KeySegment.Array!;
+    private ArraySegment<byte> KeySegment = ArraySegment<byte>.Empty;
     public RadixTreeNode<T>[] childrenBuffer = EmptyNodes;
     private Span<RadixTreeNode<T>> Children => childrenBuffer.AsSpan(0, ChildCount);
     private byte ChildCount = 0;
     public T? Value;
-    //public byte FirstChar;
 
     private byte[] childrenFirstKeyBytesBuffer = EmptyBytes;
     private Span<byte> ChildrenFirstKeyBytes => childrenFirstKeyBytesBuffer.AsSpan(0, ChildCount);
 
     public static readonly RadixTreeNode<T>[] EmptyNodes = Array.Empty<RadixTreeNode<T>>();
     public static readonly byte[] EmptyBytes = [];
-
-    public RadixTreeNode()
-    {
-        this.KeySegment = new ArraySegment<byte>(EmptyBytes);
-    }
-
-    public RadixTreeNode(byte[] key, int offset, int count)
-    {
-        this.KeySegment = new ArraySegment<byte>(key, offset, count);
-    }
-
-    public RadixTreeNode(ArraySegment<byte> key)
-    {
-        this.KeySegment = key;
-    }
 
     /// <summary>
     /// Steps down the child nodes of this node, creating missing key segments as necessary before
@@ -241,11 +225,11 @@ internal class RadixTreeNode<T> : IDisposable
 
     }
 
-    public void CollectKeyValues(ArrayPoolList<KeyValuePair<byte[], T?>> collector)
+    public void CollectKeyValues(ArrayPoolList<KeyValuePair<ReadOnlyMemory<byte>, T?>> collector)
     {
         if (Value is not null)
         {
-            collector.Add(new KeyValuePair<byte[], T?>(FullKey, Value));
+            collector.Add(new KeyValuePair<ReadOnlyMemory<byte>, T?>(FullKey.AsMemory(0, KeySegment.Offset + KeySegment.Count), Value));
         }
         foreach(var child in Children)
         {
@@ -257,7 +241,7 @@ internal class RadixTreeNode<T> : IDisposable
     {
         if (Value is not null)
         {
-            collector.Add(new KeyValuePair<string, T?>(System.Text.Encoding.UTF8.GetString(FullKey), Value));
+            collector.Add(new KeyValuePair<string, T?>(System.Text.Encoding.UTF8.GetString(FullKey.AsSpan(0, KeySegment.Offset + KeySegment.Count)), Value));
         }
         foreach (var child in Children)
         {
@@ -313,7 +297,7 @@ internal class RadixTreeNode<T> : IDisposable
         }
     }
 
-    public void SearchPrefix(ReadOnlySpan<byte> key, ArrayPoolList<KeyValuePair<byte[], T?>> collector)
+    public void SearchPrefix(ReadOnlySpan<byte> key, ArrayPoolList<KeyValuePair<ReadOnlyMemory<byte>, T?>> collector)
     {
         if (TryFindFirstPrefixMatch(key, out var matchingNode))
         {

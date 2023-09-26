@@ -54,22 +54,22 @@ namespace TrieHard.Collections
         private ArrayPoolList<int[]> ChildIndexes = new(4);
         private ArrayPoolList<byte[]> ChildKeys = new(4);
 
-        public SpanSearchResult<KeyValuePair<byte[], T?>> SearchSpans(ReadOnlySpan<byte> prefixKey)
+        public SpanSearchResult<KeyValuePair<ReadOnlyMemory<byte>, T?>> SearchSpans(ReadOnlySpan<byte> prefixKey)
         {
             var matchingIndex = FindMatchingIndex(prefixKey);
-            if (matchingIndex == -1) return new SpanSearchResult<KeyValuePair<byte[], T?>>(null);
-            var searchResults = ArrayPoolList<KeyValuePair<byte[], T?>>.Rent();
+            if (matchingIndex == -1) return new SpanSearchResult<KeyValuePair<ReadOnlyMemory<byte>, T?>>(null);
+            var searchResults = ArrayPoolList<KeyValuePair<ReadOnlyMemory<byte>, T?>>.Rent();
             CollectResults(matchingIndex, searchResults);
-            return new SpanSearchResult<KeyValuePair<byte[], T?>>(searchResults);
+            return new SpanSearchResult<KeyValuePair<ReadOnlyMemory<byte>, T?>>(searchResults);
         }
 
-        public SearchResult<KeyValuePair<byte[], T?>> SearchUtf8(ReadOnlySpan<byte> prefixKey)
+        public SearchResult<KeyValuePair<ReadOnlyMemory<byte>, T?>> SearchUtf8(ReadOnlySpan<byte> prefixKey)
         {
             var matchingIndex = FindMatchingIndex(prefixKey);
-            if (matchingIndex == -1) return new SearchResult<KeyValuePair<byte[], T?>>(null);
-            var searchResults = ArrayPoolList<KeyValuePair<byte[], T?>>.Rent();
+            if (matchingIndex == -1) return new SearchResult<KeyValuePair<ReadOnlyMemory<byte>, T?>>(null);
+            var searchResults = ArrayPoolList<KeyValuePair<ReadOnlyMemory<byte>, T?>>.Rent();
             CollectResults(matchingIndex, searchResults);
-            return new SearchResult<KeyValuePair<byte[], T?>>(searchResults);
+            return new SearchResult<KeyValuePair<ReadOnlyMemory<byte>, T?>>(searchResults);
         }
 
         public SearchResult<KeyValuePair<string, T?>> Search(ReadOnlySpan<byte> prefixKey)
@@ -152,11 +152,12 @@ namespace TrieHard.Collections
             }
         }
 
-        private void CollectResults(int nodeIndex, ArrayPoolList<KeyValuePair<byte[], T?>> collector)
+        private void CollectResults(int nodeIndex, ArrayPoolList<KeyValuePair<ReadOnlyMemory<byte>, T?>> collector)
         {
             var valueIndex = ValueIndexes[nodeIndex];
+            var keyLength = KeyLengths[nodeIndex];
             if (valueIndex > -1) collector.Add(
-                new KeyValuePair<byte[], T?>(FullKeys[nodeIndex], Values[valueIndex])
+                new KeyValuePair<ReadOnlyMemory<byte>, T?>(FullKeys[nodeIndex].AsMemory(0, keyLength), Values[valueIndex])
             );
             Span<int> childIndexes = ChildIndexes[nodeIndex].AsSpan();
             foreach(var childIndex in childIndexes)
@@ -168,7 +169,8 @@ namespace TrieHard.Collections
         private void CollectResultsStrings(int nodeIndex, ArrayPoolList<KeyValuePair<string, T?>> collector)
         {
             var valueIndex = ValueIndexes[nodeIndex];
-            var key = System.Text.Encoding.UTF8.GetString(FullKeys[nodeIndex]);
+            var keyLength = KeyLengths[nodeIndex];
+            var key = System.Text.Encoding.UTF8.GetString(FullKeys[nodeIndex].AsSpan(0, keyLength));
             if (valueIndex > -1) collector.Add(
                 new KeyValuePair<string, T?>(key, Values[valueIndex])
             );
