@@ -61,19 +61,19 @@ namespace TrieHard.Abstractions
         /// <summary>
         /// If this type of lookup can be modified after creation or not.
         /// </summary>
-        abstract static bool IsImmutable { get; }
-        
+        virtual static bool IsImmutable => false;
+
         /// <summary>
         /// The concurrency level that this lookup is expected to exhibit.
         /// </summary>
-        abstract static Concurrency ThreadSafety { get; }
+        virtual static Concurrency ThreadSafety => Concurrency.None;
 
         /// <summary>
         /// If the lookup provides results in a sorted order. Some implementations
         /// may use strategies for storage or retrieval that do not guarantee an implicit
         /// sort order of keys returned.
         /// </summary>
-        abstract static bool IsSorted { get;}
+        virtual static bool IsSorted => false;
     }
 
     public enum Concurrency
@@ -107,14 +107,14 @@ namespace TrieHard.Abstractions
         /// </summary>
         /// <typeparam name="TValue"></typeparam>
         /// <param name="source"></param>
-        abstract static IPrefixLookup<string, TValue?> Create<TValue>(IEnumerable<KeyValuePair<string, TValue?>> source);
+        virtual static IPrefixLookup<string, TValue?> Create<TValue>(IEnumerable<KeyValuePair<string, TValue?>> source) => throw new NotImplementedException();
 
         /// <summary>
         /// Creates an instance of this type of prefix. Used for testing purposes.
         /// </summary>
         /// <typeparam name="TValue"></typeparam>
         /// <param name="source"></param>
-        abstract static IPrefixLookup<string, TValue?> Create<TValue>();
+        virtual static IPrefixLookup<string, TValue?> Create<TValue>() => throw new NotImplementedException();
     }
 
 }

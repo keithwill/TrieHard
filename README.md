@@ -272,41 +272,37 @@ character arrays. These implementations have additional methods that are not par
 the IPrefixLookup interface that should perform better when using UTF8 byte data instead
 of C# strings when searching or setting values.
 
-### Working set to create one million sequential entries
+### Memory Usage of 5 Million Keys
 ```console
-| Method            | Working Set MiB |
-|------------------ |----------------:|
-| Baseline          |        53.20 MB |
-| Naive List        |        85.62 MB |
-| Unsafe            |       110.30 MB |
-| Indirect          |       116.33 MB |
-| SQLite            |       110.98 MB |
-| Flat              |       116.85 MB |
-| Simple            |       249.98 MB |
-| rmTrie            |       242.04 MB |
-| Radix             |       299.40 MB |
-```
-Baseline in this case means creating one million key value pairs without putting them into
-one of the lookups. This last is meant to be illustrative, it is not a formal
-benchmark. It was done using a console application and the reported Environment.WorkingSet size.
-
-The size of the Radix is misleading. Nearly 80mb of the working set is pooled arrays that are
-waiting to be reused.
-
-### Working set to create one million sequential entries with a longer key pattern of \/customer/{i}/entity/{1_000_000 - i}/\
-```console
-| Method            | Working Set MiB |
-|------------------ |----------------:|
-| Baseline          |       150.26 MB |
-| Naive List        |       169.05 MB |
-| SQLite            |       222.04 MB |
-| Radix             |       422.15 MB |
-| Indirect          |       795.04 MB |
-| Unsafe            |       846.19 MB |
-| Flat              |      2171.89 MB |
-| Simple            |      4149.96 MB |
-| rmTrie            |      4139.12 MB |
+| Method    | Key Type   |  Managed MB |  Process MB | GC Pause |
+|-----------|------------|-------------|-------------|---------:|
+| Baseline  | sequential |      333.48 |      458.55 |   0.2515 |
+| NaiveList | sequential |      279.26 |      626.29 |   0.2350 |
+| Sqlite    | sequential |       40.11 |      662.09 |   0.2165 |
+| Radix     | sequential |      934.13 |     1607.45 |   3.3182 |
+| Indirect  | sequential |      240.57 |      441.40 |   0.2154 |
+| Unsafe    | sequential |       67.18 |      380.76 |   0.2126 |
+| Flat      | sequential |      934.72 |     1600.98 |   3.3993 |
+| Simple    | sequential |      864.07 |     1388.98 |   1.4740 |
+| rmTrie    | sequential |      864.07 |     1385.48 |   1.4951 |
+|-----------|------------|-------------|-------------|---------:|
+| Baseline  | paths      |      598.12 |      728.33 |   0.3503 |
+| NaiveList | paths      |      543.90 |      896.95 |   0.3306 |
+| Sqlite    | paths      |       40.11 |     1073.03 |   0.2671 |
+| Radix     | paths      |     1145.18 |     2306.88 |   4.1468 |
+| Indirect  | paths      |     4165.78 |     4782.68 |   0.8670 |
+| Unsafe    | paths      |       67.18 |     4145.27 |   0.2870 |
+| Flat      | paths      |     1152.70 |     2315.56 |   4.1930 |
+| Simple    | paths      |    21731.16 |    22820.41 |  23.1511 |
+| rmTrie    | paths      |    21731.16 |    22821.05 |  22.8698 |
 ```
 
-Tries can struggle with longer keys. The strength of the RadixTree is more evident with longer
-keys that have repeated patterns embedded.
+The 'paths' keys look like URL subpaths and follow a format of
+/customer/{id}/entity/{id}/ with the ID being a sequential number. This
+is generated with the project TrieHard.ConsoleTest. The results for
+memory usage do not follow benchmarking best practices, and do not
+account for differences in steady state, the ordering of keys inserted,'
+or other factors, so consider these as casual results.
+
+It is enough to see that simple trie implementations become somewhat
+bloated with even moderate length keys.

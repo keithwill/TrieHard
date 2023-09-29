@@ -23,7 +23,7 @@ namespace TrieHard.Benchmarks
 
         [GlobalSetup]
         public virtual void Setup()
-        {
+        {    
             lookup = (T)T.Create(PrefixLookupTestValues.SequentialStrings);
         }
 
