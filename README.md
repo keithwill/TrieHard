@@ -177,12 +177,12 @@ are specific to the UnsafeTrie.
 | Type      | Method | Mean     | Error    | StdDev   | Gen0   | Gen1   | Gen2   | Allocated  |
 |---------- |------- |---------:|---------:|---------:|-------:|-------:|-------:|-----------:|
 | Simple    | Create | 155.3 us |  6.93 us |  1.07 us | 3.4180 | 1.2207 |      - |  569.18 KB |
+| Radix     | Create | 182.1 us |  5.71 us |  0.88 us | 1.4631 | 0.2446 |      - |  248.33 KB |
 | Unsafe    | Create | 240.3 us |  9.23 us |  0.51 us | 0.4883 |      - |      - |   80.87 KB |
 | Flat      | Create | 295.7 us | 23.23 us |  1.27 us | 1.9531 | 0.4883 |      - |  329.67 KB |
 | Indirect  | Create | 302.1 us | 23.19 us | 15.34 us | 1.4648 | 1.4648 | 1.4648 |  468.88 KB |
 | NaiveList | Create | 375.4 us | 22.66 us |  3.51 us |      - |      - |      - |   43.35 KB |
 | rmTrie    | Create | 442.5 us | 31.50 us |  1.73 us | 6.8359 | 2.4414 |      - | 1097.82 KB |
-| Radix     | Create | 721.0 us | 39.26 us |  6.08 us | 1.9531 | 0.9766 |      - |  311.33 KB |
 | SQLite    | Create | 968.9 us | 60.55 us |  3.32 us | 1.9531 |      - |      - |  381.76 KB |
 ```
 
@@ -196,7 +196,7 @@ are specific to the UnsafeTrie.
 | Simple    | Get      |        32.99 ns |       1.458 ns |      0.080 ns |      - |         - |
 | Flat      | Get      |        39.63 ns |       0.897 ns |      0.049 ns |      - |         - |
 | rmTrie    | Get      |        40.81 ns |       0.590 ns |      0.032 ns |      - |         - |
-| Radix     | Get      |        51.08 ns |       1.258 ns |      0.069 ns |      - |         - |
+| Radix     | Get      |        46.99 ns |       1.092 ns |      0.060 ns |      - |         - |
 | Indirect  | Get      |        82.87 ns |       0.489 ns |      0.027 ns |      - |         - |
 | SQLite    | Get      |       871.57 ns |      20.913 ns |      3.236 ns | 0.0019 |     416 B |
 | NaiveList | Get      | 7,967,827.47 ns | 293,004.700 ns | 16,060.576 ns |      - |     142 B |
@@ -214,7 +214,7 @@ A plain list struggles a bit at one million records.
 | Simple    | Set      |        39.85 ns |      0.839 ns |   0.046 ns |         - |
 | rmTrie    | Set      |        43.46 ns |      0.175 ns |   0.010 ns |         - |
 | Flat      | Set      |        44.59 ns |      1.228 ns |   0.190 ns |         - |
-| Radix     | Set      |        89.03 ns |      3.358 ns |   0.184 ns |         - |
+| Radix     | Set      |        57.80 ns |      2.025 ns |   0.111 ns |         - |
 | Indirect  | Set      |       198.78 ns |     11.151 ns |   0.611 ns |         - |
 | NaiveList | Set      | 1,504,546.19 ns | 14,195.198 ns | 778.087 ns |       1 B |
 ```
@@ -225,8 +225,8 @@ A plain list struggles a bit at one million records.
 ```console
 | Type      | Method    | Mean            | Error         | StdDev       | Gen0   | Allocated |
 |---------- |---------- |----------------:|--------------:|-------------:|-------:|----------:|
+| Radix     | SearchKVP |        397.0 ns |     14.157 ns |      2.19 ns | 0.0029 |     528 B |
 | Flat      | SearchKVP |        421.6 ns |      11.97 ns |      0.66 ns | 0.0029 |     528 B |
-| Radix     | SearchKVP |        451.1 ns |      13.68 ns |      2.12 ns | 0.0029 |     528 B |
 | Indirect  | SearchKVP |        477.3 ns |      15.03 ns |      0.82 ns | 0.0033 |     544 B |
 | Simple    | SearchKVP |        828.7 ns |      37.04 ns |      2.03 ns | 0.0124 |    2120 B |
 | rmTrie    | SearchKVP |      1,269.4 ns |      16.72 ns |      0.92 ns | 0.0153 |    2496 B |
@@ -241,8 +241,8 @@ A plain list struggles a bit at one million records.
 ```console
 | Type      | Method            | Mean            | Error           | StdDev        | Gen0   | Allocated |
 |---------- |------------------ |----------------:|----------------:|--------------:|-------:|----------:|
+| Radix     | SearchValues      |        174.6 ns |         4.77 ns |       0.26 ns | 0.0005 |      96 B |
 | Flat      | SearchValues      |        195.9 ns |        10.59 ns |       0.58 ns | 0.0005 |      96 B |
-| Radix     | SearchValues      |        252.2 ns |         3.43 ns |       0.19 ns | 0.0005 |      96 B |
 | Unsafe    | SearchValues      |        541.4 ns |         3.53 ns |       0.19 ns | 0.0010 |     176 B |
 | Indirect  | SearchValues      |        567.2 ns |        14.24 ns |       0.78 ns | 0.0029 |     528 B |
 | Simple    | SearchValues      |        918.0 ns |        37.53 ns |       2.06 ns | 0.0134 |    2184 B |
@@ -259,11 +259,11 @@ A plain list struggles a bit at one million records.
 |-------- |------------------ |----------:|----------:|---------:|----------:|
 | Unsafe  | Get_Utf8          |  23.65 ns |  1.614 ns | 0.088 ns |         - |
 | Flat    | Get_Utf8          |  30.74 ns |  1.701 ns | 0.263 ns |         - |
-| Radix   | Get_Utf8          |  35.17 ns |  0.795 ns | 0.044 ns |         - |
-| Radix   | Set_Utf8          |  61.55 ns |  0.654 ns | 0.036 ns |         - |
+| Radix   | Get_Utf8          |  33.57 ns |  0.475 ns | 0.024 ns |         - |
+| Radix   | Set_Utf8          |  41.88 ns |  2.146 ns | 0.336 ns |         - |
+| Radix   | SearchValues_Utf8 | 111.23 ns |  0.798 ns | 0.026 ns |         - |
 | Flat    | SearchValues_Utf8 | 133.28 ns |  4.329 ns | 0.237 ns |         - |
-| Radix   | SearchValues_Utf8 | 163.66 ns |  3.148 ns | 0.173 ns |         - |
-| Radix   | Search_Utf8       | 173.24 ns |  0.468 ns | 0.026 ns |         - |
+| Radix   | Search_Utf8       | 144.00 ns |  4.778 ns | 0.173 ns |         - |
 | Unsafe  | SearchValues_Utf8 | 449.75 ns | 25.694 ns | 3.976 ns |         - |
 ```
 
@@ -276,33 +276,39 @@ of C# strings when searching or setting values.
 ```console
 | Method    | Key Type   |  Managed MB |  Process MB | GC Pause |
 |-----------|------------|-------------|-------------|---------:|
-| Baseline  | sequential |      333.48 |      458.55 |   0.2515 |
-| NaiveList | sequential |      279.26 |      626.29 |   0.2350 |
-| Sqlite    | sequential |       40.11 |      662.09 |   0.2165 |
-| Radix     | sequential |      934.13 |     1607.45 |   3.3182 |
-| Indirect  | sequential |      240.57 |      441.40 |   0.2154 |
-| Unsafe    | sequential |       67.18 |      380.76 |   0.2126 |
-| Flat      | sequential |      934.72 |     1600.98 |   3.3993 |
-| Simple    | sequential |      864.07 |     1388.98 |   1.4740 |
-| rmTrie    | sequential |      864.07 |     1385.48 |   1.4951 |
+| Baseline  | sequential |      333.48 |      458.45 |   0.2708 |
+| NaiveList | sequential |      279.26 |      626.32 |   0.2465 |
+| Sqlite    | sequential |       40.11 |      662.33 |   0.2227 |
+| Radix     | sequential |      492.07 |      987.30 |   1.3185 |
+| Indirect  | sequential |      240.57 |      441.23 |   0.2164 |
+| Unsafe    | sequential |       67.18 |      380.81 |   0.2135 |
+| Flat      | sequential |      849.72 |     1129.75 |   1.3338 |
+| Simple    | sequential |      864.07 |     1385.07 |   1.4948 |
+| rmTrie    | sequential |      864.07 |     1385.46 |   1.5357 |
 |-----------|------------|-------------|-------------|---------:|
-| Baseline  | paths      |      598.12 |      728.33 |   0.3503 |
-| NaiveList | paths      |      543.90 |      896.95 |   0.3306 |
-| Sqlite    | paths      |       40.11 |     1073.03 |   0.2671 |
-| Radix     | paths      |     1145.18 |     2306.88 |   4.1468 |
-| Indirect  | paths      |     4165.78 |     4782.68 |   0.8670 |
-| Unsafe    | paths      |       67.18 |     4145.27 |   0.2870 |
-| Flat      | paths      |     1152.70 |     2315.56 |   4.1930 |
-| Simple    | paths      |    21731.16 |    22820.41 |  23.1511 |
-| rmTrie    | paths      |    21731.16 |    22821.05 |  22.8698 |
+| Baseline  | paths      |      573.47 |      703.04 |   0.3472 |
+| NaiveList | paths      |      519.26 |      871.47 |   0.3289 |
+| Sqlite    | paths      |       40.11 |     1069.20 |   0.2764 |
+| Radix     | paths      |      696.06 |     1435.85 |   1.6524 |
+| Indirect  | paths      |     4027.05 |     4622.62 |   0.8392 |
+| Unsafe    | paths      |       67.17 |     3879.72 |   0.3006 |
+| Flat      | paths      |    13604.31 |    14148.16 |  12.2019 |
+| Simple    | paths      |    20991.62 |    22056.48 |  22.8042 |
+| rmTrie    | paths      |    20991.62 |    22062.87 |  22.3971 |
 ```
 
 The 'paths' keys look like URL subpaths and follow a format of
 /customer/{id}/entity/{id}/ with the ID being a sequential number. This
 is generated with the project TrieHard.ConsoleTest. The results for
 memory usage do not follow benchmarking best practices, and do not
-account for differences in steady state, the ordering of keys inserted,'
+account for differences in steady state, the ordering of keys inserted,
 or other factors, so consider these as casual results.
 
-It is enough to see that simple trie implementations become somewhat
-bloated with even moderate length keys.
+It is enough to see that trie implementations become somewhat
+bloated with even moderate length keys (and that SQLite has a very
+compact in-memory format). For sequential integer keys, the unsafe
+trie takes less memory than putting the keys into a List (a side
+effect of storing the keys as UTF8).
+
+Only the Radix Tree maintains decent size characteristics with
+longer keys and repeated patterns.
