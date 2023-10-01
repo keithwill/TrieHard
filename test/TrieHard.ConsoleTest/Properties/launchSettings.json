@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "TrieHard.ConsoleTest": {
+      "commandName": "Project",
+      "commandLineArgs": "radix sequential"
+    }
+  }
+}

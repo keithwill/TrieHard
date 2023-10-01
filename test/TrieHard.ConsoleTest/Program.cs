@@ -56,7 +56,7 @@ else if (keyType == "paths")
 {
     for (int i = 0; i < 5_000_000; i++)
     {
-        var key = $"/customer/{i}/entity/{1_000_000 - i}/";
+        var key = $"/customer/{i}/entity/{i}/";
         kvps.Add(new KeyValuePair<string, string?>(key, emptyPayload));
     }
 }
@@ -101,7 +101,7 @@ Console.WriteLine($"| {implementationText} | {keyTypeText} | {managedAllocText} 
 // GC will collect the trie if it isn't used after the collection in this method
 if (trie is not null)
 {
-    foreach(var value in trie.Search("asdf"))
+     foreach(var value in trie.Search("asdf"))
     {
         if (value.Key is null)
         {
