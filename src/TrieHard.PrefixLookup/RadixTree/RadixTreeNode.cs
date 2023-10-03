@@ -15,19 +15,128 @@ internal class RadixTreeNode<T>
     private Span<RadixTreeNode<T>> Children => childrenBuffer.AsSpan(0, ChildCount);
     private byte ChildCount = 0;
     public T? Value;
+    public byte FirstKeyByte;
 
     public static readonly RadixTreeNode<T>[] EmptyNodes = Array.Empty<RadixTreeNode<T>>();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int FindChildByFirstByte(RadixTreeNode<T> node, byte searchKeyByte)
+    private int FindChildByFirstByte(byte searchKeyByte)
     {
-        for (int i = node.ChildCount - 1; i >= 0; i--)
+        // The 'default' search is a basic binary search (see the 'default' case
+        // But if we specialize and unroll for other size counts, those sizes
+        // can have improved performance. 
+        var buffer = childrenBuffer;
+        int childCount = ChildCount;
+
+        switch (childCount)
         {
-            var childFirstByte = node.childrenBuffer[i].KeySegment[0];
-            if (childFirstByte == searchKeyByte) return i;
-            if (childFirstByte < searchKeyByte) return ~(i + 1);
+            case 0: return ~0;
+            case 1:
+                int cmp = buffer[0].FirstKeyByte - searchKeyByte;
+                if (cmp == 0) return 0;
+                return cmp > 0 ? ~0 : ~1;
+                //if (buffer[0].FirstKeyByte == searchKeyByte) return 0;
+                //if (buffer[0].FirstKeyByte > searchKeyByte) return ~0;
+                //return ~1;
+            case 2:
+                if (buffer[1].FirstKeyByte == searchKeyByte) return 1;
+                if (buffer[0].FirstKeyByte == searchKeyByte) return 0;
+
+                if (buffer[0].FirstKeyByte > searchKeyByte) return ~0;
+                if (buffer[1].FirstKeyByte > searchKeyByte) return ~1;
+                return ~2;
+            case 3:
+                if (buffer[2].FirstKeyByte == searchKeyByte) return 2;
+                if (buffer[1].FirstKeyByte == searchKeyByte) return 1;
+                if (buffer[0].FirstKeyByte == searchKeyByte) return 0;
+
+                if (buffer[0].FirstKeyByte > searchKeyByte) return ~0;
+                if (buffer[1].FirstKeyByte > searchKeyByte) return ~1;
+                if (buffer[2].FirstKeyByte > searchKeyByte) return ~2;
+                return ~3;
+            case 10:
+                // Size 10 is very important. If this tree is used
+                // to store codes and ids, then its likely many
+                // nodes will only have children for decimals
+
+                // Unroll loop and manually binary search
+                int cmp5 = buffer[5].FirstKeyByte - searchKeyByte;
+                if (cmp5 == 0) return 5;
+                if (cmp5 < 0)
+                {
+                    int cmp8 = buffer[8].FirstKeyByte - searchKeyByte;
+                    if (cmp8 == 0) return 8;
+                    if (cmp8 < 0)
+                    {
+                        int cmp9 = buffer[9].FirstKeyByte - searchKeyByte;
+                        if (cmp9 == 0) return 9;
+                        if (cmp9 < 0) return ~9;
+                        return ~8;
+                    }
+
+                    int cmp6 = buffer[6].FirstKeyByte - searchKeyByte;
+                    if (cmp6 == 0) return 6;
+                    if (cmp6 < 0)
+                    {
+                        int cmp7 = buffer[7].FirstKeyByte - searchKeyByte;
+                        if (cmp7 == 0) return 7;
+                        if (cmp7 < 0) return ~7;
+                        return ~6;
+                    }
+                    return ~5;
+                }
+
+                int cmp2 = buffer[2].FirstKeyByte - searchKeyByte;
+                if (cmp2 == 0) return 2;
+                if (cmp2 < 0)
+                {
+                    int cmp3 = buffer[3].FirstKeyByte - searchKeyByte;
+                    if (cmp3 == 0) return 3;
+                    if (cmp3 < 0)
+                    {
+                        int cmp4 = buffer[4].FirstKeyByte - searchKeyByte;
+                        if (cmp4 == 0) return 4;
+                        if (cmp4 < 0) return ~4;
+                        return ~3;
+                    }
+                    return ~2;
+                }
+                int cmp0 = buffer[0].FirstKeyByte - searchKeyByte;
+                if (cmp0 == 0) return 0;
+                if (cmp0 < 0)
+                {
+                    int cmp1 = buffer[1].FirstKeyByte - searchKeyByte;
+                    if (cmp1 == 0) return 1;
+                    if (cmp1 < 0) return ~1;
+                    return ~0;
+                };
+
+                return -1;
+
+            case 256:
+                // If the node has every possible ordered value, no need to search
+                return searchKeyByte;
+
+            default:
+                int lo = 0;
+                int hi = childCount - 1;
+                while (lo <= hi)
+                {
+                    int i = lo + ((hi - lo) >> 1);
+                    int c = buffer[i].FirstKeyByte - searchKeyByte;
+                    if (c == 0) return i;
+                    if (c < 0)
+                    {
+                        lo = i + 1;
+                    }
+                    else
+                    {
+                        hi = i - 1;
+                    }
+                }
+                return ~lo;
         }
-        return -1;
+
     }
 
     /// <summary>
@@ -50,7 +159,7 @@ internal class RadixTreeNode<T>
             searchKey = key.Slice(keyOffset);
             var searchKeyByte = searchKey[0];
                         
-            int matchingIndex = FindChildByFirstByte(searchNode, searchKeyByte);
+            int matchingIndex = searchNode.FindChildByFirstByte(searchKeyByte);
 
             if (matchingIndex > -1)
             {
@@ -113,6 +222,7 @@ internal class RadixTreeNode<T>
                 if (keyBytes is null) keyBytes = key.ToArray();
                 var newChild = new RadixTreeNode<T>();
                 newChild.KeySegment = new ArraySegment<byte>(keyBytes, keyOffset, searchKey.Length);
+                newChild.FirstKeyByte = newChild.KeySegment[0];
                 newChild.Value = value;
 
                 // We can avoid cloning the searchNode when inserting a new child at the end of the 
@@ -142,6 +252,7 @@ internal class RadixTreeNode<T>
     {
         var clone = new RadixTreeNode<T>();
         clone.KeySegment = KeySegment;
+        clone.FirstKeyByte = FirstKeyByte;
         clone.Value = Value;
         clone.ChildCount = ChildCount;
         if (copyChildren)
@@ -264,12 +375,14 @@ internal class RadixTreeNode<T>
         var newOffset = atKeyLength;
         var newCount = splitChild.KeySegment.Count - atKeyLength;
         splitChild.KeySegment = splitChild.KeySegment.Slice(newOffset, newCount);
+        splitChild.FirstKeyByte = splitChild.KeySegment[0];
 
         var splitParent = new RadixTreeNode<T>();
         splitParent.SetChildCapacity(1, false);
         splitParent.childrenBuffer[0] = splitChild;
 
         splitParent.KeySegment = new ArraySegment<byte>(child.FullKey, child.KeySegment.Offset, atKeyLength);
+        splitParent.FirstKeyByte = splitParent.KeySegment[0];
         child = splitParent;
     }
 
@@ -278,7 +391,7 @@ internal class RadixTreeNode<T>
     {
         var searchNode = this;
         var searchKeyByte = key[0];
-        int matchingIndex = FindChildByFirstByte(searchNode, searchKeyByte);
+        int matchingIndex = searchNode.FindChildByFirstByte(searchKeyByte);
 
         while (matchingIndex > -1)
         {
@@ -292,7 +405,7 @@ internal class RadixTreeNode<T>
             }
             key = key.Slice(bytesMatched);
             searchKeyByte = key[0];
-            matchingIndex = FindChildByFirstByte(searchNode, searchKeyByte);
+            matchingIndex = searchNode.FindChildByFirstByte(searchKeyByte);
         }
         return default;
     }
@@ -336,7 +449,7 @@ internal class RadixTreeNode<T>
     private RadixTreeNode<T>? FindPrefixMatch(ReadOnlySpan<byte> key)
     {
         var node = this;
-        var childIndex = FindChildByFirstByte(node, key[0]);
+        var childIndex = node.FindChildByFirstByte(key[0]);
         while (childIndex > -1)
         {
             node = node.childrenBuffer[childIndex];
@@ -350,7 +463,7 @@ internal class RadixTreeNode<T>
 
             key = key.Slice(matchingBytes);
 
-            childIndex = FindChildByFirstByte(node, key[0]);
+            childIndex = node.FindChildByFirstByte(key[0]);
         }
         return null;
     }
