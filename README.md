@@ -176,14 +176,14 @@ are specific to the UnsafeTrie.
 ```console
 | Type      | Method | Mean     | Error    | StdDev   | Gen0   | Gen1   | Gen2   | Allocated  |
 |---------- |------- |---------:|---------:|---------:|-------:|-------:|-------:|-----------:|
-| Simple    | Create | 155.3 us |  6.93 us |  1.07 us | 3.4180 | 1.2207 |      - |  569.18 KB |
-| Radix     | Create | 182.1 us |  5.71 us |  0.88 us | 1.4631 | 0.2446 |      - |  248.33 KB |
-| Unsafe    | Create | 240.3 us |  9.23 us |  0.51 us | 0.4883 |      - |      - |   80.87 KB |
-| Flat      | Create | 295.7 us | 23.23 us |  1.27 us | 1.9531 | 0.4883 |      - |  329.67 KB |
-| Indirect  | Create | 302.1 us | 23.19 us | 15.34 us | 1.4648 | 1.4648 | 1.4648 |  468.88 KB |
-| NaiveList | Create | 375.4 us | 22.66 us |  3.51 us |      - |      - |      - |   43.35 KB |
-| rmTrie    | Create | 442.5 us | 31.50 us |  1.73 us | 6.8359 | 2.4414 |      - | 1097.82 KB |
-| SQLite    | Create | 968.9 us | 60.55 us |  3.32 us | 1.9531 |      - |      - |  381.76 KB |
+| Simple    | Create | 153.5 us | 11.07 us |  2.88 us | 3.4180 | 1.2207 |      - |  569.18 KB |
+| Radix     | Create | 170.8 us | 13.47 us |  0.74 us | 1.4648 |      - |      - |   245.2 KB |
+| Unsafe    | Create | 234.5 us |  5.97 us |  0.33 us | 0.4883 |      - |      - |   80.87 KB |
+| Flat      | Create | 281.3 us | 17.16 us |  0.94 us | 1.9531 |      - |      - |  329.67 KB |
+| Indirect  | Create | 308.7 us | 23.35 us | 12.21 us | 1.4648 | 1.4648 | 1.4648 |  468.88 KB |
+| NaiveList | Create | 373.0 us | 27.61 us |  1.51 us |      - |      - |      - |   43.35 KB |
+| rmTrie    | Create | 436.4 us | 16.81 us |  2.60 us | 6.8359 | 2.9297 |      - | 1097.82 KB |
+| SQLite    | Create | 936.7 us |  2.83 us |  0.15 us | 1.9531 |      - |      - |  381.76 KB |
 ```
 
 ### Getting a value by key
@@ -192,14 +192,14 @@ are specific to the UnsafeTrie.
 ```console
 | Type      | Method   | Mean            | Error          | StdDev        | Gen0   | Allocated |
 |---------- |--------- |----------------:|---------------:|--------------:|-------:|----------:|
-| Unsafe    | Get      |        28.95 ns |       0.908 ns |      0.050 ns |      - |         - |
-| Simple    | Get      |        32.99 ns |       1.458 ns |      0.080 ns |      - |         - |
-| Flat      | Get      |        39.63 ns |       0.897 ns |      0.049 ns |      - |         - |
-| rmTrie    | Get      |        40.81 ns |       0.590 ns |      0.032 ns |      - |         - |
-| Radix     | Get      |        46.99 ns |       1.092 ns |      0.060 ns |      - |         - |
-| Indirect  | Get      |        82.87 ns |       0.489 ns |      0.027 ns |      - |         - |
-| SQLite    | Get      |       871.57 ns |      20.913 ns |      3.236 ns | 0.0019 |     416 B |
-| NaiveList | Get      | 7,967,827.47 ns | 293,004.700 ns | 16,060.576 ns |      - |     142 B |
+| Radix     | Get      |        22.35 ns |       0.758 ns |      0.042 ns |      - |         - |
+| Unsafe    | Get      |        28.80 ns |       0.524 ns |      0.029 ns |      - |         - |
+| Simple    | Get      |        32.45 ns |       1.340 ns |      0.073 ns |      - |         - |
+| rmTrie    | Get      |        38.95 ns |       1.476 ns |      0.081 ns |      - |         - |
+| Flat      | Get      |        40.90 ns |       2.421 ns |      0.375 ns |      - |         - |
+| Indirect  | Get      |        82.79 ns |       0.368 ns |      0.020 ns |      - |         - |
+| SQLite    | Get      |       855.16 ns |      57.964 ns |      3.177 ns | 0.0019 |     416 B |
+| NaiveList | Get      | 7,597,596.88 ns | 296,698.123 ns | 16,263.025 ns |      - |     142 B |
 ```
 
 A plain list struggles a bit at one million records.
@@ -208,63 +208,63 @@ A plain list struggles a bit at one million records.
 `dotnet run -c Release --filter *Set*`
 
 ```console
-| Type      | Method   | Mean            | Error         | StdDev     | Allocated |
-|---------- |--------- |----------------:|--------------:|-----------:|----------:|
-| Unsafe    | Set      |        34.81 ns |      0.253 ns |   0.014 ns |         - |
-| Simple    | Set      |        39.85 ns |      0.839 ns |   0.046 ns |         - |
-| rmTrie    | Set      |        43.46 ns |      0.175 ns |   0.010 ns |         - |
-| Flat      | Set      |        44.59 ns |      1.228 ns |   0.190 ns |         - |
-| Radix     | Set      |        57.80 ns |      2.025 ns |   0.111 ns |         - |
-| Indirect  | Set      |       198.78 ns |     11.151 ns |   0.611 ns |         - |
-| NaiveList | Set      | 1,504,546.19 ns | 14,195.198 ns | 778.087 ns |       1 B |
+| Type      | Method   | Mean            | Error         | StdDev       | Allocated |
+|---------- |--------- |----------------:|--------------:|-------------:|----------:|
+| Radix     | Set      |        31.27 ns |      0.853 ns |     0.047 ns |         - |
+| Unsafe    | Set      |        34.66 ns |      2.558 ns |     0.140 ns |         - |
+| Simple    | Set      |        39.50 ns |      0.355 ns |     0.019 ns |         - |
+| Flat      | Set      |        41.68 ns |      1.436 ns |     0.079 ns |         - |
+| rmTrie    | Set      |        42.23 ns |      1.588 ns |     0.087 ns |         - |
+| Indirect  | Set      |       193.18 ns |      7.130 ns |     0.391 ns |         - |
+| NaiveList | Set      | 1,386,842.74 ns | 58,342.463 ns | 3,197.947 ns |       2 B |
 ```
 
 ### Searching Key Value Pairs by prefix (100 results enumerated)
 `dotnet run -c Release --filter *SearchKVP*`
 
 ```console
-| Type      | Method    | Mean            | Error         | StdDev       | Gen0   | Allocated |
-|---------- |---------- |----------------:|--------------:|-------------:|-------:|----------:|
-| Radix     | SearchKVP |        397.0 ns |     14.157 ns |      2.19 ns | 0.0029 |     528 B |
-| Flat      | SearchKVP |        421.6 ns |      11.97 ns |      0.66 ns | 0.0029 |     528 B |
-| Indirect  | SearchKVP |        477.3 ns |      15.03 ns |      0.82 ns | 0.0033 |     544 B |
-| Simple    | SearchKVP |        828.7 ns |      37.04 ns |      2.03 ns | 0.0124 |    2120 B |
-| rmTrie    | SearchKVP |      1,269.4 ns |      16.72 ns |      0.92 ns | 0.0153 |    2496 B |
-| Unsafe    | SearchKVP |      1,672.3 ns |      90.25 ns |      4.95 ns | 0.0038 |     696 B |
-| NaiveList | SearchKVP | 15,277,728.6 ns | 610,732.64 ns | 33,476.32 ns |      - |     208 B |
-| SQLite    | SearchKVP | 34,304,568.9 ns | 874,812.75 ns | 47,951.44 ns |      - |     966 B |
+| Type      | Method    | Mean            | Error         | StdDev        | Gen0   | Allocated |
+|---------- |---------- |----------------:|--------------:|--------------:|-------:|----------:|
+| Radix     | SearchKVP |        321.1 ns |      10.56 ns |       1.63 ns | 0.0029 |     528 B |
+| Flat      | SearchKVP |        346.5 ns |      10.05 ns |       0.55 ns | 0.0029 |     528 B |
+| Indirect  | SearchKVP |        482.2 ns |      25.76 ns |       1.41 ns | 0.0029 |     544 B |
+| Simple    | SearchKVP |        863.6 ns |      38.22 ns |       2.10 ns | 0.0124 |    2120 B |
+| rmTrie    | SearchKVP |      1,266.0 ns |      38.43 ns |       2.11 ns | 0.0153 |    2496 B |
+| Unsafe    | SearchKVP |      1,596.8 ns |     116.35 ns |      51.66 ns | 0.0038 |     696 B |
+| NaiveList | SearchKVP | 15,132,173.4 ns | 220,473.56 ns |  12,084.90 ns |      - |     190 B |
+| SQLite    | SearchKVP | 34,370,661.7 ns | 950,924.59 ns | 147,156.63 ns |      - |     985 B |
 ```
 
 ### Searching Values by prefix (100 results enumerated)
 `dotnet run -c Release --filter *SearchValues*`
 
 ```console
-| Type      | Method            | Mean            | Error           | StdDev        | Gen0   | Allocated |
-|---------- |------------------ |----------------:|----------------:|--------------:|-------:|----------:|
-| Radix     | SearchValues      |        174.6 ns |         4.77 ns |       0.26 ns | 0.0005 |      96 B |
-| Flat      | SearchValues      |        195.9 ns |        10.59 ns |       0.58 ns | 0.0005 |      96 B |
-| Unsafe    | SearchValues      |        541.4 ns |         3.53 ns |       0.19 ns | 0.0010 |     176 B |
-| Indirect  | SearchValues      |        567.2 ns |        14.24 ns |       0.78 ns | 0.0029 |     528 B |
-| Simple    | SearchValues      |        918.0 ns |        37.53 ns |       2.06 ns | 0.0134 |    2184 B |
-| rmTrie    | SearchValues      |      1,045.0 ns |        49.76 ns |       2.73 ns | 0.0114 |    1968 B |
-| NaiveList | SearchValues      | 15,389,530.2 ns |   451,202.11 ns |  24,731.91 ns |      - |     278 B |
-| SQLite    | SearchValues      | 33,978,553.3 ns | 1,645,314.16 ns | 427,282.86 ns |      - |     564 B |
+| Type      | Method            | Mean             | Error            | StdDev         | Gen0   | Allocated |
+|---------- |------------------ |-----------------:|-----------------:|---------------:|-------:|----------:|
+| Radix     | SearchValues      |        127.52 ns |         3.147 ns |       0.487 ns | 0.0005 |      96 B |
+| Flat      | SearchValues      |        145.17 ns |         2.003 ns |       0.110 ns | 0.0005 |      96 B |
+| Unsafe    | SearchValues      |        545.62 ns |        26.553 ns |       1.455 ns | 0.0010 |     176 B |
+| Indirect  | SearchValues      |        564.49 ns |        33.624 ns |       1.843 ns | 0.0029 |     528 B |
+| Simple    | SearchValues      |        917.13 ns |        27.469 ns |       1.506 ns | 0.0134 |    2184 B |
+| rmTrie    | SearchValues      |      1,116.69 ns |        50.252 ns |       2.754 ns | 0.0114 |    1968 B |
+| NaiveList | SearchValues      | 15,355,907.19 ns |   798,722.680 ns | 207,425.744 ns |      - |     276 B |
+| SQLite    | SearchValues      | 33,475,025.00 ns | 1,666,252.438 ns |  91,332.919 ns |      - |     542 B |
 ```
 
 ### UTF8 Methods
 `dotnet run -c Release --filter *Utf8*`
 
 ```console
-| Type    | Method            | Mean      | Error     | StdDev   | Allocated |
-|-------- |------------------ |----------:|----------:|---------:|----------:|
-| Unsafe  | Get_Utf8          |  23.65 ns |  1.614 ns | 0.088 ns |         - |
-| Flat    | Get_Utf8          |  30.74 ns |  1.701 ns | 0.263 ns |         - |
-| Radix   | Get_Utf8          |  33.57 ns |  0.475 ns | 0.024 ns |         - |
-| Radix   | Set_Utf8          |  41.88 ns |  2.146 ns | 0.336 ns |         - |
-| Radix   | SearchValues_Utf8 | 111.23 ns |  0.798 ns | 0.026 ns |         - |
-| Flat    | SearchValues_Utf8 | 133.28 ns |  4.329 ns | 0.237 ns |         - |
-| Radix   | Search_Utf8       | 144.00 ns |  4.778 ns | 0.173 ns |         - |
-| Unsafe  | SearchValues_Utf8 | 449.75 ns | 25.694 ns | 3.976 ns |         - |
+| Type   | Method            | Mean      | Error     | StdDev   | Allocated |
+|------- |------------------ |----------:|----------:|---------:|----------:|
+| Radix  | Get_Utf8          | *11.81 ns |  0.289 ns | 0.016 ns |         - |
+| Radix  | Set_Utf8          | *18.89 ns |  0.975 ns | 0.053 ns |         - |
+| Unsafe | Get_Utf8          |  25.23 ns |  0.587 ns | 0.032 ns |         - |
+| Flat   | Get_Utf8          |  30.46 ns |  0.898 ns | 0.139 ns |         - |
+| Radix  | SearchValues_Utf8 |  70.27 ns |  2.093 ns | 0.115 ns |         - |
+| Flat   | SearchValues_Utf8 |  90.79 ns |  4.205 ns | 0.230 ns |         - |
+| Radix  | Search_Utf8       |  99.74 ns |  5.893 ns | 0.323 ns |         - |
+| Unsafe | SearchValues_Utf8 | 449.89 ns | 26.927 ns | 1.476 ns |         - |
 ```
 
 Several of these implementations store UTF8 data in the graph instead of strings or
@@ -272,29 +272,34 @@ character arrays. These implementations have additional methods that are not par
 the IPrefixLookup interface that should perform better when using UTF8 byte data instead
 of C# strings when searching or setting values.
 
+Note on the Radix Tree results. It has search logic targeting nodes with 10 children,
+which is a legitimate improvement, but makes it perform unfairly on these benchmarks
+over sequential keys. On other child node counts its results are very similar to the
+Unsafe Trie.
+
 ### Memory Usage of 5 Million Keys
 ```console
 | Method    | Key Type   |  Managed MB |  Process MB | GC Pause |
 |-----------|------------|-------------|-------------|---------:|
-| Baseline  | sequential |      333.48 |      458.45 |   0.2708 |
-| NaiveList | sequential |      279.26 |      626.32 |   0.2465 |
-| Sqlite    | sequential |       40.11 |      662.33 |   0.2227 |
-| Radix     | sequential |      492.07 |      987.30 |   1.3185 |
-| Indirect  | sequential |      240.57 |      441.23 |   0.2164 |
-| Unsafe    | sequential |       67.18 |      380.81 |   0.2135 |
-| Flat      | sequential |      849.72 |     1129.75 |   1.3338 |
-| Simple    | sequential |      864.07 |     1385.07 |   1.4948 |
-| rmTrie    | sequential |      864.07 |     1385.46 |   1.5357 |
+| Baseline  | sequential |      333.48 |      458.52 |   0.2558 |
+| NaiveList | sequential |      279.26 |      626.28 |   0.2436 |
+| Sqlite    | sequential |       40.11 |      662.18 |   0.2189 |
+| Radix     | sequential |      492.07 |      987.33 |   1.3271 |
+| Indirect  | sequential |      240.57 |      441.25 |   0.2138 |
+| Unsafe    | sequential |       67.18 |      380.85 |   0.2124 |
+| Flat      | sequential |      849.72 |     1133.93 |   1.3176 |
+| Simple    | sequential |      864.07 |     1388.93 |   1.4563 |
+| rmTrie    | sequential |      864.07 |     1389.44 |   1.4915 |
 |-----------|------------|-------------|-------------|---------:|
-| Baseline  | paths      |      573.47 |      703.04 |   0.3472 |
-| NaiveList | paths      |      519.26 |      871.47 |   0.3289 |
-| Sqlite    | paths      |       40.11 |     1069.20 |   0.2764 |
-| Radix     | paths      |      696.06 |     1435.85 |   1.6524 |
-| Indirect  | paths      |     4027.05 |     4622.62 |   0.8392 |
-| Unsafe    | paths      |       67.17 |     3879.72 |   0.3006 |
-| Flat      | paths      |    13604.31 |    14148.16 |  12.2019 |
-| Simple    | paths      |    20991.62 |    22056.48 |  22.8042 |
-| rmTrie    | paths      |    20991.62 |    22062.87 |  22.3971 |
+| Baseline  | paths      |      573.47 |      703.05 |   0.3638 |
+| NaiveList | paths      |      519.26 |      871.51 |   0.3219 |
+| Sqlite    | paths      |       40.11 |     1048.08 |   0.2663 |
+| Radix     | paths      |      693.88 |     1440.84 |   1.6489 |
+| Indirect  | paths      |     4027.05 |     4622.63 |   0.8288 |
+| Unsafe    | paths      |       67.17 |     3879.76 |   0.2947 |
+| Flat      | paths      |    13604.31 |    14153.24 |  12.1623 |
+| Simple    | paths      |    20991.62 |    22058.59 |  22.3227 |
+| rmTrie    | paths      |    20991.62 |    22063.23 |  22.8053 |
 ```
 
 The 'paths' keys look like URL subpaths and follow a format of
