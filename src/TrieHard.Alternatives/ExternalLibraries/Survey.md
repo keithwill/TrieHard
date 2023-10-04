@@ -43,7 +43,7 @@ An interesting implementation ported from Java for substring matches, but it doe
 to support prefix searches. I like that it comes with its own binary serialization format.
 
 - [dotnet-trees](https://github.com/tunnelvisionlabs/dotnet-trees/)  
-Its an interesting repository, but the tree implementations inside are only used for reimplimenting
+Its an interesting repository, but the tree implementations inside are only used for reimplementing
 other .NET collections in the System namespace. I don't see how to use anything in this library for
 efficient prefix lookups.
 
@@ -65,7 +65,7 @@ streams. I decided it wasn't worth trying to utilize.
 
 - [AdaptiveRadixTree](https://github.com/manly/AdaptiveRadixTree)  
 The ART (adaptive radix trie). I remember reading an article about ART tries. This looks like either a port
-or a reimplimentation by the dev in question based on the concept. Unfortunately its .NET Framework only
+or a reimplementation by the dev in question based on the concept. Unfortunately its .NET Framework only
 and I don't have the time to see how much effort it would take to migrate it.
 
 - [PruningRadixTrie](https://github.com/wolfgarbe/PruningRadixTrie)  

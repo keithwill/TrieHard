@@ -1,5 +1,4 @@
 using NUnit.Framework.Internal;
-using TrieHard.Alternatives.ExternalLibraries.rm.Trie;
 using TrieHard.Alternatives.List;
 using TrieHard.Alternatives.SQLite;
 using TrieHard.Collections;
@@ -188,8 +187,6 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<string, TestR
 
 
 public class SimpleTrieTests : PrefixLookupTests<SimpleTrie<TestRecord?>> { }
-public class IndirectTrieTests : PrefixLookupTests<IndirectTrie<TestRecord?>> { }
 public class SqliteLookupTests : PrefixLookupTests<SQLiteLookup<TestRecord?>> { }
 public class ListPrefixLookupTests : PrefixLookupTests<ListPrefixLookup<TestRecord?>> { }
-public class rmTrieTests : PrefixLookupTests<rmTrie<TestRecord?>> { }
 public class FlatTrieTests : PrefixLookupTests<FlatTrie<TestRecord?>> { }

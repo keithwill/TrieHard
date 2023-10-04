@@ -11,10 +11,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="rm.Trie" Version="1.3.5" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\TrieHard.PrefixLookup\TrieHard.PrefixLookup.csproj" />
   </ItemGroup>
 

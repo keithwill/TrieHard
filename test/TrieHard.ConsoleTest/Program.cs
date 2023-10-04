@@ -3,7 +3,6 @@
 
 using System.Buffers;
 using TrieHard.Abstractions;
-using TrieHard.Alternatives.ExternalLibraries.rm.Trie;
 using TrieHard.Alternatives.List;
 using TrieHard.Alternatives.SQLite;
 using TrieHard.Collections;
@@ -12,11 +11,9 @@ Dictionary<string, Func<IEnumerable<KeyValuePair<string, string?>>, IPrefixLooku
 {
     { "Baseline", (kvps) => null! },
     { "Flat", (kvps) => FlatTrie<string>.Create(kvps) },
-    { "Indirect", (kvps) => IndirectTrie<string>.Create(kvps) },
     { "Radix", (kvps) => RadixTree<string>.Create(kvps) },
     { "Simple", (kvps) => SimpleTrie<string>.Create(kvps) },
     { "Unsafe", (kvps) => UnsafeTrie<string>.Create(kvps) },
-    { "rmTrie", (kvps) => rmTrie<string>.Create(kvps) },
     { "NaiveList", (kvps) => ListPrefixLookup<string>.Create(kvps) },
     { "Sqlite", (kvps) => SQLiteLookup<string>.Create(kvps) },
 };
@@ -112,7 +109,7 @@ if (trie is not null)
 
 if (implementationName == "Baseline")
 {
-    foreach(var value in kvps)
+    foreach(var value in kvps!)
     {
         if (value.Key is null)
         {
