@@ -87,7 +87,7 @@ can be enumerated for key value pairs like a Dictionary, but also exposes
 Search and SearchValues methods which take a key prefix and return enumerables
 of KeyValuePairs or the generic value results respectively.
 
-### [SimpleTrie](https://github.com/keithwill/TrieHard/blob/main/src/TrieHard.Alternatives/SimpleTrie)
+### [SimpleTrie](https://github.com/keithwill/TrieHard/tree/main/src/TrieHard.Alternatives/SimpleTrie)
 
 This was implemented as a reference C# trie based on various articles that suggest
 using Dictionaries at each node to store keys and children. A number of NuGet packages
