@@ -14,9 +14,9 @@ namespace TrieHard.PrefixLookup
         internal readonly TElement[] items;
         private int index = -1;
         private int length;
-        private bool isDisposed = false;
+
         public static readonly TElement[] Empty = new TElement[0];
-        public TElement? Current => items[index]!;
+        public TElement? Current => items[index];
         object IEnumerator.Current => items[index]!;
         public SearchResult<TElement> GetEnumerator() => this;
         internal SearchResult(ArrayPoolList<TElement>? arrayPoolList)
@@ -48,14 +48,9 @@ namespace TrieHard.PrefixLookup
         }
         public void Dispose()
         {
-            if (!isDisposed)
+            if (BackingList != null)
             {
-                if (BackingList != null)
-                {
-                    ArrayPoolList<TElement>.Return(BackingList);
-                }
-                //BackingList?.Dispose();
-                isDisposed = true;
+                ArrayPoolList<TElement>.Return(BackingList);
             }
         }
     }
