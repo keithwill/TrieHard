@@ -20,11 +20,7 @@ namespace TrieHard.Benchmarks
                 .WithOptions(ConfigOptions.JoinSummary)
                 .WithOrderer(new DefaultOrderer(SummaryOrderPolicy.FastestToSlowest, MethodOrderPolicy.Alphabetical))
                 .WithOptions(ConfigOptions.DisableLogFile)
-                .AddJob(Job.Default
-                    .WithMinWarmupCount(1)
-                    .WithMinIterationCount(1)
-                    .WithMaxRelativeError(0.08)
-                ));
+                .AddJob(Job.Default));
 
         }
 

@@ -414,12 +414,50 @@ internal class RadixTreeNode<T>
     {
         if (Value is not null)
         {
-            collector.Add(new KeyValuePair<ReadOnlyMemory<byte>, T?>(FullKey.AsMemory(0, KeySegment.Offset + KeySegment.Count), Value));
+            collector.Add(this.AsKeyValuePair());
         }
-        for(int i = 0; i < ChildCount; i++)
+        // Unrolling a bit still seems to be the best way to reduce the cost of recursion,
+        // though the code is ugly and redundant
+        var childCount = ChildCount;
+        if (childCount > 0)
         {
-            childrenBuffer[i].CollectKeyValues(collector);
+            var buffer = childrenBuffer;
+            for (int i1 = 0; i1 < childCount; i1++)
+            {
+                var child = buffer[i1];
+                if (child.Value is not null)
+                {
+                    collector.Add(child.AsKeyValuePair());
+                }
+                if (child.ChildCount > 0)
+                {
+                    var buffer2 = child.childrenBuffer;
+                    for (int i2 = 0; i2 < buffer2.Length; i2++)
+                    {
+
+                        var child2 = buffer2[i2];
+                        if (child2.Value is not null)
+                        {
+                            collector.Add(child2.AsKeyValuePair());
+                        }
+                        if (child2.ChildCount > 0)
+                        {
+                            var buffer3 = child.childrenBuffer;
+                            for(int i3 = 0; i3 < buffer3.Length; i3++)
+                            {
+                                buffer3[i3].CollectKeyValues(collector);
+                            }
+                        }
+                    }
+                }
+            }
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public KeyValuePair<ReadOnlyMemory<byte>, T?> AsKeyValuePair()
+    {
+        return new KeyValuePair<ReadOnlyMemory<byte>, T?>(FullKey.AsMemory(0, KeySegment.Offset + KeySegment.Count), Value);
     }
 
     public void CollectKeyValueStrings(ArrayPoolList<KeyValuePair<string, T?>> collector)
