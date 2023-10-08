@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using TrieHard.PrefixLookup;
 
@@ -7,15 +8,17 @@ namespace TrieHard.Collections;
 /// A typed Radix Tree Node containing a payload value of type <typeparamref name="T"/>.
 /// </summary>
 /// <typeparam name="T">The entity stored within this node</typeparam>
-internal class RadixTreeNode<T>
+public class RadixTreeNode<T>
 {
+    public RadixTreeNode<T>? Parent = null!;
     public byte[] FullKey => KeySegment.Array!;
     private ArraySegment<byte> KeySegment = ArraySegment<byte>.Empty;
     public RadixTreeNode<T>[] childrenBuffer = EmptyNodes;
     private Span<RadixTreeNode<T>> Children => childrenBuffer.AsSpan(0, ChildCount);
-    private byte ChildCount = 0;
+    internal byte ChildCount = 0;
     public T? Value;
     public byte FirstKeyByte;
+    public byte IndexInParent;
 
     public static readonly RadixTreeNode<T>[] EmptyNodes = Array.Empty<RadixTreeNode<T>>();
 
@@ -187,7 +190,7 @@ internal class RadixTreeNode<T>
                     else
                     {
                         // We matched the whole set key, but not the entire child key. We need to split the child key
-                        SplitNode(ref matchingChild, matchingLength);
+                        searchNode.SplitNode(ref matchingChild, matchingLength);
                         matchingChild.Value = value;
                         return;
                     }
@@ -204,7 +207,7 @@ internal class RadixTreeNode<T>
                     else
                     {
                         // and only part of the child key
-                        SplitNode(ref matchingChild, matchingLength);
+                        searchNode.SplitNode(ref matchingChild, matchingLength);
                         keyOffset += matchingLength;
                         searchNode = ref matchingChild;
                     }
@@ -234,6 +237,8 @@ internal class RadixTreeNode<T>
 
                 if (insertChildAtIndex == searchNode.ChildCount && searchNode.childrenBuffer.Length > insertChildAtIndex)
                 {
+                    newChild.Parent = searchNode;
+                    newChild.IndexInParent = (byte)insertChildAtIndex;
                     searchNode.childrenBuffer[insertChildAtIndex] = newChild;
                     searchNode.ChildCount += 1;
                 }
@@ -255,6 +260,8 @@ internal class RadixTreeNode<T>
         clone.FirstKeyByte = FirstKeyByte;
         clone.Value = Value;
         clone.ChildCount = ChildCount;
+        clone.Parent = Parent;
+        clone.IndexInParent = IndexInParent;
         if (copyChildren)
         {
             clone.childrenBuffer = childrenBuffer;
@@ -352,12 +359,20 @@ internal class RadixTreeNode<T>
     public RadixTreeNode<T> CloneWithNewChild(RadixTreeNode<T> newChild, int atIndex)
     {
         var clone = Clone(false);
-        clone.SetChildCapacity(ChildCount + 1, false);
+        var newCount = ChildCount + 1;
+        clone.SetChildCapacity(newCount, false);
         Children.CopyWithInsert(clone.Children, newChild, atIndex);
+
+        for (int i = 0; i < newCount; i++)
+        {
+            RadixTreeNode<T>? child = clone.childrenBuffer[i];
+            child.IndexInParent = (byte)i;
+            child.Parent = clone;
+        }
         return clone;
     }
 
-    private static void SplitNode(ref RadixTreeNode<T> child, int atKeyLength)
+    private void SplitNode(ref RadixTreeNode<T> child, int atKeyLength)
     {
         // We are taking a child node and splitting it at a specific number of
         // characters in its key segment
@@ -370,19 +385,27 @@ internal class RadixTreeNode<T>
         // B is the splitParent, and gets a null value
         // C is the new splitChild, it retains the original value and children of the 'BC' node
 
+        byte originalIndexInParent = child.IndexInParent;
+
         // We have to clone the child we split because we are changing its key size
         var splitChild = child.Clone(true);
         var newOffset = atKeyLength;
         var newCount = splitChild.KeySegment.Count - atKeyLength;
         splitChild.KeySegment = splitChild.KeySegment.Slice(newOffset, newCount);
         splitChild.FirstKeyByte = splitChild.KeySegment[0];
+        
 
         var splitParent = new RadixTreeNode<T>();
         splitParent.SetChildCapacity(1, false);
         splitParent.childrenBuffer[0] = splitChild;
+        splitParent.IndexInParent = originalIndexInParent;
+        splitChild.IndexInParent = 0;
 
+        splitParent.Parent = this;
         splitParent.KeySegment = new ArraySegment<byte>(child.FullKey, child.KeySegment.Offset, atKeyLength);
         splitParent.FirstKeyByte = splitParent.KeySegment[0];
+
+        splitChild.Parent = splitParent;
         child = splitParent;
     }
 
@@ -410,48 +433,88 @@ internal class RadixTreeNode<T>
         return default;
     }
 
-    public void CollectKeyValues(ArrayPoolList<KeyValuePair<ReadOnlyMemory<byte>, T?>> collector)
+    public void CollectKeyValues(ArrayPoolList<KeyValuePair<ReadOnlyMemory<byte>, T?>> kvps)
     {
-        if (Value is not null)
-        {
-            collector.Add(this.AsKeyValuePair());
-        }
+        if (Value is not null) kvps.Add(AsKeyValuePair());
         // Unrolling a bit still seems to be the best way to reduce the cost of recursion,
         // though the code is ugly and redundant
         var childCount = ChildCount;
-        if (childCount > 0)
-        {
-            var buffer = childrenBuffer;
-            for (int i1 = 0; i1 < childCount; i1++)
-            {
-                var child = buffer[i1];
-                if (child.Value is not null)
-                {
-                    collector.Add(child.AsKeyValuePair());
-                }
-                if (child.ChildCount > 0)
-                {
-                    var buffer2 = child.childrenBuffer;
-                    for (int i2 = 0; i2 < buffer2.Length; i2++)
-                    {
+        if (childCount == 0) return;
+        var children = childrenBuffer;
 
-                        var child2 = buffer2[i2];
-                        if (child2.Value is not null)
-                        {
-                            collector.Add(child2.AsKeyValuePair());
-                        }
-                        if (child2.ChildCount > 0)
-                        {
-                            var buffer3 = child.childrenBuffer;
-                            for(int i3 = 0; i3 < buffer3.Length; i3++)
-                            {
-                                buffer3[i3].CollectKeyValues(collector);
-                            }
-                        }
+        for (int i1 = 0; i1 < childCount; i1++)
+        {
+            var child1 = children[i1];
+            if (child1.Value != null) kvps.Add(child1.AsKeyValuePair());
+            if (child1.ChildCount == 0) continue;
+            var children1 = child1.childrenBuffer;
+
+            for (int i2 = 0; i2 < child1.ChildCount; i2++)
+            {
+                var child2 = children1[i2];
+                if (child2.Value != null) kvps.Add(child2.AsKeyValuePair());
+                if (child2.ChildCount == 0) continue;
+                var children2 = child2.childrenBuffer;
+
+                for(int i3 = 0; i3 < child2.ChildCount; i3++)
+                {
+                    var child3 = children2[i3];
+                    if (child3.Value != null) kvps.Add(child3.AsKeyValuePair());
+                    if (child3.ChildCount == 0) continue;
+                    var children3 = child3.childrenBuffer;
+
+                    for(int i4 = 0; i4 < child3.ChildCount; i4++)
+                    {
+                        children3[i4].CollectKeyValues(kvps);
                     }
                 }
-            }
+            }            
         }
+    }
+
+    public void CollectKeyValuesExperiment(ArrayPoolList<KeyValuePair<ReadOnlyMemory<byte>, T?>> kvps)
+    {
+        var childCount = ChildCount;
+        if (childCount == 0)
+        {
+            if (Value is not null) kvps.Add(AsKeyValuePair());
+            return;
+        }
+
+        var stack = new Stack<(RadixTreeNode<T> Parent, int ChildrenVisited)>();
+        var searchNode = this;
+
+        do
+        {
+            if (searchNode.Value is not null)
+                kvps.Add(searchNode.AsKeyValuePair());
+
+            if (searchNode.ChildCount > 0)
+            {
+                // Descend DFS search
+                stack.Push((searchNode, 1));
+                searchNode = searchNode.childrenBuffer[0];
+                continue;
+            }
+
+            // We made it to a leaf. Go up a level and
+            // go to the next sibling in the stack
+
+            (RadixTreeNode<T> Parent, int ChildrenVisited) upLevel;
+
+            while (true)
+            {
+                if (stack.Count == 0) { return; }
+                upLevel = stack.Pop();
+                if (upLevel.ChildrenVisited < upLevel.Parent.ChildCount)
+                {
+                    stack.Push((upLevel.Parent, upLevel.ChildrenVisited + 1));
+                    searchNode = upLevel.Parent.childrenBuffer[upLevel.ChildrenVisited];
+                    break;
+                }
+            }
+
+        } while (stack.Count > 0);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -484,7 +547,7 @@ internal class RadixTreeNode<T>
         }
     }
 
-    private RadixTreeNode<T>? FindPrefixMatch(ReadOnlySpan<byte> key)
+    internal RadixTreeNode<T>? FindPrefixMatch(ReadOnlySpan<byte> key)
     {
         var node = this;
         var childIndex = node.FindChildByFirstByte(key[0]);
@@ -517,7 +580,7 @@ internal class RadixTreeNode<T>
     {
         var matchingNode = FindPrefixMatch(key);
         if (matchingNode is null) return;
-        matchingNode.CollectKeyValues(collector);
+        matchingNode.CollectKeyValuesExperiment(collector);
     }
 
     public void SearchPrefixStrings(ReadOnlySpan<byte> key, ArrayPoolList<KeyValuePair<string, T?>> collector)

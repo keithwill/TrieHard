@@ -15,11 +15,11 @@ namespace TrieHard.Tests
             Assume.That(CreateWithValues, Throws.Nothing);
             var testKeyValues = GetTestRecords(1000);
             var lookup = (RadixTree<TestRecord?>)RadixTree<TestRecord?>.Create(testKeyValues!);
-
             var searchResults = lookup.SearchUtf8("1"u8).ToArray();
             ;
 
         }
+
 
     }
 }

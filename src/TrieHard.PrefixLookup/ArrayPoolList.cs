@@ -10,7 +10,7 @@ namespace TrieHard.Collections
     /// code that implemented IList<typeparamref name="T"/>
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    internal class ArrayPoolList<T> : IDisposable
+    public class ArrayPoolList<T> : IDisposable
     {
         private T[] _items;
         private int _size;
@@ -38,6 +38,12 @@ namespace TrieHard.Collections
             {
                 return AddWithResize(item);
             }
+        }
+
+        public T Pop()
+        {
+            _size--;
+            return _items[_size];
         }
 
         private int AddWithResize(T item)
@@ -109,10 +115,13 @@ namespace TrieHard.Collections
             return new ArrayPoolList<T>();
         }
 
-        internal static void Return(ArrayPoolList<T> arrayList)
+        internal static void Return(ArrayPoolList<T> arrayList, bool clearItems = true)
         {
-            arrayList.Clear();
-            Array.Clear(arrayList.Items);
+            if (clearItems)
+            {
+                arrayList.Clear();
+                Array.Clear(arrayList.Items);
+            }
             Pool.Enqueue(arrayList);
         }
         

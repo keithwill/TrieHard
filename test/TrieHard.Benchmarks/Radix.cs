@@ -13,6 +13,11 @@ namespace TrieHard.Benchmarks
 
         private byte[] testPrefixKeyUtf8 = Encoding.UTF8.GetBytes(testPrefixKey);
 
+        public override void Setup()
+        {
+            base.Setup();
+        }
+
         [Benchmark]
         public string Search_Utf8()
         {

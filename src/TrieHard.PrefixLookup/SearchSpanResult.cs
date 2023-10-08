@@ -41,7 +41,7 @@ public ref struct SpanSearchResult<TElement>
     {
         if (BackingList is not null)
         {
-            ArrayPoolList<TElement>.Return(BackingList);
+            BackingList.Dispose();
 
         }
     }

@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Unicode;
 using TrieHard.Abstractions;
 using TrieHard.PrefixLookup;
+using TrieHard.PrefixLookup.RadixTree;
 
 namespace TrieHard.Collections;
 
@@ -76,12 +77,10 @@ public class RadixTree<T> : IPrefixLookup<string, T>
         return buffer.Slice(0, bytesWritten);
     }
 
-
     public void Set(ReadOnlySpan<byte> keyBytes, T? value)
     {
         root.SetValue(ref root, keyBytes, value);
     }
-
 
     public T? Get(ReadOnlySpan<byte> key)
     {
@@ -93,23 +92,15 @@ public class RadixTree<T> : IPrefixLookup<string, T>
         this.root.Reset();
     }
 
-    public SearchResult<KeyValuePair<ReadOnlyMemory<byte>, T?>> SearchUtf8(ReadOnlySpan<byte> keyPrefix)
+    public RadixKvpEnumerator<T> SearchUtf8(ReadOnlySpan<byte> keyPrefix)
     {
-        var collector = ArrayPoolList<KeyValuePair<ReadOnlyMemory<byte>, T?>>.Rent();
-        if (keyPrefix.Length == 0)
-        {
-            root.CollectKeyValues(collector);
-        }
-        else
-        {
-            root.SearchPrefix(keyPrefix, collector);
-        }
-        return new SearchResult<KeyValuePair<ReadOnlyMemory<byte>, T?>>(collector);
+        var matchingNode = keyPrefix.Length == 0 ? root : root.FindPrefixMatch(keyPrefix);
+        return new RadixKvpEnumerator<T>(matchingNode);
     }
 
     public SearchResult<KeyValuePair<string, T?>> Search(ReadOnlySpan<byte> keyPrefix)
     {
-        var collector = ArrayPoolList<KeyValuePair<string, T?>>.Rent();
+        var collector = new ArrayPoolList<KeyValuePair<string, T?>>();
         if (keyPrefix.Length == 0)
         {
             root.CollectKeyValueStrings(collector);
@@ -141,18 +132,10 @@ public class RadixTree<T> : IPrefixLookup<string, T>
         return result;
     }
 
-    public SearchResult<T?> SearchValues(ReadOnlySpan<byte> keyPrefix)
+    public RadixValueEnumerator<T?> SearchValues(ReadOnlySpan<byte> keyPrefix)
     {
-        var collector = ArrayPoolList<T?>.Rent();
-        if (keyPrefix.Length == 0)
-        {
-            root.CollectValues(collector);
-        }
-        else
-        {
-            root.SearchPrefixValues(keyPrefix, collector);
-        }
-        return new SearchResult<T?>(collector);
+        var matchingNode = keyPrefix.Length == 0 ? root : root.FindPrefixMatch(keyPrefix);
+        return new RadixValueEnumerator<T?>(matchingNode);
     }
 
     public static IPrefixLookup<string, TValue?> Create<TValue>()
@@ -167,7 +150,7 @@ public class RadixTree<T> : IPrefixLookup<string, T>
         return Search(keyBuffer);
     }
 
-    public SearchResult<T?> SearchValues(string keyPrefix)
+    public RadixValueEnumerator<T?> SearchValues(string keyPrefix)
     {
         Span<byte> keyBuffer = stackalloc byte[keyPrefix.Length * 4];
         keyBuffer = GetKeyStringBytes(keyPrefix, keyBuffer);

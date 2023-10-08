@@ -2,6 +2,7 @@ using System.Collections;
 using TrieHard.Abstractions;
 using TrieHard.Collections;
 using TrieHard.PrefixLookup;
+using TrieHard.PrefixLookup.RadixTree;
 
 public class PrefixLookup<T> : IPrefixLookup<string, T?>, IDisposable
 {
@@ -63,7 +64,7 @@ public class PrefixLookup<T> : IPrefixLookup<string, T?>, IDisposable
         return Search(keyPrefix);
     }
 
-    public SearchResult<T?> SearchValues(string keyPrefix)
+    public RadixValueEnumerator<T?> SearchValues(string keyPrefix)
     {
         return trie.SearchValues(keyPrefix);
     }

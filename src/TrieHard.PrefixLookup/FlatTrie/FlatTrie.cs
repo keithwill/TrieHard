@@ -65,7 +65,7 @@ namespace TrieHard.Collections
         {
             var matchingIndex = FindMatchingIndex(prefixKey);
             if (matchingIndex == -1) return new SpanSearchResult<KeyValuePair<ReadOnlyMemory<byte>, T?>>(null);
-            var searchResults = ArrayPoolList<KeyValuePair<ReadOnlyMemory<byte>, T?>>.Rent();
+            var searchResults = new ArrayPoolList<KeyValuePair<ReadOnlyMemory<byte>, T?>>();
             CollectResults(matchingIndex, searchResults);
             return new SpanSearchResult<KeyValuePair<ReadOnlyMemory<byte>, T?>>(searchResults);
         }
@@ -74,7 +74,7 @@ namespace TrieHard.Collections
         {
             var matchingIndex = FindMatchingIndex(prefixKey);
             if (matchingIndex == -1) return new SearchResult<KeyValuePair<ReadOnlyMemory<byte>, T?>>(null);
-            var searchResults = ArrayPoolList<KeyValuePair<ReadOnlyMemory<byte>, T?>>.Rent();
+            var searchResults = new ArrayPoolList<KeyValuePair<ReadOnlyMemory<byte>, T?>>();
             CollectResults(matchingIndex, searchResults);
             return new SearchResult<KeyValuePair<ReadOnlyMemory<byte>, T?>>(searchResults);
         }
@@ -83,7 +83,7 @@ namespace TrieHard.Collections
         {
             var matchingIndex = FindMatchingIndex(prefixKey);
             if (matchingIndex == -1) return new SearchResult<KeyValuePair<string, T?>>(null);
-            var searchResults = ArrayPoolList<KeyValuePair<string, T?>>.Rent();
+            var searchResults = new ArrayPoolList<KeyValuePair<string, T?>>();
             CollectResultsStrings(matchingIndex, searchResults);
             return new SearchResult<KeyValuePair<string, T?>>(searchResults);
         }
@@ -92,7 +92,7 @@ namespace TrieHard.Collections
         {
             var matchingIndex = FindMatchingIndex(prefixKey);
             if (matchingIndex == -1) return new SearchResult<T?>(null);
-            var searchResults = ArrayPoolList<T?>.Rent();
+            var searchResults = new ArrayPoolList<T?>();
             CollectValues(matchingIndex, searchResults);
             return new SearchResult<T?>(searchResults);
         }
