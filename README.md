@@ -149,13 +149,14 @@ there are a few other files specific to tries that have additional functionality
 `dotnet run -c Release --filter *Create*`
 
 ```console
-| Type      | Method | Mean     | Error    | StdDev   | Gen0   | Gen1   | Gen2   | Allocated  |
-|---------- |------- |---------:|---------:|---------:|-------:|-------:|-------:|-----------:|
-| Simple    | Create | 153.5 us | 11.07 us |  2.88 us | 3.4180 | 1.2207 |      - |  569.18 KB |
-| Radix     | Create | 170.8 us | 13.47 us |  0.74 us | 1.4648 |      - |      - |   245.2 KB |
-| Unsafe    | Create | 234.5 us |  5.97 us |  0.33 us | 0.4883 |      - |      - |   80.87 KB |
-| NaiveList | Create | 373.0 us | 27.61 us |  1.51 us |      - |      - |      - |   43.35 KB |
-| SQLite    | Create | 936.7 us |  2.83 us |  0.15 us | 1.9531 |      - |      - |  381.76 KB |
+| Type      | Method | Mean     | Error   | StdDev  | Gen0   | Gen1   | Allocated |
+|---------- |------- |---------:|--------:|--------:|-------:|-------:|----------:|
+| Simple    | Create | 151.1 us | 0.72 us | 0.64 us | 3.4180 | 1.2207 | 569.18 KB |
+| Radix     | Create | 183.6 us | 1.32 us | 1.24 us | 1.4648 |      - | 264.99 KB |
+| Unsafe    | Create | 201.6 us | 0.45 us | 0.43 us | 0.4883 |      - |  80.87 KB |
+| Flat      | Create | 283.5 us | 1.81 us | 1.69 us | 1.9531 | 0.4883 | 329.68 KB |
+| NaiveList | Create | 369.0 us | 1.29 us | 1.14 us |      - |      - |  43.35 KB |
+| SQLite    | Create | 936.2 us | 2.66 us | 2.49 us | 1.9531 |      - | 381.76 KB |
 ```
 
 ### Getting a value by key
@@ -164,11 +165,11 @@ there are a few other files specific to tries that have additional functionality
 ```console
 | Type      | Method   | Mean            | Error          | StdDev        | Gen0   | Allocated |
 |---------- |--------- |----------------:|---------------:|--------------:|-------:|----------:|
-| Radix     | Get      |        22.35 ns |       0.758 ns |      0.042 ns |      - |         - |
-| Unsafe    | Get      |        28.80 ns |       0.524 ns |      0.029 ns |      - |         - |
-| Simple    | Get      |        32.45 ns |       1.340 ns |      0.073 ns |      - |         - |
-| SQLite    | Get      |       855.16 ns |      57.964 ns |      3.177 ns | 0.0019 |     416 B |
-| NaiveList | Get      | 7,597,596.88 ns | 296,698.123 ns | 16,263.025 ns |      - |     142 B |
+| Radix     | Get      |        22.51 ns |       0.086 ns |      0.077 ns |      - |         - |
+| Unsafe    | Get      |        28.75 ns |       0.103 ns |      0.096 ns |      - |         - |
+| Simple    | Get      |        33.31 ns |       0.632 ns |      0.591 ns |      - |         - |
+| SQLite    | Get      |       843.24 ns |       4.528 ns |      4.235 ns | 0.0019 |     416 B |
+| NaiveList | Get      | 8,070,131.46 ns | 103,675.804 ns | 96,978.411 ns |      - |     148 B |
 ```
 
 A plain list struggles a bit at one million records.
@@ -177,12 +178,12 @@ A plain list struggles a bit at one million records.
 `dotnet run -c Release --filter *Set*`
 
 ```console
-| Type      | Method   | Mean            | Error         | StdDev       | Allocated |
-|---------- |--------- |----------------:|--------------:|-------------:|----------:|
-| Radix     | Set      |        31.27 ns |      0.853 ns |     0.047 ns |         - |
-| Unsafe    | Set      |        34.66 ns |      2.558 ns |     0.140 ns |         - |
-| Simple    | Set      |        39.50 ns |      0.355 ns |     0.019 ns |         - |
-| NaiveList | Set      | 1,386,842.74 ns | 58,342.463 ns | 3,197.947 ns |       2 B |
+| Type      | Method   | Mean            | Error        | StdDev       | Allocated |
+|---------- |--------- |----------------:|-------------:|-------------:|----------:|
+| Radix     | Set      |        30.03 ns |     0.068 ns |     0.064 ns |         - |
+| Unsafe    | Set      |        33.98 ns |     0.162 ns |     0.152 ns |         - |
+| Simple    | Set      |        39.67 ns |     0.063 ns |     0.059 ns |         - |
+| NaiveList | Set      | 1,411,190.70 ns | 3,880.005 ns | 3,629.359 ns |      13 B |
 ```
 
 ### Searching Key Value Pairs by prefix (100 results enumerated)
@@ -191,38 +192,38 @@ A plain list struggles a bit at one million records.
 ```console
 | Type      | Method    | Mean            | Error         | StdDev        | Gen0   | Allocated |
 |---------- |---------- |----------------:|--------------:|--------------:|-------:|----------:|
-| Radix     | SearchKVP |        321.1 ns |      10.56 ns |       1.63 ns | 0.0029 |     528 B |
-| Simple    | SearchKVP |        863.6 ns |      38.22 ns |       2.10 ns | 0.0124 |    2120 B |
-| Unsafe    | SearchKVP |      1,596.8 ns |     116.35 ns |      51.66 ns | 0.0038 |     696 B |
-| NaiveList | SearchKVP | 15,132,173.4 ns | 220,473.56 ns |  12,084.90 ns |      - |     190 B |
-| SQLite    | SearchKVP | 34,370,661.7 ns | 950,924.59 ns | 147,156.63 ns |      - |     985 B |
+| Radix     | SearchKVP |        352.3 ns |       1.32 ns |       1.03 ns | 0.0033 |     544 B |
+| Unsafe    | SearchKVP |        527.7 ns |       2.39 ns |       2.24 ns | 0.0038 |     640 B |
+| Simple    | SearchKVP |        841.5 ns |       3.94 ns |       3.69 ns | 0.0124 |    2120 B |
+| NaiveList | SearchKVP | 15,323,744.0 ns |  54,930.69 ns |  51,382.20 ns |      - |     183 B |
+| SQLite    | SearchKVP | 33,750,524.8 ns | 190,380.51 ns | 168,767.36 ns |      - |     985 B |
 ```
 
 ### Searching Values by prefix (100 results enumerated)
 `dotnet run -c Release --filter *SearchValues*`
 
 ```console
-| Type      | Method            | Mean             | Error            | StdDev         | Gen0   | Allocated |
-|---------- |------------------ |-----------------:|-----------------:|---------------:|-------:|----------:|
-| Radix     | SearchValues      |        127.52 ns |         3.147 ns |       0.487 ns | 0.0005 |      96 B |
-| Unsafe    | SearchValues      |        545.62 ns |        26.553 ns |       1.455 ns | 0.0010 |     176 B |
-| Simple    | SearchValues      |        917.13 ns |        27.469 ns |       1.506 ns | 0.0134 |    2184 B |
-| NaiveList | SearchValues      | 15,355,907.19 ns |   798,722.680 ns | 207,425.744 ns |      - |     276 B |
-| SQLite    | SearchValues      | 33,475,025.00 ns | 1,666,252.438 ns |  91,332.919 ns |      - |     542 B |
+| Type      | Method            | Mean             | Error          | StdDev         | Gen0   | Allocated |
+|---------- |------------------ |-----------------:|---------------:|---------------:|-------:|----------:|
+| Radix     | SearchValues      |        100.09 ns |       0.732 ns |       0.685 ns | 0.0005 |      80 B |
+| Unsafe    | SearchValues      |        550.36 ns |       5.187 ns |       4.852 ns | 0.0010 |     176 B |
+| Simple    | SearchValues      |        895.36 ns |       3.162 ns |       2.803 ns | 0.0134 |    2184 B |
+| NaiveList | SearchValues      | 15,109,733.23 ns |  36,186.841 ns |  33,849.194 ns |      - |     287 B |
+| SQLite    | SearchValues      | 33,742,024.62 ns | 194,810.901 ns | 162,675.926 ns |      - |     545 B |
 ```
 
 ### UTF8 Methods
 `dotnet run -c Release --filter *Utf8*`
 
 ```console
-| Type   | Method            | Mean      | Error     | StdDev   | Allocated |
-|------- |------------------ |----------:|----------:|---------:|----------:|
-| Radix  | Get_Utf8          | *11.81 ns |  0.289 ns | 0.016 ns |         - |
-| Radix  | Set_Utf8          | *18.89 ns |  0.975 ns | 0.053 ns |         - |
-| Unsafe | Get_Utf8          |  25.23 ns |  0.587 ns | 0.032 ns |         - |
-| Radix  | SearchValues_Utf8 |  70.27 ns |  2.093 ns | 0.115 ns |         - |
-| Radix  | Search_Utf8       |  99.74 ns |  5.893 ns | 0.323 ns |         - |
-| Unsafe | SearchValues_Utf8 | 449.89 ns | 26.927 ns | 1.476 ns |         - |
+| Type   | Method            | Mean      | Error    | StdDev   | Allocated |
+|------- |------------------ |----------:|---------:|---------:|----------:|
+| Radix  | Get_Utf8          |  11.70 ns | 0.018 ns | 0.016 ns |         - |
+| Radix  | Set_Utf8          |  17.98 ns | 0.058 ns | 0.052 ns |         - |
+| Unsafe | Get_Utf8          |  23.44 ns | 0.065 ns | 0.057 ns |         - |
+| Radix  | SearchValues_Utf8 |  37.38 ns | 0.074 ns | 0.066 ns |         - |
+| Radix  | Search_Utf8       |  61.46 ns | 0.221 ns | 0.206 ns |         - |
+| Unsafe | SearchValues_Utf8 | 430.97 ns | 6.827 ns | 6.386 ns |         - |
 ```
 
 Several of these implementations store UTF8 data in the graph instead of strings or
