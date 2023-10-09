@@ -134,8 +134,8 @@ public class RadixTree<T> : IPrefixLookup<string, T>
 
     public RadixValueEnumerator<T?> SearchValues(ReadOnlySpan<byte> keyPrefix)
     {
-        var matchingNode = keyPrefix.Length == 0 ? root : root.FindPrefixMatch(keyPrefix);
-        return new RadixValueEnumerator<T?>(matchingNode);
+        RadixTreeNode<T>? matchingNode = keyPrefix.Length == 0 ? root : root.FindPrefixMatch(keyPrefix);
+        return new RadixValueEnumerator<T?>(matchingNode!);
     }
 
     public static IPrefixLookup<string, TValue?> Create<TValue>()

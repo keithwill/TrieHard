@@ -9,7 +9,7 @@ namespace TrieHard.PrefixLookup.RadixTree
     public struct RadixKvpEnumerator<T> : IEnumerable<KeyValuePair<ReadOnlyMemory<byte>, T?>>, IEnumerator<KeyValuePair<ReadOnlyMemory<byte>, T?>>
     {
 
-        private RadixTreeNode<T> searchNode;
+        private RadixTreeNode<T>? searchNode;
         private int depth = -1;
         private const int finishedDepth = -2;
         private KeyValuePair<ReadOnlyMemory<byte>, T?> current;
@@ -35,7 +35,7 @@ namespace TrieHard.PrefixLookup.RadixTree
             {
                 case -1:
                     depth++;
-                    if (searchNode.Value is not null)
+                    if (searchNode!.Value is not null)
                     {
                         current = searchNode.AsKeyValuePair();
                         return true;
@@ -75,7 +75,7 @@ namespace TrieHard.PrefixLookup.RadixTree
                     var siblingLastVisited = searchNode.IndexInParent + 1;
                     searchNode = searchNode.Parent;
 
-                    if (siblingLastVisited < searchNode.ChildCount)
+                    if (siblingLastVisited < searchNode!.ChildCount)
                     {
                         depth++;
                         // This finds the next sibling of the search node to continue
