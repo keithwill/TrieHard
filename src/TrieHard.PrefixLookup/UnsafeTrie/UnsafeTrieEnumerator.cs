@@ -16,7 +16,7 @@ namespace TrieHard.Collections
         private readonly UnsafeTrie<T>? trie;
         private readonly ReadOnlyMemory<byte> rootPrefix;
         private nint collectNode;
-        private readonly byte[]? keyBuffer;
+        private byte[]? keyBuffer;
         private nint currentNodeAddress;
         private int stackCount;
         private int stackSize;
@@ -49,7 +49,7 @@ namespace TrieHard.Collections
 
         private void Push(nint node, byte childIndex, byte key)
         {
-            if (stackCount == 0)
+            if (stackSize == 0)
             {
                 stack = NativeMemory.Alloc(initialStackSize, StackEntrySize);
                 stackSize = initialStackSize;
@@ -90,7 +90,7 @@ namespace TrieHard.Collections
         {
             if (finished) return false;
             // Movement is descend to first child if one exists
-            // If not, backtrack with stack and descend to next sibbling
+            // If not, backtrack with stack and descend to next sibling
             // Only return values when we descend.
 
             while (true)
@@ -171,7 +171,10 @@ namespace TrieHard.Collections
         {
             if (!isDisposed)
             {
-                NativeMemory.Free(stack);
+                if (stackSize > 0)
+                {
+                    NativeMemory.Free(stack);
+                }
                 if (keyBuffer is not null && keyBuffer.Length > 0)
                 {
                     ArrayPool<byte>.Shared.Return(keyBuffer);

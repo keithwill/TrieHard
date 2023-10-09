@@ -149,7 +149,7 @@ namespace TrieHard.Collections
             var buffer = ArrayPool<byte>.Shared.Rent(maxByteSize);
             Span<byte> keySpan = buffer.AsSpan();
             Utf8.FromUtf16(key, keySpan, out var _, out var bytesWritten, false, true);
-            return Search(buffer.AsMemory(0, bytesWritten));
+            return Search(buffer.AsMemory(0, bytesWritten), keyBuffer: buffer );
         }
 
         private UnsafeTrieUtf8Enumerator<T> SearchUtf8(ReadOnlyMemory<byte> key, byte[] keyBuffer = null!)

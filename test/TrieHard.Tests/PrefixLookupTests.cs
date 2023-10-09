@@ -22,7 +22,7 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<string, TestR
         TestRecords = GetTestRecords(1000);
         TestRecord = TestRecords[0].Value;
         testKvp = new KeyValuePair<string, TestRecord>(TestKey, TestRecord);
-        testKvpEnumerable = new KeyValuePair<string, TestRecord>[] { testKvp };
+        testKvpEnumerable = [testKvp];
     }
 
     [Test]
