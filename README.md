@@ -64,7 +64,7 @@ not store whole keys and can only be used to check for the existence of complete
 
 # Typical Alternatives to Tries
 
-The most common alternative for implementing a prefix lookup is a naive enumeration over a list.
+The most common alternative for implementing a prefix lookup is a naïve enumeration over a list.
 Typically this could be done with a LINQ Where query passing in a lambda to check if each key element StartsWith
 a given search text. This can perform well for smaller collections, but quickly becomes a hindrance with
 millions of items.

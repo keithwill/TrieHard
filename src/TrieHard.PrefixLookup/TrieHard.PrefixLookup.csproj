@@ -9,7 +9,7 @@
     <Version>0.1.7</Version>
     <Authors>keithwill</Authors>
     <Description>
-      A library containing an optimized PrefixLookup collection, useful for implementation an 
+      A library containing optimized collections for doing prefix searches, useful for implementating 
       autocomplete or typeahead functionality.
     </Description>
     <PackageTags>Autocomplete Typeahead Trie Collections Prefix</PackageTags>    

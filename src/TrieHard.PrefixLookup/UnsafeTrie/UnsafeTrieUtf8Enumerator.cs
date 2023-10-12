@@ -132,13 +132,13 @@ namespace TrieHard.Collections
                     else
                     {
                         
-                        // From the current Node's parent, descend into the next sibbling of the current node
+                        // From the current Node's parent, descend into the next sibling of the current node
                         byte childIndex = parentEntry.ChildIndex;
                         childIndex++;
-                        var nextSibblingAddress = parentNode->GetChild(childIndex);
+                        var nextSiblingAddress = parentNode->GetChild(childIndex);
                         //Node* nextSibling = (Node*)nextSiblingAddress.ToPointer();
                         Push(parentNodeAddress, childIndex, parentNode->GetChildKey(childIndex));
-                        currentNodeAddress = nextSibblingAddress;
+                        currentNodeAddress = nextSiblingAddress;
 
                         if (hasValue)
                         {

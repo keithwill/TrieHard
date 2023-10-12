@@ -83,7 +83,7 @@ namespace TrieHard.Collections
         {
             if (finished) return false;
             // Movement is descend to first child if one exists
-            // If not, backtrack with stack and descend to next sibbling
+            // If not, backtrack with stack and descend to next sibling
             // Only return values when we descend.
 
             while (true)
@@ -127,12 +127,12 @@ namespace TrieHard.Collections
                     }
                     else
                     {
-                        // From the current Node's parent, descend into the next sibbling of the current node
+                        // From the current Node's parent, descend into the next sibling of the current node
                         byte childIndex = parentEntry.ChildIndex;
                         childIndex++;
-                        var nextSibblingAddress = parentNode->GetChild(childIndex);
+                        var nextSiblingAddress = parentNode->GetChild(childIndex);
                         Push(parentNodeAddress, childIndex, parentNode->GetChildKey(childIndex));
-                        currentNodeAddress = nextSibblingAddress;
+                        currentNodeAddress = nextSiblingAddress;
 
                         if (hasValue)
                         {
