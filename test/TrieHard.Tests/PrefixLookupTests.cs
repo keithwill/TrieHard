@@ -189,4 +189,3 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<string, TestR
 public class SimpleTrieTests : PrefixLookupTests<SimpleTrie<TestRecord?>> { }
 public class SqliteLookupTests : PrefixLookupTests<SQLiteLookup<TestRecord?>> { }
 public class ListPrefixLookupTests : PrefixLookupTests<ListPrefixLookup<TestRecord?>> { }
-public class FlatTrieTests : PrefixLookupTests<FlatTrie<TestRecord?>> { }

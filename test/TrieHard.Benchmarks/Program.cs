@@ -21,7 +21,6 @@ namespace TrieHard.Benchmarks
                 typeof(Radix),
                 typeof(NaiveList),
                 typeof(SQLite),
-                typeof(Flat)
             }, args: args, config: benchmarkConfig);
 
         }

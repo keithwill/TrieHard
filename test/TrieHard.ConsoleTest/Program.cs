@@ -10,7 +10,6 @@ using TrieHard.Collections;
 Dictionary<string, Func<IEnumerable<KeyValuePair<string, string?>>, IPrefixLookup<string, string?>>?> implementations = new(StringComparer.OrdinalIgnoreCase)
 {
     { "Baseline", (kvps) => null! },
-    { "Flat", (kvps) => FlatTrie<string>.Create(kvps) },
     { "Radix", (kvps) => RadixTree<string>.Create(kvps) },
     { "Simple", (kvps) => SimpleTrie<string>.Create(kvps) },
     { "Unsafe", (kvps) => UnsafeTrie<string>.Create(kvps) },

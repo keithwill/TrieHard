@@ -6,20 +6,16 @@ using TrieHard.Collections;
 namespace TrieHard.Tests
 {
     public class RadixTreeConcurrencyTests : PrefixLookupConcurrencyTests<RadixTree<string>> { }
-    public class FlatTrieConcurrencyTests : PrefixLookupConcurrencyTests<RadixTree<string>> { }
     public class UnsafeTrieConcurrencyTests : PrefixLookupConcurrencyTests<RadixTree<string>> { }
-    public class IndirectTrieConcurrencyTests : PrefixLookupConcurrencyTests<RadixTree<string>> { }
 
     // These lookups fail during reads when a concurrent write occurs.
     //public class ListPrefixLookupConcurrencyTests : PrefixLookupConcurrencyTests<ListPrefixLookup<string>> { }
-    //public class rmTrieConcurrencyTests : PrefixLookupConcurrencyTests<rmTrie<string>> { }
     //public class SimpleTrieConcurrencyTests : PrefixLookupConcurrencyTests<SimpleTrie<string>> { }
 
 
     public abstract class PrefixLookupConcurrencyTests<T> where T : IPrefixLookup<string, string>
     {
         private const int iterationSize = 1000;
-       
 
         public record class TestEntity(string Key) {}
 

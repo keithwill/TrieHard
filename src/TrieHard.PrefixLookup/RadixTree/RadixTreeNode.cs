@@ -1,6 +1,6 @@
 using System.Buffers;
 using System.Runtime.CompilerServices;
-using TrieHard.PrefixLookup;
+using TrieHard.PrefixLookup.RadixTree;
 
 namespace TrieHard.Collections;
 
@@ -433,89 +433,6 @@ public class RadixTreeNode<T>
         return default;
     }
 
-    public void CollectKeyValues(ArrayPoolList<KeyValuePair<ReadOnlyMemory<byte>, T?>> kvps)
-    {
-        if (Value is not null) kvps.Add(AsKeyValuePair());
-        // Unrolling a bit still seems to be the best way to reduce the cost of recursion,
-        // though the code is ugly and redundant
-        var childCount = ChildCount;
-        if (childCount == 0) return;
-        var children = childrenBuffer;
-
-        for (int i1 = 0; i1 < childCount; i1++)
-        {
-            var child1 = children[i1];
-            if (child1.Value != null) kvps.Add(child1.AsKeyValuePair());
-            if (child1.ChildCount == 0) continue;
-            var children1 = child1.childrenBuffer;
-
-            for (int i2 = 0; i2 < child1.ChildCount; i2++)
-            {
-                var child2 = children1[i2];
-                if (child2.Value != null) kvps.Add(child2.AsKeyValuePair());
-                if (child2.ChildCount == 0) continue;
-                var children2 = child2.childrenBuffer;
-
-                for(int i3 = 0; i3 < child2.ChildCount; i3++)
-                {
-                    var child3 = children2[i3];
-                    if (child3.Value != null) kvps.Add(child3.AsKeyValuePair());
-                    if (child3.ChildCount == 0) continue;
-                    var children3 = child3.childrenBuffer;
-
-                    for(int i4 = 0; i4 < child3.ChildCount; i4++)
-                    {
-                        children3[i4].CollectKeyValues(kvps);
-                    }
-                }
-            }            
-        }
-    }
-
-    public void CollectKeyValuesExperiment(ArrayPoolList<KeyValuePair<ReadOnlyMemory<byte>, T?>> kvps)
-    {
-        var childCount = ChildCount;
-        if (childCount == 0)
-        {
-            if (Value is not null) kvps.Add(AsKeyValuePair());
-            return;
-        }
-
-        var stack = new Stack<(RadixTreeNode<T> Parent, int ChildrenVisited)>();
-        var searchNode = this;
-
-        do
-        {
-            if (searchNode.Value is not null)
-                kvps.Add(searchNode.AsKeyValuePair());
-
-            if (searchNode.ChildCount > 0)
-            {
-                // Descend DFS search
-                stack.Push((searchNode, 1));
-                searchNode = searchNode.childrenBuffer[0];
-                continue;
-            }
-
-            // We made it to a leaf. Go up a level and
-            // go to the next sibling in the stack
-
-            (RadixTreeNode<T> Parent, int ChildrenVisited) upLevel;
-
-            while (true)
-            {
-                if (stack.Count == 0) { return; }
-                upLevel = stack.Pop();
-                if (upLevel.ChildrenVisited < upLevel.Parent.ChildCount)
-                {
-                    stack.Push((upLevel.Parent, upLevel.ChildrenVisited + 1));
-                    searchNode = upLevel.Parent.childrenBuffer[upLevel.ChildrenVisited];
-                    break;
-                }
-            }
-
-        } while (stack.Count > 0);
-    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public KeyValuePair<ReadOnlyMemory<byte>, T?> AsKeyValuePair()
@@ -567,20 +484,6 @@ public class RadixTreeNode<T>
             childIndex = node.FindChildByFirstByte(key[0]);
         }
         return null;
-    }
-
-    public void SearchPrefixValues(ReadOnlySpan<byte> key, ArrayPoolList<T?> collector)
-    {
-        var matchingNode = FindPrefixMatch(key);
-        if (matchingNode is null) return;
-        matchingNode.CollectValues(collector);
-    }
-
-    public void SearchPrefix(ReadOnlySpan<byte> key, ArrayPoolList<KeyValuePair<ReadOnlyMemory<byte>, T?>> collector)
-    {
-        var matchingNode = FindPrefixMatch(key);
-        if (matchingNode is null) return;
-        matchingNode.CollectKeyValuesExperiment(collector);
     }
 
     public void SearchPrefixStrings(ReadOnlySpan<byte> key, ArrayPoolList<KeyValuePair<string, T?>> collector)

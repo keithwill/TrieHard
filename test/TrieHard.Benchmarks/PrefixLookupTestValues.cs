@@ -16,14 +16,6 @@ namespace TrieHard.Benchmarks
         public static readonly KeyValuePair<string, string>[] SequentialStrings;
 
         /// <summary>
-        /// A million sequential key value pairs with the key being a string representation of the sequence number and the value being
-        /// the integer value. This could have slightly different performance characteristics for PrefixLookup implementations depending
-        /// on how they store their values in relation to nodes.
-        /// </summary>
-        public static readonly KeyValuePair<string, int>[] SequentialValues;
-
-
-        /// <summary>
         /// A million sequential UUID key value pairs, with the key being the textual representation of the UUID. These are not
         /// standards compliant GUIDs, instead using 
         /// </summary>
@@ -41,13 +33,6 @@ namespace TrieHard.Benchmarks
             {
                 var key = i.ToString();
                 SequentialStrings[i] = new KeyValuePair<string, string>(key, key);
-            }
-
-            SequentialValues = new KeyValuePair<string, int>[1_000_000];
-            for (int i = 0; i < SequentialValues.Length; i++)
-            {
-                var key = i.ToString();
-                SequentialValues[i] = new KeyValuePair<string, int>(key, i);
             }
 
             // No built in way to generate these, and I am not really interested in matching
