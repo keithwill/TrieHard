@@ -4,7 +4,7 @@ using TrieHard.Collections;
 using TrieHard.PrefixLookup;
 using TrieHard.PrefixLookup.RadixTree;
 
-public class PrefixLookup<T> : IPrefixLookup<string, T?>, IDisposable
+public class PrefixLookup<T> : IPrefixLookup<T?>, IDisposable
 {
     private RadixTree<T> trie;
     public T? this[string key]
@@ -24,14 +24,14 @@ public class PrefixLookup<T> : IPrefixLookup<string, T?>, IDisposable
 
     public int Count => trie.Count;
 
-    public static IPrefixLookup<string, TValue?> Create<TValue>(IEnumerable<KeyValuePair<string, TValue?>> source)
+    public static IPrefixLookup<TValue?> Create<TValue>(IEnumerable<KeyValue<TValue?>> source)
     {
         var result = new PrefixLookup<TValue?>();
         result.trie = (RadixTree<TValue?>)RadixTree<TValue?>.Create(source);
         return result;
     }
 
-    public static IPrefixLookup<string, TValue?> Create<TValue>()
+    public static IPrefixLookup<TValue?> Create<TValue>()
     {
         var result = new PrefixLookup<TValue?>();
         result.trie = (RadixTree<TValue?>)RadixTree<TValue>.Create<TValue?>();
@@ -43,33 +43,28 @@ public class PrefixLookup<T> : IPrefixLookup<string, T?>, IDisposable
         trie.Clear();
     }
 
-    public IEnumerator<KeyValuePair<string, T?>> GetEnumerator()
+    public IEnumerator<KeyValue<T?>> GetEnumerator()
     {
         return trie.Search(string.Empty);
     }
 
-    IEnumerator<KeyValuePair<string, T?>> IEnumerable<KeyValuePair<string, T?>>.GetEnumerator()
+    IEnumerator<KeyValue<T?>> IEnumerable<KeyValue<T?>>.GetEnumerator()
     {
         return this.GetEnumerator();
     }
 
-    public SearchResult<KeyValuePair<string, T?>> Search(string keyPrefix)
+    public IEnumerable<KeyValue<T?>> Search(string keyPrefix)
     {
 
         return trie.Search(keyPrefix);
     }
 
-    IEnumerable<KeyValuePair<string, T?>> IPrefixLookup<string, T?>.Search(string keyPrefix)
+    IEnumerable<KeyValue<T?>> IPrefixLookup<T?>.Search(string keyPrefix)
     {
         return Search(keyPrefix);
     }
 
-    public RadixValueEnumerator<T?> SearchValues(string keyPrefix)
-    {
-        return trie.SearchValues(keyPrefix);
-    }
-
-    IEnumerable<T> IPrefixLookup<string, T?>.SearchValues(string keyPrefix)
+    IEnumerable<T> IPrefixLookup<T?>.SearchValues(string keyPrefix)
     {
         return trie.SearchValues(keyPrefix);
     }

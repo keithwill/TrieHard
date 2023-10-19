@@ -13,7 +13,7 @@ namespace TrieHard.Tests
     //public class SimpleTrieConcurrencyTests : PrefixLookupConcurrencyTests<SimpleTrie<string>> { }
 
 
-    public abstract class PrefixLookupConcurrencyTests<T> where T : IPrefixLookup<string, string>
+    public abstract class PrefixLookupConcurrencyTests<T> where T : IPrefixLookup<string>
     {
         private const int iterationSize = 1000;
 
@@ -47,7 +47,7 @@ namespace TrieHard.Tests
             while (!timeoutCancellation.IsCancellationRequested)
             {
                 using CancellationTokenSource iterationCancellation = new();
-                IPrefixLookup<string, TestEntity?> lookup = T.Create<TestEntity>();
+                var lookup = T.Create<TestEntity>();
 
                 for (var i = 0; i < readers.Length; i++)
                 {
@@ -76,7 +76,7 @@ namespace TrieHard.Tests
         /// updates are done to the the lookup of this test, we'll compare the counts to what they should
         /// be for prefix searches, just to see if any records were corrupted.
         /// </summary>
-        private void ReadAndVerifyPrefixCounts(IPrefixLookup<string, TestEntity?> lookup, List<TestEntity> expectedValues, CancellationToken timeout)
+        private void ReadAndVerifyPrefixCounts(IPrefixLookup<TestEntity?> lookup, List<TestEntity> expectedValues, CancellationToken timeout)
         {
             for (int i = 0; i < iterationSize; i++)
             {
@@ -84,7 +84,17 @@ namespace TrieHard.Tests
                 var prefix = i.ToString();
                 var expectedCount = expectedValues.Where(x => x.Key.StartsWith(prefix)).Count();
                 var actualCount = lookup.SearchValues(prefix).Count();
-                Assert.That(actualCount, Is.EqualTo(expectedCount));
+                try
+                {
+                    Assert.That(actualCount, Is.EqualTo(expectedCount));
+
+                }
+                catch (Exception)
+                {
+                    var searchResults2 = lookup.SearchValues(prefix).ToArray();
+                    var searchResults3 = lookup.Search(prefix).ToArray();
+                    throw;
+                }
             }
         }
 
@@ -94,7 +104,7 @@ namespace TrieHard.Tests
         /// We won't know if the writer actually wrote those values, but if they are torn or corrupt they will usually
         /// not have a key that matches the value, or will have keys that shouldn't exist at all.
         /// </summary>
-        private void ReadAndVerifyPrefixValues(IPrefixLookup<string, TestEntity?> lookup, Dictionary<string, TestEntity> expectedLookup, CancellationToken timeout)
+        private void ReadAndVerifyPrefixValues(IPrefixLookup<TestEntity?> lookup, Dictionary<string, TestEntity> expectedLookup, CancellationToken timeout)
         {
 
             while (!timeout.IsCancellationRequested)
@@ -115,7 +125,7 @@ namespace TrieHard.Tests
             }
         }
 
-        private void WriteGaps(IPrefixLookup<string, TestEntity?> lookup, List<TestEntity> expectedValues, CancellationToken timeout)
+        private void WriteGaps(IPrefixLookup<TestEntity?> lookup, List<TestEntity> expectedValues, CancellationToken timeout)
         {
             for (int i = 0; i < iterationSize; i++)
             {
@@ -129,7 +139,7 @@ namespace TrieHard.Tests
         /// Write randomly selected elements from the expected values into the trie, then
         /// signal that writing is done.
         /// </summary>
-        private void WriteValues(IPrefixLookup<string, TestEntity?> lookup, List<TestEntity> expectedValues, CancellationTokenSource iterationCancellation, CancellationToken timeout)
+        private void WriteValues(IPrefixLookup<TestEntity?> lookup, List<TestEntity> expectedValues, CancellationTokenSource iterationCancellation, CancellationToken timeout)
         {
             // Write keys at random
             for (int i = 0; i < iterationSize * 3; i++)

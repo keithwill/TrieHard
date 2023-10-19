@@ -12,7 +12,7 @@ namespace TrieHard.Benchmarks
     public class SQLite : LookupBenchmark<SQLiteLookup<string>> { }
     public class NaiveList : LookupBenchmark<ListPrefixLookup<string>> { }
 
-    public abstract class LookupBenchmark<T> where T : IPrefixLookup<string, string>
+    public abstract class LookupBenchmark<T> where T : IPrefixLookup<string>
     {
         protected T lookup;
         protected const string testKey = "555555";
@@ -21,7 +21,7 @@ namespace TrieHard.Benchmarks
         [GlobalSetup]
         public virtual void Setup()
         {    
-            lookup = (T)T.Create(PrefixLookupTestValues.SequentialStrings);
+            lookup = (T)T.Create<string>(PrefixLookupTestValues.SequentialStrings);
         }
 
         [GlobalCleanup]
@@ -47,7 +47,7 @@ namespace TrieHard.Benchmarks
         }
 
         [Benchmark]
-        public string SearchKVP()
+        public virtual string SearchKVP()
         {
             string value = null;
             foreach (var kvp in lookup.Search(testPrefixKey))
@@ -75,24 +75,13 @@ namespace TrieHard.Benchmarks
         }
 
         [Benchmark]
-        public int Create()
+        public void Create()
         {
-            try
+            var lookup = (T)T.Create(PrefixLookupTestValues.EnglishWords);
+            if (lookup is IDisposable disposable)
             {
-                var lookup = (T)T.Create(PrefixLookupTestValues.EnglishWords);
-                int count = lookup.Count;
-                if (lookup is IDisposable disposable)
-                {
-                    disposable.Dispose();
-                }
-                return count;
+                disposable.Dispose();
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-            }
-            return 0;
-
         }
 
 

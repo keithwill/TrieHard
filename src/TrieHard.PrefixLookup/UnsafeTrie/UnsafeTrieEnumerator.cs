@@ -5,11 +5,12 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using TrieHard.PrefixLookup;
 
 namespace TrieHard.Collections
 {
     [SkipLocalsInit]
-    public unsafe struct UnsafeTrieEnumerator<T> : IEnumerable<KeyValuePair<string, T?>>, IEnumerator<KeyValuePair<string, T?>>
+    public unsafe struct UnsafeTrieEnumerator<T> : IEnumerable<KeyValue<T?>>, IEnumerator<KeyValue<T?>>
     {
         private static nuint StackEntrySize = (nuint)Convert.ToUInt64(sizeof(UnsafeTrieStackEntry));
 
@@ -22,7 +23,7 @@ namespace TrieHard.Collections
         private int stackSize;
         private void* stack;
         private bool isDisposed = false;
-        private KeyValuePair<string, T?> currentValue;
+        private KeyValue<T?> currentValue;
         private bool finished = false;
         private const int initialStackSize = 32;
 
@@ -101,7 +102,7 @@ namespace TrieHard.Collections
                 if (currentNode->ValueLocation > -1)
                 {
                     var value = trie!.Values[currentNode->ValueLocation];
-                    currentValue = new KeyValuePair<string, T?>(GetKeyFromStack(), value);
+                    currentValue = new KeyValue<T?>(GetKeyFromStack(), value);
                     hasValue = true;
                 }
 
@@ -164,7 +165,8 @@ namespace TrieHard.Collections
             }
             var prefixTarget = keyBytes.Slice(0, rootPrefix.Length);
             rootPrefix.Span.CopyTo(prefixTarget);
-            return Encoding.UTF8.GetString(keyBytes);
+            var key = Encoding.UTF8.GetString(keyBytes);
+            return key;
         }
 
         public void Dispose()
@@ -195,9 +197,9 @@ namespace TrieHard.Collections
             }
         }
         public UnsafeTrieEnumerator<T> GetEnumerator() { return this; }
-        IEnumerator<KeyValuePair<string, T?>> IEnumerable<KeyValuePair<string, T?>>.GetEnumerator() { return this; }
+        IEnumerator<KeyValue<T?>> IEnumerable<KeyValue<T?>>.GetEnumerator() { return this; }
         IEnumerator IEnumerable.GetEnumerator() { return this; }
-        public KeyValuePair<string, T?> Current => this.currentValue;
+        public KeyValue<T?> Current => this.currentValue;
         object IEnumerator.Current => this.currentValue;
     }
 

@@ -2,7 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-public unsafe struct KeyValue<TKey, TValue> where TKey : unmanaged
+public unsafe struct Kvp<TKey, TValue> where TKey : unmanaged
 {
     private const int InlineSize = HybridStackInlineArray<TKey>.Size;
     public ReadOnlySpan<TKey> Key
@@ -23,7 +23,7 @@ public unsafe struct KeyValue<TKey, TValue> where TKey : unmanaged
     public readonly TValue Value;
     private HybridStack<TKey> stack;
 
-    public KeyValue(TValue value, in HybridStack<TKey> stack)
+    public Kvp(TValue value, in HybridStack<TKey> stack)
     {
         this.Value = value;
         this.stack = stack;

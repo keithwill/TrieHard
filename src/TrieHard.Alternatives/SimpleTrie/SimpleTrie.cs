@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using TrieHard.Abstractions;
+using TrieHard.PrefixLookup;
 
 namespace TrieHard.Collections
 {
@@ -20,7 +21,7 @@ namespace TrieHard.Collections
     /// a lot of garbage.
     /// 
     /// </summary>
-    public class SimpleTrie<T> : IPrefixLookup<string, T>
+    public class SimpleTrie<T> : IPrefixLookup<T>
     {
         public static bool IsImmutable => false;
         public static Concurrency ThreadSafety => Concurrency.Read;
@@ -45,17 +46,17 @@ namespace TrieHard.Collections
             count = 0;
         }
 
-        public IEnumerable<KeyValuePair<string, T?>> GetValues()
+        public IEnumerable<KeyValue<T?>> GetValues()
         {
             return rootNode.CollectValues(string.Empty.AsMemory(), new StringBuilder());
         }
 
-        public IEnumerator<KeyValuePair<string, T?>> GetEnumerator()
+        public IEnumerator<KeyValue<T?>> GetEnumerator()
         {
             return GetValues().GetEnumerator();
         }
 
-        public IEnumerable<KeyValuePair<string, T?>> Search(string keyPrefix)
+        public IEnumerable<KeyValue<T?>> Search(string keyPrefix)
         {
             return rootNode.Search(keyPrefix);
         }
@@ -65,7 +66,7 @@ namespace TrieHard.Collections
             return GetEnumerator();
         }
 
-        public static IPrefixLookup<string, TValue?> Create<TValue>(IEnumerable<KeyValuePair<string, TValue?>> source)
+        public static IPrefixLookup<TValue?> Create<TValue>(IEnumerable<KeyValue<TValue?>> source)
         {
             var result = new SimpleTrie<TValue?>();
             foreach (var kvp in source)
@@ -83,7 +84,7 @@ namespace TrieHard.Collections
             }
         }
 
-        public static IPrefixLookup<string, TValue?> Create<TValue>()
+        public static IPrefixLookup<TValue?> Create<TValue>()
         {
             return new SimpleTrie<TValue?>();
         }

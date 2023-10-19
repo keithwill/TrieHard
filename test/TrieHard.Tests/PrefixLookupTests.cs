@@ -3,25 +3,26 @@ using TrieHard.Alternatives.List;
 using TrieHard.Alternatives.SQLite;
 using TrieHard.Collections;
 using TrieHard.Abstractions;
+using TrieHard.PrefixLookup;
 
 namespace TrieHard.Tests;
 
 public record class TestRecord(string Key);
 
-public abstract class PrefixLookupTests<T> where T : IPrefixLookup<string, TestRecord?>
+public abstract class PrefixLookupTests<T> where T : IPrefixLookup<TestRecord?>
 {
     protected TestRecord TestRecord { get; init; }
-    private KeyValuePair<string, TestRecord> testKvp;
-    private KeyValuePair<string, TestRecord>[] testKvpEnumerable;
+    private KeyValue<TestRecord> testKvp;
+    private KeyValue<TestRecord>[] testKvpEnumerable;
     const string TestKey = "TestKey";
     const string TestKeyPrefix = "Test";
-    private KeyValuePair<string, TestRecord>[] TestRecords;
+    private KeyValue<TestRecord>[] TestRecords;
 
     public PrefixLookupTests()
     {
         TestRecords = GetTestRecords(1000);
         TestRecord = TestRecords[0].Value;
-        testKvp = new KeyValuePair<string, TestRecord>(TestKey, TestRecord);
+        testKvp = new KeyValue<TestRecord>(TestKey, TestRecord);
         testKvpEnumerable = [testKvp];
     }
 
@@ -98,10 +99,16 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<string, TestR
 
         var actualResults = lookup.Search(prefix).ToArray();
 
-        var expected = testKeyValues.Where(x => x.Key.StartsWith(prefix))
+        var expectedResults = testKeyValues.Where(x => x.Key.StartsWith(prefix))
             .OrderBy(x => x.Key).ToArray();
 
-        Assert.That(actualResults, Is.EquivalentTo(expected));
+        for(int i = 0; i < actualResults.Length; i++)
+        {
+            var actual = actualResults[i];
+            var expected = expectedResults[i];
+            Assert.That(actual.Key, Is.EqualTo(expected.Key));
+            Assert.That(actual.Value, Is.SameAs(expected.Value));
+        }
     }
 
     [TestCase(0)]
@@ -133,14 +140,14 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<string, TestR
     }
 
 
-    protected KeyValuePair<string, TestRecord>[] GetTestRecords(int count)
+    protected KeyValue<TestRecord>[] GetTestRecords(int count)
     {
-        List<KeyValuePair<string, TestRecord>> testKeyValues = new();
+        List<KeyValue<TestRecord>> testKeyValues = new();
         for (int i = 0; i < count; i++)
         {
             var key = i.ToString();
             var record = new TestRecord(key);
-            testKeyValues.Add(new KeyValuePair<string, TestRecord>(key, record));
+            testKeyValues.Add(new KeyValue<TestRecord>(key, record));
         }
 
         return testKeyValues.ToArray();

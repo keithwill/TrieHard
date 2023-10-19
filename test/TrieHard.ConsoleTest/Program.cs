@@ -6,8 +6,9 @@ using TrieHard.Abstractions;
 using TrieHard.Alternatives.List;
 using TrieHard.Alternatives.SQLite;
 using TrieHard.Collections;
+using TrieHard.PrefixLookup;
 
-Dictionary<string, Func<IEnumerable<KeyValuePair<string, string?>>, IPrefixLookup<string, string?>>?> implementations = new(StringComparer.OrdinalIgnoreCase)
+Dictionary<string, Func<IEnumerable<KeyValue<string?>>, IPrefixLookup<string?>>?> implementations = new(StringComparer.OrdinalIgnoreCase)
 {
     { "Baseline", (kvps) => null! },
     { "Radix", (kvps) => RadixTree<string>.Create(kvps) },
@@ -36,24 +37,24 @@ if (args.Length < 2)
 
 var keyType = args[1].ToLower();
 
-var kvps = new List<KeyValuePair<string, string?>>();
+var kvps = new List<KeyValue<string?>>();
 string emptyPayload = string.Empty;
 
 if (keyType == "sequential")
 {
-    for (int i = 0; i < 5_000_000; i++)
+    for (int i = 0; i < 5_000; i++)
     {
         var key = i.ToString();
         //var key = $"/customer/{i}/entity/{1_000_000 - i}/";
-        kvps.Add(new KeyValuePair<string, string?>(key, emptyPayload));
+        kvps.Add(new KeyValue<string?>(key, emptyPayload));
     }
 }
 else if (keyType == "paths")
 {
-    for (int i = 0; i < 5_000_000; i++)
+    for (int i = 0; i < 5_000; i++)
     {
         var key = $"/customer/{i}/entity/{i}/";
-        kvps.Add(new KeyValuePair<string, string?>(key, emptyPayload));
+        kvps.Add(new KeyValue<string?>(key, emptyPayload));
     }
 }
 else
@@ -75,6 +76,18 @@ implementationName = implementations.Keys.First(x => string.Equals(x, implementa
 if (factory == null) throw new NullReferenceException(nameof(factory));
 
 var trie = factory(kvps);
+var l = trie as RadixTree<string>;
+for(int i = 0; i < 1_000_000_000; i++)
+{
+    foreach(var kvp in l.Search("1234"))
+    {
+        if (kvp.Value is null)
+        {
+            throw new Exception();
+        }
+    }
+}
+
 if (implementationName != "Baseline")
 {
     kvps.Clear();

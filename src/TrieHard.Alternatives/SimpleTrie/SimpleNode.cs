@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TrieHard.PrefixLookup;
 
 namespace TrieHard.Collections
 {
@@ -50,20 +51,20 @@ namespace TrieHard.Collections
             return GetNode(keySegment)!.Value;
         }
 
-        public IEnumerable<KeyValuePair<string, T?>> Search(string keySegment)
+        public IEnumerable<KeyValue<T?>> Search(string keySegment)
         {
             var matchingRoot = GetNode(keySegment);
-            if (matchingRoot is null) return Enumerable.Empty<KeyValuePair<string, T?>>();
+            if (matchingRoot is null) return Enumerable.Empty<KeyValue<T?>>();
             StringBuilder keyBuilder = new();
             keyBuilder.Append(keySegment);
             return matchingRoot.CollectValues(keySegment.AsMemory(), keyBuilder);
         }
 
-        public IEnumerable<KeyValuePair<string, T?>> CollectValues(ReadOnlyMemory<char> keySegment, StringBuilder keyBuilder)
+        public IEnumerable<KeyValue<T?>> CollectValues(ReadOnlyMemory<char> keySegment, StringBuilder keyBuilder)
         {
             if (HasValue)
             {
-                yield return new KeyValuePair<string, T?>(keyBuilder.ToString(), Value!);
+                yield return new KeyValue<T?>(keyBuilder.ToString(), Value!);
             }
             foreach((var key, var child) in Children)
             {

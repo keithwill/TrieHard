@@ -1,5 +1,6 @@
 ﻿using BenchmarkDotNet.Attributes;
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -22,7 +23,7 @@ namespace TrieHard.Benchmarks
         public string Search_Utf8()
         {
             string result = null;
-            foreach (var kvp in lookup.SearchUtf8(testPrefixKeyUtf8.AsSpan()))
+            foreach (var kvp in lookup.Search(testPrefixKeyUtf8.AsSpan()))
             {
                 result = kvp.Value;
             }
@@ -50,6 +51,28 @@ namespace TrieHard.Benchmarks
                 result = value;
             }
             return result;
+        }
+
+        [Benchmark]
+        public override string SearchValues()
+        {
+            string result = null;
+            foreach (var value in lookup.SearchValues(testPrefixKey))
+            {
+                result = value;
+            }
+            return result;
+        }
+
+        [Benchmark]
+        public override string SearchKVP()
+        {
+            string value = null;
+            foreach (var kvp in lookup.Search(testPrefixKey))
+            {
+                value = kvp.Value;
+            }
+            return value;
         }
 
     }

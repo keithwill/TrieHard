@@ -4,11 +4,12 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using TrieHard.PrefixLookup;
 
 namespace TrieHard.Collections
 {
     [SkipLocalsInit]
-    public unsafe struct UnsafeTrieUtf8Enumerator<T> : IEnumerable<KeyValuePair<ReadOnlyMemory<byte>, T?>>, IEnumerator<KeyValuePair<ReadOnlyMemory<byte>, T?>>
+    public unsafe struct UnsafeTrieUtf8Enumerator<T> : IEnumerable<KeyValue<T?>>, IEnumerator<KeyValue<T?>>
     {
         private static nuint StackEntrySize = (nuint)Convert.ToUInt64(sizeof(UnsafeTrieStackEntry));
 
@@ -25,7 +26,7 @@ namespace TrieHard.Collections
         private byte[] resultKeyBuffer = Empty;
 
         private bool isDisposed = false;
-        private KeyValuePair<ReadOnlyMemory<byte>, T?> currentValue;
+        private KeyValue<T?> currentValue;
         private bool finished = false;
         
 
@@ -98,7 +99,7 @@ namespace TrieHard.Collections
                 if (currentNode->ValueLocation > -1)
                 {
                     var value = trie!.Values[currentNode->ValueLocation];
-                    currentValue = new KeyValuePair<ReadOnlyMemory<byte>, T?>(GetKeyFromStack(), value);
+                    currentValue = new KeyValue<T?>(GetKeyFromStack(), value);
                     hasValue = true;
                 }
 
@@ -215,9 +216,9 @@ namespace TrieHard.Collections
             }
         }
         public UnsafeTrieUtf8Enumerator<T> GetEnumerator() { return this; }
-        IEnumerator<KeyValuePair<ReadOnlyMemory<byte>, T?>> IEnumerable<KeyValuePair<ReadOnlyMemory<byte>, T?>>.GetEnumerator() { return this; }
+        IEnumerator<KeyValue<T?>> IEnumerable<KeyValue<T?>>.GetEnumerator() { return this; }
         IEnumerator IEnumerable.GetEnumerator() { return this; }
-        public KeyValuePair<ReadOnlyMemory<byte>, T?> Current => this.currentValue;
+        public KeyValue<T?> Current => this.currentValue;
         object IEnumerator.Current => this.currentValue;
     }
 

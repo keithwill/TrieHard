@@ -7,11 +7,12 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Unicode;
 using TrieHard.Abstractions;
+using TrieHard.PrefixLookup;
 
 namespace TrieHard.Collections
 {
     [SkipLocalsInit]
-    public unsafe class UnsafeTrie<T>  : IPrefixLookup<string, T?>, IDisposable
+    public unsafe class UnsafeTrie<T>  : IPrefixLookup<T?>, IDisposable
     {
         public static bool IsImmutable => false;
         /// <summary>
@@ -152,16 +153,6 @@ namespace TrieHard.Collections
             return Search(buffer.AsMemory(0, bytesWritten), keyBuffer: buffer );
         }
 
-        private UnsafeTrieUtf8Enumerator<T> SearchUtf8(ReadOnlyMemory<byte> key, byte[] keyBuffer = null!)
-        {
-            nint matchingNode = FindNodeAddress(key.Span);
-            if (matchingNode > 0)
-            {
-                return new UnsafeTrieUtf8Enumerator<T>(this, key, matchingNode, keyBuffer);
-            }
-            return new UnsafeTrieUtf8Enumerator<T>(null!, key, 0, keyBuffer);
-        }
-
         /// <summary>
         /// Performs a prefix search on the provided key, and returns an enumerator optimized
         /// for iteration which will not allocate unless boxed and which provides access to 
@@ -183,7 +174,7 @@ namespace TrieHard.Collections
             return new CompactTrieNodeSpanEnumerable<T>();
         }
 
-        public UnsafeTrieEnumerator<T> Search(ReadOnlyMemory<byte> key, byte[]? keyBuffer = null)
+        public UnsafeTrieEnumerator<T> Search(ReadOnlyMemory<byte> key, byte[]? keyBuffer)
         {
             nint matchingNode = FindNodeAddress(key.Span);
             if (matchingNode > 0)
@@ -191,6 +182,16 @@ namespace TrieHard.Collections
                 return new UnsafeTrieEnumerator<T>(this, key, matchingNode, keyBuffer);
             }
             return new UnsafeTrieEnumerator<T>(null!, key, 0, keyBuffer);
+        }
+
+        public UnsafeTrieEnumerator<T> Search(ReadOnlyMemory<byte> key)
+        {
+            nint matchingNode = FindNodeAddress(key.Span);
+            if (matchingNode > 0)
+            {
+                return new UnsafeTrieEnumerator<T>(this, key, matchingNode);
+            }
+            return new UnsafeTrieEnumerator<T>(null!, key, 0);
         }
 
         public UnsafeTrieValueEnumerator<T?> SearchValues(ReadOnlySpan<byte> keyPrefix)
@@ -345,12 +346,12 @@ namespace TrieHard.Collections
             }
         }
 
-        IEnumerable<KeyValuePair<string, T?>> IPrefixLookup<string, T?>.Search(string keyPrefix)
+        IEnumerable<KeyValue<T?>> IPrefixLookup<T?>.Search(string keyPrefix)
         {
             return this.Search(keyPrefix);
         }
 
-        IEnumerator<KeyValuePair<string, T?>> IEnumerable<KeyValuePair<string, T?>>.GetEnumerator()
+        IEnumerator<KeyValue<T?>> IEnumerable<KeyValue<T?>>.GetEnumerator()
         {
             return this.GetEnumerator();
         }
@@ -361,7 +362,7 @@ namespace TrieHard.Collections
         }
 
 
-        public static IPrefixLookup<string, TValue?> Create<TValue>(IEnumerable<KeyValuePair<string, TValue?>> source)
+        public static IPrefixLookup<TValue?> Create<TValue>(IEnumerable<KeyValue<TValue?>> source)
         {
             var result = new UnsafeTrie<TValue>();
             foreach (var kvp in source)
@@ -371,15 +372,13 @@ namespace TrieHard.Collections
             return result;
         }
 
-
-
-        IEnumerable<T> IPrefixLookup<string, T?>.SearchValues(string keyPrefix)
+        IEnumerable<T> IPrefixLookup<T?>.SearchValues(string keyPrefix)
         {
             var keyBytes = Encoding.UTF8.GetBytes(keyPrefix);
             return SearchValues(keyBytes);
         }
 
-        public static IPrefixLookup<string, TValue?> Create<TValue>()
+        public static IPrefixLookup<TValue?> Create<TValue>()
         {
             return new UnsafeTrie<TValue>();
         }

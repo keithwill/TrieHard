@@ -50,7 +50,7 @@ namespace TrieHard.PrefixLookup
         {
             if (BackingList != null)
             {
-                BackingList.Dispose();
+                ArrayPoolList<TElement>.Return(BackingList);
             }
         }
     }

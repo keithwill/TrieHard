@@ -12,7 +12,7 @@ namespace TrieHard.Benchmarks
     /// when a Trie is created and then garbage collected as a way to reason about the size of
     /// a Tries total (managed) object graph size at runtime.
     /// </summary>
-    public class PrefixLookupMemoryEstimator<T> where T : IPrefixLookup<string, string>
+    public class PrefixLookupMemoryEstimator<T> where T : IPrefixLookup<string>
     {
 
         public PrefixLookupMemoryEstimator()

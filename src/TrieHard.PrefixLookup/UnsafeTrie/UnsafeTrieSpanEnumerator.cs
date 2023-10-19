@@ -12,9 +12,9 @@ public unsafe struct UnsafeTrieSpanEnumerator<T>
 
     private UnsafeTrieNode currentNodeBacking;
 
-    private KeyValue<byte, T?> currentKeyValue;
+    private Kvp<byte, T?> currentKeyValue;
 
-    public KeyValue<byte, T?> Current => currentKeyValue;
+    public Kvp<byte, T?> Current => currentKeyValue;
 
     private bool returnRootValue = false;
 
@@ -53,7 +53,7 @@ public unsafe struct UnsafeTrieSpanEnumerator<T>
         if (node.ValueLocation == -1) return false;
 
         T? value = trie!.Values[node.ValueLocation];
-        currentKeyValue = new KeyValue<byte, T?>(value, in keyStack);
+        currentKeyValue = new Kvp<byte, T?>(value, in keyStack);
         currentNodeBacking = node;
         return true;
     }

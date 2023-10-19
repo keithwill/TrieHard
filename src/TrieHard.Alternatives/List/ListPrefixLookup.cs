@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using TrieHard.Abstractions;
+using TrieHard.PrefixLookup;
 
 namespace TrieHard.Alternatives.List
 {
@@ -12,7 +13,7 @@ namespace TrieHard.Alternatives.List
     /// This is what many developers end up doing for lookups when they expect the
     /// number of elements to be reasonable or small.
     /// </summary>
-    public class ListPrefixLookup<T> : IPrefixLookup<string, T>
+    public class ListPrefixLookup<T> : IPrefixLookup<T?>
     {
 
         public static bool IsImmutable => false;
@@ -21,12 +22,12 @@ namespace TrieHard.Alternatives.List
 
         public static bool IsSorted => true;
 
-        private List<KeyValuePair<string, T?>> values = new();
+        private List<KeyValue<T?>> values = new();
         public T? this[string key] {
             get => values.FirstOrDefault(x => x.Key == key).Value;
             set
             {
-                var newKvp = new KeyValuePair<string, T?>(key, value); ;
+                var newKvp = new KeyValue<T?>(key, value); ;
                 for (int i = 0; i < values.Count; i++)
                 {
                     if (values[i].Key == key)
@@ -42,14 +43,14 @@ namespace TrieHard.Alternatives.List
 
         public int Count => values.Count;
 
-        public static IPrefixLookup<string, TValue?> Create<TValue>(IEnumerable<KeyValuePair<string, TValue?>> source)
+        public static IPrefixLookup<TValue?> Create<TValue>(IEnumerable<KeyValue<TValue?>> source)
         {
             var lookup = new ListPrefixLookup<TValue?>();
             lookup.values = source.OrderBy(x => x.Key).ToList();
             return lookup;
         }
 
-        public static IPrefixLookup<string, TValue?> Create<TValue>()
+        public static IPrefixLookup<TValue?> Create<TValue>()
         {
             return new ListPrefixLookup<TValue?>();
         }
@@ -59,12 +60,12 @@ namespace TrieHard.Alternatives.List
             values.Clear();
         }
 
-        public IEnumerator<KeyValuePair<string, T?>> GetEnumerator()
+        public IEnumerator<KeyValue<T?>> GetEnumerator()
         {
             return this.values.GetEnumerator();
         }
 
-        public IEnumerable<KeyValuePair<string, T?>> Search(string keyPrefix)
+        public IEnumerable<KeyValue<T?>> Search(string keyPrefix)
         {
             return values.Where(x => x.Key.StartsWith(keyPrefix));
         }

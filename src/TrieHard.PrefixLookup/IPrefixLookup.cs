@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TrieHard.PrefixLookup;
 
 namespace TrieHard.Abstractions
 {
@@ -19,7 +20,7 @@ namespace TrieHard.Abstractions
     /// <typeparam name="TValue">
     /// The type of the value to store in the lookup.
     /// </typeparam>
-    public interface IPrefixLookup<TKey, TValue> : IPrefixLookup, IEnumerable<KeyValuePair<TKey, TValue?>>
+    public interface IPrefixLookup<TValue> : IPrefixLookup, IEnumerable<KeyValue<TValue?>>
     {
 
         /// <summary>
@@ -29,7 +30,7 @@ namespace TrieHard.Abstractions
         /// </summary>
         /// <param name="key">The key to match on</param>
         /// <returns>The value associated with the key or default(TElement)</returns>
-        TValue? this[TKey key] { get; set; }
+        TValue? this[string key] { get; set; }
 
         /// <summary>
         /// Removes all values from the lookup. Implementations are free to decide if this
@@ -48,7 +49,7 @@ namespace TrieHard.Abstractions
         /// </summary>
         /// <param name="keyPrefix">The value to use as a 'StartsWith' search of keys</param>
         /// <returns>An enumerable of the key value pairs matching the prefix</returns>
-        IEnumerable<KeyValuePair<TKey, TValue?>> Search(TKey keyPrefix);
+        IEnumerable<KeyValue<TValue?>> Search(string keyPrefix);
 
         /// <summary>
         /// Returns the values that have are associated with keys that start with the
@@ -56,7 +57,7 @@ namespace TrieHard.Abstractions
         /// </summary>
         /// <param name="keyPrefix">The value to use as a 'StartsWith' search of keys</param>
         /// <returns>The value stored with each matching key</returns>
-        IEnumerable<TValue?> SearchValues(TKey keyPrefix);
+        IEnumerable<TValue?> SearchValues(string keyPrefix);
 
         /// <summary>
         /// If this type of lookup can be modified after creation or not.
@@ -107,14 +108,14 @@ namespace TrieHard.Abstractions
         /// </summary>
         /// <typeparam name="TValue"></typeparam>
         /// <param name="source"></param>
-        virtual static IPrefixLookup<string, TValue?> Create<TValue>(IEnumerable<KeyValuePair<string, TValue?>> source) => throw new NotImplementedException();
+        virtual static IPrefixLookup<TValue?> Create<TValue>(IEnumerable<KeyValue<TValue?>> source) => throw new NotImplementedException();
 
         /// <summary>
         /// Creates an instance of this type of prefix. Used for testing purposes.
         /// </summary>
         /// <typeparam name="TValue"></typeparam>
         /// <param name="source"></param>
-        virtual static IPrefixLookup<string, TValue?> Create<TValue>() => throw new NotImplementedException();
+        virtual static IPrefixLookup<TValue?> Create<TValue>() => throw new NotImplementedException();
     }
 
 }
