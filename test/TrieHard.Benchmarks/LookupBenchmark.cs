@@ -3,7 +3,6 @@ using System;
 using TrieHard.Alternatives.List;
 using TrieHard.Alternatives.SQLite;
 using TrieHard.Collections;
-using TrieHard.Abstractions;
 
 namespace TrieHard.Benchmarks
 {
@@ -20,8 +19,8 @@ namespace TrieHard.Benchmarks
 
         [GlobalSetup]
         public virtual void Setup()
-        {    
-            lookup = (T)T.Create<string>(PrefixLookupTestValues.SequentialStrings);
+        {
+            lookup = (T)T.Create<string>(TestData.Sequential);
         }
 
         [GlobalCleanup]
@@ -35,13 +34,13 @@ namespace TrieHard.Benchmarks
 
 
         [Benchmark]
-        public void Set()
+        public virtual void Set()
         {
             lookup[testKey] = testKey;
         }
 
         [Benchmark]
-        public string Get()
+        public virtual string Get()
         {
             return lookup[testKey];
         }
@@ -69,15 +68,15 @@ namespace TrieHard.Benchmarks
         }
 
         [Benchmark]
-        public int Count()
+        public virtual int Count()
         {
             return lookup.Count;
         }
 
         [Benchmark]
-        public void Create()
+        public virtual void Create()
         {
-            var lookup = (T)T.Create(PrefixLookupTestValues.EnglishWords);
+            var lookup = (T)T.Create(TestData.EnglishWords);
             if (lookup is IDisposable disposable)
             {
                 disposable.Dispose();

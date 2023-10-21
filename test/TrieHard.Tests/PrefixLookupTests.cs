@@ -2,8 +2,6 @@ using NUnit.Framework.Internal;
 using TrieHard.Alternatives.List;
 using TrieHard.Alternatives.SQLite;
 using TrieHard.Collections;
-using TrieHard.Abstractions;
-using TrieHard.PrefixLookup;
 
 namespace TrieHard.Tests;
 
@@ -21,7 +19,7 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<TestRecord?>
     public PrefixLookupTests()
     {
         TestRecords = GetTestRecords(1000);
-        TestRecord = TestRecords[0].Value;
+        TestRecord = TestRecords[0].Value!;
         testKvp = new KeyValue<TestRecord>(TestKey, TestRecord);
         testKvpEnumerable = [testKvp];
     }
@@ -135,7 +133,7 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<TestRecord?>
         {
             TestRecord? expectedResult = expected[resultIndex];
             TestRecord? actualResult = actualResults[resultIndex];
-            Assert.That(expectedResult.Key, Is.EqualTo(actualResult!.Key));
+            Assert.That(expectedResult!.Key, Is.EqualTo(actualResult!.Key));
         }
     }
 
@@ -196,3 +194,5 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<TestRecord?>
 public class SimpleTrieTests : PrefixLookupTests<SimpleTrie<TestRecord?>> { }
 public class SqliteLookupTests : PrefixLookupTests<SQLiteLookup<TestRecord?>> { }
 public class ListPrefixLookupTests : PrefixLookupTests<ListPrefixLookup<TestRecord?>> { }
+
+public class UnsafeTrieTests : PrefixLookupTests<UnsafeTrie<TestRecord?>> { }

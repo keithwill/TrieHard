@@ -2,6 +2,8 @@ using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Filters;
 using BenchmarkDotNet.Running;
 using System;
+using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 using TrieHard.Alternatives.List;
 using TrieHard.Alternatives.SQLite;

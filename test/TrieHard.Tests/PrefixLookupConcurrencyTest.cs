@@ -1,23 +1,23 @@
 ﻿using System.Threading;
-using TrieHard.Abstractions;
 using TrieHard.Alternatives.List;
 using TrieHard.Collections;
 
 namespace TrieHard.Tests
 {
-    public class RadixTreeConcurrencyTests : PrefixLookupConcurrencyTests<RadixTree<string>> { }
-    public class UnsafeTrieConcurrencyTests : PrefixLookupConcurrencyTests<RadixTree<string>> { }
+    public class RadixTreeConcurrencyTests : PrefixLookupConcurrencyTests<RadixTree<TestEntity>> { }
 
     // These lookups fail during reads when a concurrent write occurs.
     //public class ListPrefixLookupConcurrencyTests : PrefixLookupConcurrencyTests<ListPrefixLookup<string>> { }
     //public class SimpleTrieConcurrencyTests : PrefixLookupConcurrencyTests<SimpleTrie<string>> { }
+    //public class UnsafeTrieConcurrencyTests : PrefixLookupConcurrencyTests<UnsafeTrie<TestEntity>> { }
 
 
-    public abstract class PrefixLookupConcurrencyTests<T> where T : IPrefixLookup<string>
+    public record class TestEntity(string Key) { }
+
+    public abstract class PrefixLookupConcurrencyTests<T> where T : IPrefixLookup<TestEntity>
     {
         private const int iterationSize = 1000;
 
-        public record class TestEntity(string Key) {}
 
         private Random rng = new(Environment.TickCount);
 
@@ -47,7 +47,7 @@ namespace TrieHard.Tests
             while (!timeoutCancellation.IsCancellationRequested)
             {
                 using CancellationTokenSource iterationCancellation = new();
-                var lookup = T.Create<TestEntity>();
+                T lookup = (T)T.Create<TestEntity>();
 
                 for (var i = 0; i < readers.Length; i++)
                 {
@@ -76,7 +76,7 @@ namespace TrieHard.Tests
         /// updates are done to the the lookup of this test, we'll compare the counts to what they should
         /// be for prefix searches, just to see if any records were corrupted.
         /// </summary>
-        private void ReadAndVerifyPrefixCounts(IPrefixLookup<TestEntity?> lookup, List<TestEntity> expectedValues, CancellationToken timeout)
+        private void ReadAndVerifyPrefixCounts(T lookup, List<TestEntity> expectedValues, CancellationToken timeout)
         {
             for (int i = 0; i < iterationSize; i++)
             {
@@ -104,7 +104,7 @@ namespace TrieHard.Tests
         /// We won't know if the writer actually wrote those values, but if they are torn or corrupt they will usually
         /// not have a key that matches the value, or will have keys that shouldn't exist at all.
         /// </summary>
-        private void ReadAndVerifyPrefixValues(IPrefixLookup<TestEntity?> lookup, Dictionary<string, TestEntity> expectedLookup, CancellationToken timeout)
+        private void ReadAndVerifyPrefixValues(T lookup, Dictionary<string, TestEntity> expectedLookup, CancellationToken timeout)
         {
 
             while (!timeout.IsCancellationRequested)
@@ -125,7 +125,7 @@ namespace TrieHard.Tests
             }
         }
 
-        private void WriteGaps(IPrefixLookup<TestEntity?> lookup, List<TestEntity> expectedValues, CancellationToken timeout)
+        private void WriteGaps(T lookup, List<TestEntity> expectedValues, CancellationToken timeout)
         {
             for (int i = 0; i < iterationSize; i++)
             {
@@ -139,7 +139,7 @@ namespace TrieHard.Tests
         /// Write randomly selected elements from the expected values into the trie, then
         /// signal that writing is done.
         /// </summary>
-        private void WriteValues(IPrefixLookup<TestEntity?> lookup, List<TestEntity> expectedValues, CancellationTokenSource iterationCancellation, CancellationToken timeout)
+        private void WriteValues(T lookup, List<TestEntity> expectedValues, CancellationTokenSource iterationCancellation, CancellationToken timeout)
         {
             // Write keys at random
             for (int i = 0; i < iterationSize * 3; i++)

@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
+﻿using System.Collections;
 using System.Text.Unicode;
-using TrieHard.Abstractions;
-using TrieHard.PrefixLookup;
 
 namespace TrieHard.Collections;
 
@@ -43,11 +38,11 @@ public class RadixTree<T> : IPrefixLookup<T>
     public static Concurrency ThreadSafety => Concurrency.Read;
     public static bool IsSorted => true;
 
-    private RadixTreeNode<T> root;
+    private RadixTreeNode<T?> root;
 
     public RadixTree()
     {
-        root = new RadixTreeNode<T>();
+        root = new RadixTreeNode<T?>();
     }
 
     public int Count => root.GetValuesCount();
@@ -93,42 +88,19 @@ public class RadixTree<T> : IPrefixLookup<T>
         this.root.Reset();
     }
 
-    public SearchResult<KeyValue<T?>> SearchUtf8(ReadOnlySpan<byte> keyPrefix)
-    {
-        var collector = ArrayPoolList<KeyValue<T?>>.Rent();
-        if (keyPrefix.Length == 0)
-        {
-            root.CollectKeyValues(collector);
-        }
-        else
-        {
-            root.SearchPrefix(keyPrefix, collector);
-        }
-        return new SearchResult<KeyValue<T?>>(collector);
-    }
-
-    public SearchResult<KeyValue<T?>> Search(ReadOnlySpan<byte> keyPrefix)
-    {
-        var collector = ArrayPoolList<KeyValue<T?>>.Rent();
-        if (keyPrefix.Length == 0)
-        {
-            root.CollectKeyValues(collector);
-        }
-        else
-        {
-            root.SearchPrefix(keyPrefix, collector);
-        }
-        return new SearchResult<KeyValue<T?>>(collector);
-    }
-
     public IEnumerator<KeyValue<T?>> GetEnumerator()
     {
-        return SearchUtf8(ReadOnlySpan<byte>.Empty).GetEnumerator();
+        return Search(ReadOnlySpan<byte>.Empty).GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()
     {
         return GetEnumerator();
+    }
+
+    public static IPrefixLookup<TValue?> Create<TValue>()
+    {
+        return new RadixTree<TValue?>();
     }
 
     public static IPrefixLookup<TValue?> Create<TValue>(IEnumerable<KeyValue<TValue?>> source)
@@ -141,37 +113,30 @@ public class RadixTree<T> : IPrefixLookup<T>
         return result;
     }
 
-    public SearchResult<T?> SearchValues(ReadOnlySpan<byte> keyPrefix)
+    public RadixValueEnumerator<T?> SearchValues(string keyPrefix)
     {
-        var collector = ArrayPoolList<T?>.Rent();
-        if (keyPrefix.Length == 0)
-        {
-            root.CollectValues(collector);
-        }
-        else
-        {
-            root.SearchPrefixValues(keyPrefix, collector);
-        }
-        return new SearchResult<T?>(collector);
+        Span<byte> keyBuffer = stackalloc byte[keyPrefix.Length * 4];
+        keyBuffer = GetKeyStringBytes(keyPrefix, keyBuffer);
+        return SearchValues(keyBuffer);
     }
 
-    public static IPrefixLookup<TValue?> Create<TValue>()
+    public RadixValueEnumerator<T?> SearchValues(ReadOnlySpan<byte> keyPrefix)
     {
-        return new RadixTree<TValue?>();
+        RadixTreeNode<T?>? matchingNode = keyPrefix.Length == 0 ? root : root.FindPrefixMatch(keyPrefix);
+        return new RadixValueEnumerator<T?>(matchingNode);
     }
 
-    public SearchResult<KeyValue<T?>> Search(string keyPrefix)
+    public RadixKvpEnumerator<T?> Search(string keyPrefix)
     {
         Span<byte> keyBuffer = stackalloc byte[keyPrefix.Length * 4];
         keyBuffer = GetKeyStringBytes(keyPrefix, keyBuffer);
         return Search(keyBuffer);
     }
 
-    public SearchResult<T?> SearchValues(string keyPrefix)
+    public RadixKvpEnumerator<T?> Search(ReadOnlySpan<byte> keyPrefix)
     {
-        Span<byte> keyBuffer = stackalloc byte[keyPrefix.Length * 4];
-        keyBuffer = GetKeyStringBytes(keyPrefix, keyBuffer);
-        return SearchValues(keyBuffer);
+        RadixTreeNode<T?>? matchingNode = keyPrefix.Length == 0 ? root : root.FindPrefixMatch(keyPrefix);
+        return new RadixKvpEnumerator<T?>(matchingNode);
     }
 
     IEnumerator<KeyValue<T?>> IEnumerable<KeyValue<T?>>.GetEnumerator()

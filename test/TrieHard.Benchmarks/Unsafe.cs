@@ -9,32 +9,28 @@ namespace TrieHard.Benchmarks
     public class Unsafe : LookupBenchmark<UnsafeTrie<string>>
     {
 
-        private ReadOnlyMemory<byte> testKeyUtf8 = Encoding.UTF8.GetBytes(testKey);
-
-        private byte[] testPrefixKeyUtf8 = Encoding.UTF8.GetBytes(testPrefixKey);
-
         public override void Setup()
         {
-            base.Setup();
+            lookup = (UnsafeTrie<string>)UnsafeTrie<string>.Create(TestData.Sequential);
         }
 
         [Benchmark]
         public string Get_Utf8()
         {
-            return lookup.Get(testKeyUtf8.Span);
+            return lookup.Get(TestData.KeyBytes.Span);
         }
 
         [Benchmark]
         public void Set_Utf8()
         {
-            lookup.Set(testPrefixKeyUtf8.AsSpan(), testKey);
+            lookup.Set(TestData.KeyBytes.Span, TestData.Key);
         }
 
         [Benchmark]
         public string Search_Utf8()
         {
             string result = null;
-            foreach (var kvp in lookup.Search(testPrefixKeyUtf8.AsMemory()))
+            foreach (var kvp in lookup.Search(TestData.PrefixBytes))
             {
                 result = kvp.Value;
             }
@@ -42,10 +38,21 @@ namespace TrieHard.Benchmarks
         }
 
         [Benchmark]
+        public override string SearchKVP()
+        {
+            string value = null;
+            foreach (var kvp in lookup.Search(TestData.Prefix))
+            {
+                value = kvp.Value;
+            }
+            return value;
+        }
+
+        [Benchmark]
         public string SearchValues_Utf8()
         {
             string result = null;
-            foreach (var value in lookup.SearchValues(testPrefixKeyUtf8.AsSpan()))
+            foreach (var value in lookup.SearchValues(TestData.PrefixBytes.Span))
             {
                 result = value;
             }
@@ -56,23 +63,14 @@ namespace TrieHard.Benchmarks
         public override string SearchValues()
         {
             string result = null;
-            foreach (var value in lookup.SearchValues(testPrefixKey))
+            foreach (var value in lookup.SearchValues(TestData.Key))
             {
                 result = value;
             }
             return result;
         }
 
-        [Benchmark]
-        public override string SearchKVP()
-        {
-            string value = null;
-            foreach (var kvp in lookup.Search(testPrefixKey))
-            {
-                value = kvp.Value;
-            }
-            return value;
-        }
+
 
 
     }

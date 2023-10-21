@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace TrieHard.PrefixLookup
+﻿namespace TrieHard.Collections
 {
     public record struct KeyValue<T>
     {
@@ -13,11 +7,13 @@ namespace TrieHard.PrefixLookup
         {
             this.key = key;
             this.value = value;
+            this.keyUtf8 = System.Text.Encoding.UTF8.GetBytes(key).AsMemory();
         }
 
         public KeyValue(ReadOnlyMemory<byte> keyUtf8, T? value)
         {
             this.keyUtf8 = keyUtf8;
+            this.key = System.Text.Encoding.UTF8.GetString(keyUtf8.Span);
             this.value = value;
         }
 
@@ -26,8 +22,8 @@ namespace TrieHard.PrefixLookup
             return new KeyValue<T>() { key = this.key, keyUtf8 = this.keyUtf8, value = value};
         }
 
-        public string Key => key ??= System.Text.Encoding.UTF8.GetString(keyUtf8.Span);
-        public ReadOnlyMemory<byte> KeyUtf8 => keyUtf8.Length > 0 ? keyUtf8 : keyUtf8 = System.Text.Encoding.UTF8.GetBytes(key).AsMemory();
+        public string Key => key;
+        public ReadOnlyMemory<byte> KeyUtf8 => keyUtf8;
         public T? Value => value;
         
         private string key;

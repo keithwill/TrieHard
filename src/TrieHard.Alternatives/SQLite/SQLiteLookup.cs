@@ -1,6 +1,6 @@
 ﻿using Microsoft.Data.Sqlite;
 using System.Collections;
-using TrieHard.Abstractions;
+using TrieHard.Collections;
 using TrieHard.PrefixLookup;
 
 namespace TrieHard.Alternatives.SQLite

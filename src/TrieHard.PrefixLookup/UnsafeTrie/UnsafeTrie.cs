@@ -1,13 +1,10 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Unicode;
-using TrieHard.Abstractions;
-using TrieHard.PrefixLookup;
 
 namespace TrieHard.Collections
 {
@@ -153,26 +150,6 @@ namespace TrieHard.Collections
             return Search(buffer.AsMemory(0, bytesWritten), keyBuffer: buffer );
         }
 
-        /// <summary>
-        /// Performs a prefix search on the provided key, and returns an enumerator optimized
-        /// for iteration which will not allocate unless boxed and which provides access to 
-        /// the byte spans of UTF8 text of each key. Use the span only within the foreach loop
-        /// body, as every time the returned enumerator iterates, the previously returned
-        /// KeyValue will no longer contain valid data.
-        /// </summary>
-        /// <param name="key"></param>
-        /// <returns></returns>
-        public CompactTrieNodeSpanEnumerable<T> SearchSpans(ReadOnlySpan<byte> key)
-        {
-            nint nodeAddress = FindNodeAddress(key);
-
-            if (nodeAddress > 0)
-            {
-                ref readonly UnsafeTrieNode matchingNode = ref *(UnsafeTrieNode*)nodeAddress.ToPointer();
-                return new CompactTrieNodeSpanEnumerable<T>(this, key, matchingNode);
-            }
-            return new CompactTrieNodeSpanEnumerable<T>();
-        }
 
         public UnsafeTrieEnumerator<T> Search(ReadOnlyMemory<byte> key, byte[]? keyBuffer)
         {

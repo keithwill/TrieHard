@@ -1,13 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TrieHard.PrefixLookup;
-
-namespace TrieHard.Abstractions
+﻿namespace TrieHard.Collections
 {
 
     /// <summary>

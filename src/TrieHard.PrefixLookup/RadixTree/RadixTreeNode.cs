@@ -14,7 +14,7 @@ internal class RadixTreeNode<T>
     private ArraySegment<byte> KeySegment = ArraySegment<byte>.Empty;
     public RadixTreeNode<T>[] childrenBuffer = EmptyNodes;
     private Span<RadixTreeNode<T>> Children => childrenBuffer.AsSpan(0, ChildCount);
-    private byte ChildCount = 0;
+    public byte ChildCount = 0;
     //public T? Value;
     public byte FirstKeyByte;
     public KeyValue<T?> Payload;
@@ -227,7 +227,7 @@ internal class RadixTreeNode<T>
                 var newChild = new RadixTreeNode<T>();
                 newChild.KeySegment = new ArraySegment<byte>(keyBytes, keyOffset, searchKey.Length);
                 newChild.FirstKeyByte = newChild.KeySegment[0];
-                newChild.Payload = new KeyValue<T>(keyBytes.AsMemory(0, keyOffset + searchKey.Length), value);
+                newChild.Payload = new KeyValue<T?>(keyBytes.AsMemory(0, keyOffset + searchKey.Length), value);
                 //newChild.Value = value;
 
                 // We can avoid cloning the searchNode when inserting a new child at the end of the 
@@ -390,7 +390,7 @@ internal class RadixTreeNode<T>
         var childKeySegment = child.KeySegment;
         splitParent.KeySegment = new ArraySegment<byte>(child.FullKey, childKeySegment.Offset, atKeyLength);
         splitParent.FirstKeyByte = splitParent.KeySegment[0];
-        splitParent.Payload = new KeyValue<T>(child.FullKey.AsMemory(0, childKeySegment.Offset + atKeyLength), default);
+        splitParent.Payload = new KeyValue<T?>(child.FullKey.AsMemory(0, childKeySegment.Offset + atKeyLength), default);
         child = splitParent;
     }
 
@@ -419,115 +419,7 @@ internal class RadixTreeNode<T>
         return default;
     }
 
-    public void CollectKeyValues(ArrayPoolList<KeyValue<T?>> kvps)
-    {
-        if (Payload.Value is not null) kvps.Add(Payload);
-        // Unrolling a bit still seems to be the best way to reduce the cost of recursion,
-        // though the code is ugly and redundant
-        var childCount = ChildCount;
-        if (childCount == 0) return;
-        var children = childrenBuffer;
-
-        for (int i1 = 0; i1 < childCount; i1++)
-        {
-            var child1 = children[i1];
-            if (child1.Payload.Value != null) kvps.Add(child1.Payload);
-            if (child1.ChildCount == 0) continue;
-            var children1 = child1.childrenBuffer;
-
-            for (int i2 = 0; i2 < child1.ChildCount; i2++)
-            {
-                var child2 = children1[i2];
-                if (child2.Payload.Value != null) kvps.Add(child2.Payload);
-                if (child2.ChildCount == 0) continue;
-                var children2 = child2.childrenBuffer;
-
-                for (int i3 = 0; i3 < child2.ChildCount; i3++)
-                {
-                    var child3 = children2[i3];
-                    if (child3.Payload.Value != null) kvps.Add(child3.Payload);
-                    if (child3.ChildCount == 0) continue;
-                    var children3 = child3.childrenBuffer;
-
-                    for (int i4 = 0; i4 < child3.ChildCount; i4++)
-                    {
-                        children3[i4].CollectKeyValues(kvps);
-                    }
-                }
-            }
-        }
-    }
-
-    //public void CollectKeyValues(ArrayPoolList<KeyValue<T?>> collector)
-    //{
-    //    if (Payload.Value is not null)
-    //    {
-    //        collector.Add(this.Payload);
-    //    }
-    //    // Unrolling a bit still seems to be the best way to reduce the cost of recursion,
-    //    // though the code is ugly and redundant
-    //    var childCount = ChildCount;
-    //    if (childCount > 0)
-    //    {
-    //        var buffer = childrenBuffer;
-    //        for (int i1 = 0; i1 < childCount; i1++)
-    //        {
-    //            var child = buffer[i1];
-    //            if (child.Payload.Value is not null)
-    //            {
-    //                collector.Add(child.Payload);
-    //            }
-    //            if (child.ChildCount > 0)
-    //            {
-    //                var buffer2 = child.childrenBuffer;
-    //                for (int i2 = 0; i2 < child.ChildCount; i2++)
-    //                {
-
-    //                    var child2 = buffer2[i2];
-    //                    if (child2.Payload.Value is not null)
-    //                    {
-    //                        collector.Add(child2.Payload);
-    //                    }
-    //                    if (child2.ChildCount > 0)
-    //                    {
-    //                        var buffer3 = child2.childrenBuffer;
-    //                        for (int i3 = 0; i3 < buffer3.Length; i3++)
-    //                        {
-    //                            buffer3[i3].CollectKeyValues(collector);
-    //                        }
-    //                    }
-    //                }
-    //            }
-    //        }
-    //    }
-    //}
-
-
-    //public void CollectKeyValueStrings(ArrayPoolList<KeyValue<T?>> collector)
-    //{
-    //    if (Value is not null)
-    //    {
-    //        collector.Add(new KeyValue<T?>(System.Text.Encoding.UTF8.GetString(FullKey.AsSpan(0, KeySegment.Offset + KeySegment.Count)), Value));
-    //    }
-    //    for (int i = 0; i < ChildCount; i++)
-    //    {
-    //        childrenBuffer[i].CollectKeyValueStrings(collector);
-    //    }
-    //}
-
-    public void CollectValues(ArrayPoolList<T?> collector)
-    {
-        if (Payload.Value is not null)
-        {
-            collector.Add(Payload.Value);
-        }
-        for (int i = 0; i < ChildCount; i++)
-        {
-            childrenBuffer[i].CollectValues(collector);
-        }
-    }
-
-    private RadixTreeNode<T>? FindPrefixMatch(ReadOnlySpan<byte> key)
+    internal RadixTreeNode<T>? FindPrefixMatch(ReadOnlySpan<byte> key)
     {
         var node = this;
         var childIndex = node.FindChildByFirstByte(key[0]);
@@ -549,20 +441,6 @@ internal class RadixTreeNode<T>
         return null;
     }
 
-    public void SearchPrefixValues(ReadOnlySpan<byte> key, ArrayPoolList<T?> collector)
-    {
-        var matchingNode = FindPrefixMatch(key);
-        if (matchingNode is null) return;
-        matchingNode.CollectValues(collector);
-    }
-
-    public void SearchPrefix(ReadOnlySpan<byte> key, ArrayPoolList<KeyValue<T?>> collector)
-    {
-        var matchingNode = FindPrefixMatch(key);
-        if (matchingNode is null) return;
-        matchingNode.CollectKeyValues(collector);
-    }
-
     public int GetValuesCount()
     {
         int runningCount = 0;
@@ -577,7 +455,6 @@ internal class RadixTreeNode<T>
         {
             childrenBuffer[i].GetValuesCountInternal(ref runningCount);
         }
-
     }
 
     public override string ToString()

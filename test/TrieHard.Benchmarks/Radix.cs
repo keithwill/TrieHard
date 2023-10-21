@@ -1,10 +1,5 @@
 ﻿using BenchmarkDotNet.Attributes;
 using System;
-using System.Buffers;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using TrieHard.Collections;
 
 namespace TrieHard.Benchmarks
@@ -12,41 +7,61 @@ namespace TrieHard.Benchmarks
     public class Radix : LookupBenchmark<RadixTree<string>>
     {
 
-        private byte[] testPrefixKeyUtf8 = Encoding.UTF8.GetBytes(testPrefixKey);
-
         public override void Setup()
         {
-            base.Setup();
+            lookup = (RadixTree<string>)RadixTree<string>.Create(TestData.Sequential);
         }
 
         [Benchmark]
-        public string Search_Utf8()
+        public void SearchKVP_Utf8()
         {
-            string result = null;
-            foreach (var kvp in lookup.Search(testPrefixKeyUtf8.AsSpan()))
+            var searchResult = lookup.Search(TestData.PrefixBytes.Span);
+            foreach (var kvp in searchResult)
             {
-                result = kvp.Value;
+                if (kvp.Value is null) throw new Exception();
             }
-            return result;
+        }
+
+        [Benchmark]
+        public override string SearchKVP()
+        {
+            string value = null;
+            foreach (var kvp in lookup.Search(TestData.Prefix))
+            {
+                value = kvp.Value;
+            }
+            return value;
+        }
+
+        [Benchmark]
+        public override string Get()
+        {
+            return lookup[TestData.Key];
         }
 
         [Benchmark]
         public string Get_Utf8()
         {
-            return lookup.Get(testPrefixKeyUtf8.AsSpan());
+            return lookup.Get(TestData.KeyBytes.Span);
         }
 
         [Benchmark]
         public void Set_Utf8()
         {
-            lookup.Set(testPrefixKeyUtf8.AsSpan(), testKey);
+            lookup.Set(TestData.KeyBytes.Span, TestData.Key);
+        }
+
+        [Benchmark]
+        public override void Set()
+        {
+            lookup[TestData.Key] = TestData.Key;
         }
 
         [Benchmark]
         public string SearchValues_Utf8()
         {
             string result = null;
-            foreach (var value in lookup.SearchValues(testPrefixKeyUtf8.AsSpan()))
+            foreach (var value in lookup.SearchValues(TestData.PrefixBytes.Span))
             {
                 result = value;
             }
@@ -57,23 +72,14 @@ namespace TrieHard.Benchmarks
         public override string SearchValues()
         {
             string result = null;
-            foreach (var value in lookup.SearchValues(testPrefixKey))
+            foreach (var value in lookup.SearchValues(TestData.Prefix))
             {
                 result = value;
             }
             return result;
         }
 
-        [Benchmark]
-        public override string SearchKVP()
-        {
-            string value = null;
-            foreach (var kvp in lookup.Search(testPrefixKey))
-            {
-                value = kvp.Value;
-            }
-            return value;
-        }
+
 
     }
 }
