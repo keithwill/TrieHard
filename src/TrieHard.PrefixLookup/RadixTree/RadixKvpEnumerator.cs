@@ -10,7 +10,7 @@ namespace TrieHard.Collections
     {
 
         private RadixTreeNode<T>? searchNode;
-        private Stack<(ReadOnlyMemory<RadixTreeNode<T>> Siblings, int Index)>? stack;
+        private Stack<(RadixTreeNode<T>[] Siblings, int Index)>? stack;
         private KeyValue<T?> current;
         public KeyValue<T?> Current => current;
 
@@ -23,18 +23,18 @@ namespace TrieHard.Collections
             this.searchNode = collectNode;
         }
 
-        private static readonly ConcurrentQueue<Stack<(ReadOnlyMemory<RadixTreeNode<T>> Siblings, int Index)>> stackPool = new();
+        private static readonly ConcurrentQueue<Stack<(RadixTreeNode<T>[] Siblings, int Index)>> stackPool = new();
 
-        private Stack<(ReadOnlyMemory<RadixTreeNode<T>> Siblings, int Index)> RentStack()
+        private Stack<(RadixTreeNode<T>[] Siblings, int Index)> RentStack()
         {
             if (stackPool.TryDequeue(out var stack))
             {
                 return stack;
             }
-            return new Stack<(ReadOnlyMemory<RadixTreeNode<T>> Siblings, int Index)>();
+            return new Stack<(RadixTreeNode<T>[] Siblings, int Index)>();
         }
 
-        private void ReturnStack(Stack<(ReadOnlyMemory<RadixTreeNode<T>> Siblings, int Index)> stack)
+        private void ReturnStack(Stack<(RadixTreeNode<T>[] Siblings, int Index)> stack)
         {
             stack.Clear();
             stackPool.Enqueue(stack);
@@ -47,9 +47,9 @@ namespace TrieHard.Collections
             if (stack == null)
             {
                 stack = RentStack();
-                if (searchNode!.Payload.Value is not null)
+                if (searchNode!.Value is not null)
                 {
-                    current = searchNode.Payload;
+                    current = searchNode.AsKeyValue();
                     return true;
                 }
             }
@@ -59,13 +59,13 @@ namespace TrieHard.Collections
             {
 
                 // DFS: Go until we find a value or bottom out on a leaf node
-                while (searchNode!.ChildCount > 0)
+                while (searchNode!.childrenBuffer.Length > 0)
                 {
-                    stack.Push( (searchNode.childrenBuffer.AsMemory(0, searchNode.ChildCount), 0) );
+                    stack.Push( (searchNode.childrenBuffer, 0) );
                     searchNode = searchNode.childrenBuffer[0];
-                    if (searchNode.Payload.Value is not null)
+                    if (searchNode.Value is not null)
                     {
-                        current = searchNode.Payload;
+                        current = searchNode.AsKeyValue();
                         return true;
                     }
                 }
@@ -85,7 +85,7 @@ namespace TrieHard.Collections
                     }
 
                     var parentStack = stack.Pop();
-                    var siblings = parentStack.Siblings.Span;
+                    var siblings = parentStack.Siblings;
                     var nextSiblingIndex = parentStack.Index + 1;
 
                     if (nextSiblingIndex < siblings.Length)
@@ -93,9 +93,9 @@ namespace TrieHard.Collections
                         stack.Push((parentStack.Siblings, nextSiblingIndex));
                         searchNode = siblings[nextSiblingIndex];
 
-                        if (searchNode.Payload.Value is not null)
+                        if (searchNode.Value is not null)
                         {
-                            current = searchNode.Payload;
+                            current = searchNode.AsKeyValue();
                             return true;
                         }
                         break;

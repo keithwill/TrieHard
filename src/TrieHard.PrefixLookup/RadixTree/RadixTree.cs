@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Runtime.CompilerServices;
 using System.Text.Unicode;
 
 namespace TrieHard.Collections;
@@ -64,7 +65,19 @@ public class RadixTree<T> : IPrefixLookup<T>
         }
     }
 
+    public T? this[ReadOnlySpan<byte> key]
+    {
+        get
+        {
+            return Get(key);
+        }
+        set
+        {
+            Set(key, value);
+        }
+    }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Span<byte> GetKeyStringBytes(string key, Span<byte> buffer)
     {
         Utf8.FromUtf16(key, buffer, out var _, out var bytesWritten, false, true);

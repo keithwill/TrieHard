@@ -10,6 +10,13 @@
             this.keyUtf8 = System.Text.Encoding.UTF8.GetBytes(key).AsMemory();
         }
 
+        public KeyValue(string key, ReadOnlyMemory<byte> keyUtf8, T? value)
+        {
+            this.key = key;
+            this.value = value;
+            this.keyUtf8 = keyUtf8;
+        }
+
         public KeyValue(ReadOnlyMemory<byte> keyUtf8, T? value)
         {
             this.keyUtf8 = keyUtf8;
