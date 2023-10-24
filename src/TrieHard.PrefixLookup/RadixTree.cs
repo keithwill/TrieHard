@@ -1,8 +1,9 @@
 ﻿using System.Collections;
 using System.Runtime.CompilerServices;
 using System.Text.Unicode;
+using TrieHard.Collections;
 
-namespace TrieHard.Collections;
+namespace TrieHard.PrefixLookup;
 
 /// <summary>
 /// This is an implementation of a RadixTree. It uses key segments of strings
@@ -98,7 +99,7 @@ public class RadixTree<T> : IPrefixLookup<T>
 
     public void Clear()
     {
-        this.root.Reset();
+        root.Reset();
     }
 
     public IEnumerator<KeyValue<T?>> GetEnumerator()
@@ -154,16 +155,16 @@ public class RadixTree<T> : IPrefixLookup<T>
 
     IEnumerator<KeyValue<T?>> IEnumerable<KeyValue<T?>>.GetEnumerator()
     {
-        return this.Search(string.Empty).GetEnumerator();
+        return Search(string.Empty).GetEnumerator();
     }
 
     IEnumerable<KeyValue<T?>> IPrefixLookup<T>.Search(string keyPrefix)
     {
-        return this.Search(keyPrefix);
+        return Search(keyPrefix);
     }
 
     IEnumerable<T?> IPrefixLookup<T>.SearchValues(string keyPrefix)
     {
-        return this.SearchValues(keyPrefix);
+        return SearchValues(keyPrefix);
     }
 }

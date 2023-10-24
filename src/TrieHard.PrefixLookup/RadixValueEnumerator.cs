@@ -3,24 +3,24 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 
-namespace TrieHard.Collections
+namespace TrieHard.PrefixLookup
 {
 
-    public struct RadixKvpEnumerator<T> : IEnumerable<KeyValue<T?>>, IEnumerator<KeyValue<T?>>
+    public struct RadixValueEnumerator<T> : IEnumerable<T>, IEnumerator<T>
     {
 
         private RadixTreeNode<T>? searchNode;
         private Stack<(RadixTreeNode<T>[] Siblings, int Index)>? stack;
-        private KeyValue<T?> current;
-        public KeyValue<T?> Current => current;
+        private T current = default!;
+        public T Current => current;
 
-        object IEnumerator.Current => Current;
+        object IEnumerator.Current => Current!;
 
-        public RadixKvpEnumerator<T> GetEnumerator() => this;
+        public RadixValueEnumerator<T> GetEnumerator() => this;
 
-        internal RadixKvpEnumerator(RadixTreeNode<T>? collectNode)
+        internal RadixValueEnumerator(RadixTreeNode<T>? collectNode)
         {
-            this.searchNode = collectNode;
+            searchNode = collectNode;
         }
 
         private static readonly ConcurrentQueue<Stack<(RadixTreeNode<T>[] Siblings, int Index)>> stackPool = new();
@@ -49,7 +49,7 @@ namespace TrieHard.Collections
                 stack = RentStack();
                 if (searchNode!.Value is not null)
                 {
-                    current = searchNode.AsKeyValue();
+                    current = searchNode.Value;
                     return true;
                 }
             }
@@ -61,11 +61,11 @@ namespace TrieHard.Collections
                 // DFS: Go until we find a value or bottom out on a leaf node
                 while (searchNode!.childrenBuffer.Length > 0)
                 {
-                    stack.Push( (searchNode.childrenBuffer, 0) );
+                    stack.Push((searchNode.childrenBuffer, 0));
                     searchNode = searchNode.childrenBuffer[0];
                     if (searchNode.Value is not null)
                     {
-                        current = searchNode.AsKeyValue();
+                        current = searchNode.Value;
                         return true;
                     }
                 }
@@ -95,7 +95,7 @@ namespace TrieHard.Collections
 
                         if (searchNode.Value is not null)
                         {
-                            current = searchNode.AsKeyValue();
+                            current = searchNode.Value;
                             return true;
                         }
                         break;
@@ -105,7 +105,7 @@ namespace TrieHard.Collections
         }
 
 
-        IEnumerator<KeyValue<T?>> IEnumerable<KeyValue<T?>>.GetEnumerator()
+        IEnumerator<T> IEnumerable<T>.GetEnumerator()
         {
             return this;
         }

@@ -1,9 +1,8 @@
 using System.Runtime.CompilerServices;
 using System.Text;
-using TrieHard.PrefixLookup;
-using TrieHard.PrefixLookup.RadixTree;
+using TrieHard.Collections;
 
-namespace TrieHard.Collections;
+namespace TrieHard.PrefixLookup;
 
 /// <summary>
 /// A typed Radix Tree Node containing a payload value of type <typeparamref name="T"/>.
@@ -126,7 +125,7 @@ internal class RadixTreeNode<T>
                 int hi = childCount - 1;
                 while (lo <= hi)
                 {
-                    int i = lo + ((hi - lo) >> 1);
+                    int i = lo + (hi - lo >> 1);
                     int c = buffer[i].FirstKeyByte - searchKeyByte;
                     if (c == 0) return i;
                     if (c < 0)
@@ -359,7 +358,7 @@ internal class RadixTreeNode<T>
         splitParent.KeySegment = childKeySegment.Slice(0, atKeyLength);
         splitParent.FirstKeyByte = childKeySegment.Span[0];
         var childKey = child.KeyBytes;
-        splitParent.KeyBytes = childKey.Slice(0, (childKey.Length - childKeySegment.Length) + atKeyLength);
+        splitParent.KeyBytes = childKey.Slice(0, childKey.Length - childKeySegment.Length + atKeyLength);
         splitParent.Key = Encoding.UTF8.GetString(splitParent.KeyBytes.Span);
 
         child = splitParent;
@@ -424,7 +423,7 @@ internal class RadixTreeNode<T>
     private void GetValuesCountInternal(ref int runningCount)
     {
         if (Value is not null) runningCount++;
-        foreach(var child in childrenBuffer)
+        foreach (var child in childrenBuffer)
         {
             child.GetValuesCountInternal(ref runningCount);
         }
@@ -437,10 +436,10 @@ internal class RadixTreeNode<T>
 
     internal void Reset()
     {
-        this.KeyBytes = default;
-        this.Value = default;
-        this.childrenBuffer = EmptyNodes;
-        this.KeySegment = EmptyBytes;
+        KeyBytes = default;
+        Value = default;
+        childrenBuffer = EmptyNodes;
+        KeySegment = EmptyBytes;
     }
 
 

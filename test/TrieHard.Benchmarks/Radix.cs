@@ -1,6 +1,6 @@
 ﻿using BenchmarkDotNet.Attributes;
 using System;
-using TrieHard.Collections;
+using TrieHard.PrefixLookup;
 
 namespace TrieHard.Benchmarks
 {

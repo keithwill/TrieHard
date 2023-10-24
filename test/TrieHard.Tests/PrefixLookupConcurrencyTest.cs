@@ -1,6 +1,7 @@
 ﻿using System.Threading;
 using TrieHard.Alternatives.List;
 using TrieHard.Collections;
+using TrieHard.PrefixLookup;
 
 namespace TrieHard.Tests
 {
