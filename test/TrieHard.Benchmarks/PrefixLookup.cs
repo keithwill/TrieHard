@@ -4,12 +4,12 @@ using TrieHard.PrefixLookup;
 
 namespace TrieHard.Benchmarks
 {
-    public class Radix : LookupBenchmark<RadixTree<string>>
+    public class PrefixLookup : LookupBenchmark<PrefixLookup<string>>
     {
 
         public override void Setup()
         {
-            lookup = (RadixTree<string>)RadixTree<string>.Create(TestData.Sequential);
+            lookup = (PrefixLookup<string>)PrefixLookup<string>.Create(TestData.Sequential);
         }
 
         [Benchmark]

@@ -87,26 +87,24 @@ can be enumerated for key value pairs like a Dictionary, but also exposes
 Search and SearchValues methods which take a key prefix and return enumerables
 of KeyValuePairs or the generic value results respectively.
 
-### [SimpleTrie](https://github.com/keithwill/TrieHard/tree/main/src/TrieHard.Alternatives/SimpleTrie)
+### [PrefixLookup](https://github.com/keithwill/TrieHard/tree/main/src/TrieHard.PrefixLookup)
 
-This was implemented as a reference C# trie based on various articles that suggest
-using Dictionaries at each node to store keys and children. A number of NuGet packages
-can be found that implement a similar approach.
+This is a lookup implemented as a Radix Tree. When keys
+are longer and highly unique, then this approach can perform well compared to normal tries.
+Keys are stored in the tree internally as UTF8 to simplify searching operations.
 
-### [RadixTree](https://github.com/keithwill/TrieHard/tree/main/src/TrieHard.PrefixLookup/RadixTree)
-
-This is similar to a trie, but key values that don't branch can be combined. When keys
-are longer and highly unique, then this approach can perform well. This particular
-implementation was tuned to store UTF8 key data and has some additional optimizations meant
-to address sequential keys.
-
-
-### [Unsafe Trie](https://github.com/keithwill/TrieHard/tree/main/src/TrieHard.PrefixLookup/UnsafeTrie)
+### [Unsafe Trie](https://github.com/keithwill/TrieHard/tree/main/src/TrieHard.PrefixLookup/Unsafe)
 
 This trie uses unmanaged memory as storage for node structs and utilizes spans and
 other techniques to reduce allocations and GC pressure during operation. It offers a
 few specialized APIs beyond the IPrefixLookup methods, such as a non allocating search
 operation that gives access to keys as UTF8 spans.
+
+### [SimpleTrie](https://github.com/keithwill/TrieHard/tree/main/src/TrieHard.Alternatives/SimpleTrie)
+
+This was implemented as a reference C# trie based on various articles that suggest
+using Dictionaries at each node to store keys and children. A number of NuGet packages
+can be found that implement a similar approach.
 
 ### ListPrefixLookup (NaiveList)
 
@@ -133,11 +131,8 @@ made to support updates.
 
 ### Nuget Package [PrefixLookup](https://camo.githubusercontent.com/887adb22225c0f98b23fecc0aca4b12ae232332941c37fc0615ab57d4dc03ade/68747470733a2f2f696d672e736869656c64732e696f2f6e756765742f762f5072656669784c6f6f6b7570)
 
-Also included is a project for building a NuGet package. Currently the PrefixLookup
-class utilizes a wrapper around the RadixTree implementation. The library also contains
-the other usable collections being developed as part of this project, you don't have to use
-the wrapper class. This package should be considered experimental at this time and plans
-are to target the most recent LTS of .NET
+The PrefixLookup.csproj includes output for a NugetPackage that includes the PrefixLookup
+class and the UnsafeTrie.
 
 ## Benchmarks
 
@@ -149,26 +144,26 @@ there are a few other files specific to tries that have additional functionality
 `dotnet run -c Release --filter *Create*`
 
 ```console
-| Type      | Method | Mean     | Error   | StdDev  | Gen0   | Gen1   | Allocated |
-|---------- |------- |---------:|--------:|--------:|-------:|-------:|----------:|
-| Simple    | Create | 154.7 us | 1.64 us | 1.53 us | 3.4180 | 1.2207 | 569.18 KB |
-| Radix     | Create | 201.9 us | 0.65 us | 0.61 us | 2.1973 | 0.4883 | 348.01 KB |
-| Unsafe    | Create | 224.9 us | 0.63 us | 0.56 us | 0.4883 |      - |  80.87 KB |
-| NaiveList | Create | 378.5 us | 1.86 us | 1.65 us |      - |      - |   74.6 KB |
-| SQLite    | Create | 928.5 us | 3.91 us | 3.47 us | 1.9531 |      - | 397.38 KB |
+| Type         | Method | Mean     | Error   | StdDev  | Gen0   | Gen1   | Allocated |
+|------------- |------- |---------:|--------:|--------:|-------:|-------:|----------:|
+| Simple       | Create | 157.1 us | 2.23 us | 2.08 us | 3.4180 | 1.4648 | 569.18 KB |
+| PrefixLookup | Create | 196.4 us | 0.79 us | 0.74 us | 1.9531 | 0.2441 | 345.82 KB |
+| Unsafe       | Create | 239.3 us | 1.69 us | 1.50 us | 0.4883 |      - |  80.87 KB |
+| NaiveList    | Create | 376.1 us | 2.17 us | 1.92 us |      - |      - |   74.6 KB |
+| SQLite       | Create | 925.8 us | 2.63 us | 2.33 us | 1.9531 |      - | 397.38 KB |
 ```
 
 ### Getting a value by key
 `dotnet run -c Release --filter *Get*`
 
 ```console
-| Type      | Method   | Mean            | Error         | StdDev        | Gen0   | Allocated |
-|---------- |--------- |----------------:|--------------:|--------------:|-------:|----------:|
-| Radix     | Get      |        23.86 ns |      0.037 ns |      0.033 ns |      - |         - |
-| Unsafe    | Get      |        28.94 ns |      0.084 ns |      0.065 ns |      - |         - |
-| Simple    | Get      |        32.64 ns |      0.050 ns |      0.047 ns |      - |         - |
-| SQLite    | Get      |       847.87 ns |      5.698 ns |      5.330 ns | 0.0019 |     416 B |
-| NaiveList | Get      | 8,570,001.56 ns | 40,448.613 ns | 35,856.642 ns |      - |     164 B |
+| Type         | Method   | Mean            | Error         | StdDev        | Gen0   | Allocated |
+|------------- |--------- |----------------:|--------------:|--------------:|-------:|----------:|
+| PrefixLookup | Get      |        27.53 ns |      0.048 ns |      0.040 ns |      - |         - |
+| Unsafe       | Get      |        29.20 ns |      0.231 ns |      0.205 ns |      - |         - |
+| Simple       | Get      |        33.57 ns |      0.419 ns |      0.392 ns |      - |         - |
+| SQLite       | Get      |       834.28 ns |      6.481 ns |      6.062 ns | 0.0019 |     416 B |
+| NaiveList    | Get      | 8,848,481.38 ns | 15,358.406 ns | 11,990.834 ns |      - |     164 B |
 ```
 
 A plain list struggles a bit at one million records.
@@ -177,54 +172,56 @@ A plain list struggles a bit at one million records.
 `dotnet run -c Release --filter *Set*`
 
 ```console
-| Type      | Method   | Mean            | Error        | StdDev       | Allocated |
-|---------- |--------- |----------------:|-------------:|-------------:|----------:|
-| Unsafe    | Set      |        33.62 ns |     0.070 ns |     0.055 ns |         - |
-| Radix     | Set      |        39.27 ns |     0.073 ns |     0.068 ns |         - |
-| Simple    | Set      |        42.62 ns |     0.153 ns |     0.136 ns |         - |
-| NaiveList | Set      | 1,828,051.09 ns | 5,013.714 ns | 4,689.831 ns |      33 B |
+| Type         | Method   | Mean            | Error        | StdDev       | Allocated |
+|------------- |--------- |----------------:|-------------:|-------------:|----------:|
+| PrefixLookup | Set      |        33.24 ns |     0.113 ns |     0.100 ns |         - |
+| Unsafe       | Set      |        33.73 ns |     0.085 ns |     0.071 ns |         - |
+| Simple       | Set      |        39.57 ns |     0.076 ns |     0.071 ns |         - |
+| NaiveList    | Set      | 1,815,906.09 ns | 4,153.712 ns | 3,885.384 ns |      33 B |
 ```
 
 ### Searching Key Value Pairs by prefix (100 results enumerated)
 `dotnet run -c Release --filter *SearchKVP*`
 
 ```console
-| Type      | Method         | Mean            | Error         | StdDev        | Gen0   | Allocated |
-|---------- |--------------- |----------------:|--------------:|--------------:|-------:|----------:|
-| Radix     | SearchKVP      |        113.0 ns |       0.64 ns |       0.60 ns |      - |         - |
-| Unsafe    | SearchKVP      |        631.4 ns |       1.88 ns |       1.76 ns | 0.0048 |     784 B |
-| Simple    | SearchKVP      |      1,043.6 ns |       8.09 ns |       7.56 ns | 0.0153 |    2648 B |
-| NaiveList | SearchKVP      | 19,457,791.0 ns | 270,125.84 ns | 252,675.88 ns |      - |     231 B |
-| SQLite    | SearchKVP      | 33,484,737.3 ns | 289,299.95 ns | 270,611.36 ns |      - |    1353 B |
+| Type         | Method         | Mean            | Error         | StdDev        | Gen0   | Allocated |
+|------------- |--------------- |----------------:|--------------:|--------------:|-------:|----------:|
+| PrefixLookup | SearchKVP      |        112.5 ns |       0.13 ns |       0.11 ns |      - |         - |
+| Unsafe       | SearchKVP      |        645.5 ns |       1.85 ns |       1.73 ns | 0.0048 |     784 B |
+| Simple       | SearchKVP      |      1,058.3 ns |       7.18 ns |       6.72 ns | 0.0153 |    2648 B |
+| NaiveList    | SearchKVP      | 19,382,526.2 ns | 208,371.33 ns | 194,910.67 ns |      - |     231 B |
+| SQLite       | SearchKVP      | 33,652,122.3 ns | 401,508.08 ns | 355,926.46 ns |      - |    1350 B |
 ```
 
 ### Searching Values by prefix (100 results enumerated)
 `dotnet run -c Release --filter *SearchValues*`
 
 ```console
-| Type      | Method            | Mean             | Error          | StdDev         | Gen0   | Allocated |
-|---------- |------------------ |-----------------:|---------------:|---------------:|-------:|----------:|
-| Unsafe    | SearchValues      |         42.27 ns |       0.062 ns |       0.058 ns |      - |         - |
-| Radix     | SearchValues      |        102.02 ns |       0.298 ns |       0.264 ns |      - |         - |
-| Simple    | SearchValues      |      1,130.11 ns |       5.555 ns |       5.196 ns | 0.0153 |    2712 B |
-| NaiveList | SearchValues      | 19,755,966.49 ns | 379,241.845 ns | 405,784.525 ns |      - |     335 B |
-| SQLite    | SearchValues      | 33,289,459.58 ns | 381,098.453 ns | 356,479.729 ns |      - |     542 B |
+| Type         | Method            | Mean             | Error          | StdDev         | Gen0   | Allocated |
+|------------- |------------------ |-----------------:|---------------:|---------------:|-------:|----------:|
+| Unsafe       | SearchValues**    |         43.77 ns |       0.059 ns |       0.052 ns |      - |         - |
+| PrefixLookup | SearchValues      |        102.13 ns |       0.104 ns |       0.092 ns |      - |         - |
+| Simple       | SearchValues      |      1,169.26 ns |       8.131 ns |       7.208 ns | 0.0153 |    2712 B |
+| NaiveList    | SearchValues      | 19,610,249.38 ns | 239,773.289 ns | 224,284.083 ns |      - |     335 B |
+| SQLite       | SearchValues      | 33,229,859.05 ns | 187,359.459 ns | 166,089.280 ns |      - |     545 B |
 ```
+
+The Unsafe SearchValues result doesn't seem accurate.
 
 ### UTF8 Methods
 `dotnet run -c Release --filter *Utf8*`
 
 ```console
-| Type   | Method            | Mean      | Error    | StdDev   | Median    | Gen0   | Allocated |
-|------- |------------------ |----------:|---------:|---------:|----------:|-------:|----------:|
-| Radix  | Get_Utf8          |  16.21 ns | 0.042 ns | 0.039 ns |  16.22 ns |      - |         - |
-| Unsafe | Get_Utf8          |  22.97 ns | 0.504 ns | 0.655 ns |  22.55 ns |      - |         - |
-| Radix  | Set_Utf8          |  29.74 ns | 0.319 ns | 0.299 ns |  29.60 ns |      - |         - |
-| Unsafe | Set_Utf8          |  30.38 ns | 0.072 ns | 0.056 ns |  30.38 ns |      - |         - |
-| Radix  | SearchValues_Utf8 | 184.43 ns | 2.862 ns | 2.677 ns | 185.16 ns |      - |         - |
-| Radix  | SearchKVP_Utf8    | 199.63 ns | 0.335 ns | 0.313 ns | 199.55 ns |      - |         - |
-| Unsafe | SearchValues_Utf8 | 455.36 ns | 3.880 ns | 3.629 ns | 457.00 ns |      - |         - |
-| Unsafe | Search_Utf8       | 599.63 ns | 4.196 ns | 3.925 ns | 598.75 ns | 0.0048 |     784 B |
+| Type         | Method            | Mean      | Error    | StdDev   | Gen0   | Allocated |
+|------------- |------------------ |----------:|---------:|---------:|-------:|----------:|
+| PrefixLookup | Get_Utf8          |  20.72 ns | 0.045 ns | 0.042 ns |      - |         - |
+| Unsafe       | Get_Utf8          |  22.82 ns | 0.127 ns | 0.113 ns |      - |         - |
+| PrefixLookup | Set_Utf8          |  24.58 ns | 0.035 ns | 0.032 ns |      - |         - |
+| Unsafe       | Set_Utf8          |  28.49 ns | 0.033 ns | 0.028 ns |      - |         - |
+| PrefixLookup | SearchValues_Utf8 | 100.67 ns | 0.133 ns | 0.125 ns |      - |         - |
+| PrefixLookup | SearchKVP_Utf8    | 134.14 ns | 0.425 ns | 0.398 ns |      - |         - |
+| Unsafe       | SearchValues_Utf8 | 447.69 ns | 7.195 ns | 6.730 ns |      - |         - |
+| Unsafe       | Search_Utf8       | 572.67 ns | 3.516 ns | 3.289 ns | 0.0048 |     784 B |
 ```
 
 Several of these implementations store UTF8 data in the graph instead of strings or
@@ -235,21 +232,21 @@ of C# strings when getting or setting values.
 
 ### Memory Usage of 5 Million Keys
 ```console
-| Method    | Key Type   |  Managed MB |  Process MB | GC Pause |
-|-----------|------------|-------------|-------------|---------:|
-| Baseline  | sequential |      627.70 |      889.23 |   0.5330 |
-| NaiveList | sequential |      519.26 |     1217.40 |   0.4853 |
-| Sqlite    | sequential |       40.11 |     1063.65 |   0.4082 |
-| Radix     | sequential |      811.27 |     1751.98 |   2.1489 |
-| Unsafe    | sequential |       67.18 |      759.13 |   0.3753 |
-| Simple    | sequential |      864.07 |     1756.98 |   1.8613 |
-|-----------|------------|-------------|-------------|---------:|
-| Baseline  | paths      |     1019.69 |     1287.43 |   0.6472 |
-| NaiveList | paths      |      911.25 |     1617.13 |   0.5957 |
-| Sqlite    | paths      |       40.11 |     1712.70 |   0.4732 |
-| Radix     | paths      |     1293.07 |     2639.56 |   2.7658 |
-| Unsafe    | paths      |       67.17 |     3947.64 |   0.4828 |
-| Simple    | paths      |    20991.61 |    22611.11 |  22.5606 |
+| Method       | Key Type   |  Managed MB |  Process MB | GC Pause |
+|--------------|------------|-------------|-------------|---------:|
+| Baseline     | sequential |      627.70 |      889.11 |   0.5402 |
+| NaiveList    | sequential |      519.26 |     1217.32 |   0.4861 |
+| Sqlite       | sequential |       40.11 |     1063.33 |   0.4054 |
+| PrefixLookup | sequential |      811.27 |     1766.81 |   2.4133 |
+| Unsafe       | sequential |       67.18 |      759.01 |   0.3741 |
+| Simple       | sequential |      864.07 |     1756.80 |   1.8392 |
+|--------------|------------|-------------|-------------|---------:|
+| Baseline     | paths      |     1019.69 |     1287.34 |   0.6472 |
+| NaiveList    | paths      |      911.25 |     1617.11 |   0.5960 |
+| Sqlite       | paths      |       40.11 |     1712.70 |   0.4700 |
+| PrefixLookup | paths      |     1275.25 |     2623.66 |   3.0919 |
+| Unsafe       | paths      |       67.17 |     3947.65 |   0.4849 |
+| Simple       | paths      |    20991.61 |    22617.46 |  21.9587 |
 ```
 
 The 'paths' keys look like URL subpaths and follow a format of
@@ -264,6 +261,3 @@ bloated with even moderate length keys (and that SQLite has a very
 compact in-memory format). For sequential integer keys, the unsafe
 trie takes less memory than putting the keys into a List (a side
 effect of storing the keys as UTF8).
-
-Only the Radix Tree maintains decent size characteristics with
-longer keys and repeated patterns.

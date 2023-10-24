@@ -5,7 +5,7 @@ using TrieHard.PrefixLookup;
 
 namespace TrieHard.Tests
 {
-    public class RadixTreeConcurrencyTests : PrefixLookupConcurrencyTests<RadixTree<TestEntity>> { }
+    public class RadixTreeConcurrencyTests : PrefixLookupConcurrencyTests<PrefixLookup<TestEntity>> { }
 
     // These lookups fail during reads when a concurrent write occurs.
     //public class ListPrefixLookupConcurrencyTests : PrefixLookupConcurrencyTests<ListPrefixLookup<string>> { }

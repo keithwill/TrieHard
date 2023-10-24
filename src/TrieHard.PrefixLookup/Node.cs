@@ -8,18 +8,18 @@ namespace TrieHard.PrefixLookup;
 /// A typed Radix Tree Node containing a payload value of type <typeparamref name="T"/>.
 /// </summary>
 /// <typeparam name="T">The entity stored within this node</typeparam>
-internal class RadixTreeNode<T>
+internal class Node<T>
 {
     public string Key;
     private ReadOnlyMemory<byte> KeySegment = EmptyBytes;
     public ReadOnlyMemory<byte> KeyBytes = EmptyBytes;
 
-    public RadixTreeNode<T>[] childrenBuffer = EmptyNodes;
-    private Span<RadixTreeNode<T>> Children => childrenBuffer.AsSpan();
+    public Node<T>[] childrenBuffer = EmptyNodes;
+    private Span<Node<T>> Children => childrenBuffer.AsSpan();
     public T? Value;
     public byte FirstKeyByte;
 
-    public static readonly RadixTreeNode<T>[] EmptyNodes = Array.Empty<RadixTreeNode<T>>();
+    public static readonly Node<T>[] EmptyNodes = Array.Empty<Node<T>>();
     public static readonly byte[] EmptyBytes = [];
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -155,9 +155,9 @@ internal class RadixTreeNode<T>
     /// <param name="rootNode">A reference to the root node. Necessary for one fringe concurrency case</param>
     /// <param name="key">The full key to set the value on</param>
     /// <param name="value">The value to set on the matching node</param>
-    public void SetValue(ref RadixTreeNode<T> rootNode, ReadOnlySpan<byte> key, T? value)
+    public void SetValue(ref Node<T> rootNode, ReadOnlySpan<byte> key, T? value)
     {
-        ref RadixTreeNode<T> searchNode = ref rootNode;
+        ref Node<T> searchNode = ref rootNode;
         var searchKey = key;
         int keyOffset = 0;
         byte[]? keyBytes = null;
@@ -172,7 +172,7 @@ internal class RadixTreeNode<T>
 
             if (matchingIndex > -1)
             {
-                ref RadixTreeNode<T> matchingChild = ref searchNode.childrenBuffer[matchingIndex]!;
+                ref Node<T> matchingChild = ref searchNode.childrenBuffer[matchingIndex]!;
 
                 int matchingLength = 1;
                 int childKeySegmentLength = matchingChild.KeySegment.Length;
@@ -229,7 +229,7 @@ internal class RadixTreeNode<T>
                 // our new child).
                 int insertChildAtIndex = ~matchingIndex;
                 if (keyBytes is null) keyBytes = key.ToArray();
-                var newChild = new RadixTreeNode<T>();
+                var newChild = new Node<T>();
 
                 newChild.KeySegment = keyBytes.AsMemory(keyOffset, searchKey.Length);
                 newChild.FirstKeyByte = keyBytes[keyOffset];
@@ -243,9 +243,9 @@ internal class RadixTreeNode<T>
         }
     }
 
-    public RadixTreeNode<T> Clone(bool copyChildren)
+    public Node<T> Clone(bool copyChildren)
     {
-        var clone = new RadixTreeNode<T>();
+        var clone = new Node<T>();
         clone.Key = Key;
         clone.KeySegment = KeySegment;
         clone.FirstKeyByte = FirstKeyByte;
@@ -323,15 +323,15 @@ internal class RadixTreeNode<T>
         return sizes;
     }
 
-    public RadixTreeNode<T> CloneWithNewChild(RadixTreeNode<T> newChild, int atIndex)
+    public Node<T> CloneWithNewChild(Node<T> newChild, int atIndex)
     {
         var clone = Clone(false);
-        clone.childrenBuffer = new RadixTreeNode<T>[childrenBuffer.Length + 1];
+        clone.childrenBuffer = new Node<T>[childrenBuffer.Length + 1];
         Children.CopyWithInsert(clone.Children, newChild, atIndex);
         return clone;
     }
 
-    private static void SplitNode(ref RadixTreeNode<T> child, int atKeyLength)
+    private static void SplitNode(ref Node<T> child, int atKeyLength)
     {
         // We are taking a child node and splitting it at a specific number of
         // characters in its key segment
@@ -351,7 +351,7 @@ internal class RadixTreeNode<T>
         splitChild.KeySegment = splitChild.KeySegment.Slice(newOffset, newCount);
         splitChild.FirstKeyByte = splitChild.KeySegment.Span[0];
 
-        var splitParent = new RadixTreeNode<T>();
+        var splitParent = new Node<T>();
         splitParent.childrenBuffer = [splitChild];
 
         var childKeySegment = child.KeySegment;
@@ -390,7 +390,7 @@ internal class RadixTreeNode<T>
         return default;
     }
 
-    internal RadixTreeNode<T>? FindPrefixMatch(ReadOnlySpan<byte> key)
+    internal Node<T>? FindPrefixMatch(ReadOnlySpan<byte> key)
     {
         var node = this;
         var childIndex = node.FindChildByFirstByte(key[0]);

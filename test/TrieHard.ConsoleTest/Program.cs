@@ -10,7 +10,7 @@ using TrieHard.PrefixLookup;
 Dictionary<string, Func<IEnumerable<KeyValue<string?>>, IPrefixLookup<string?>>?> implementations = new(StringComparer.OrdinalIgnoreCase)
 {
     { "Baseline", (kvps) => null! },
-    { "Radix", (kvps) => RadixTree<string>.Create(kvps) },
+    { "PrefixLookup", (kvps) => PrefixLookup<string>.Create(kvps) },
     { "Simple", (kvps) => SimpleTrie<string>.Create(kvps) },
     { "Unsafe", (kvps) => UnsafeTrie<string>.Create(kvps) },
     { "NaiveList", (kvps) => ListPrefixLookup<string>.Create(kvps) },
@@ -95,7 +95,10 @@ var processMemoryText = processMemory.ToString("#######0.00").PadLeft(11);
 
 Console.WriteLine($"| {implementationText} | {keyTypeText} | {managedAllocText} | {processMemoryText} | {gcPauseText} |");
 
-// GC will collect the trie if it isn't used after the collection in this method
+// In some cases when testing locally there were odd results in memory usage if the
+// created lookup was not accessed after creation. I suspect the JIT realized the results were
+// not being used and was releasing the lookup early
+
 if (trie is not null)
 {
      foreach(var value in trie.Search("asdf"))

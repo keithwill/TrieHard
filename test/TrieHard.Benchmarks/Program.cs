@@ -20,7 +20,7 @@ namespace TrieHard.Benchmarks
             {
                 typeof(Unsafe),
                 typeof(Simple),
-                typeof(Radix),
+                typeof(PrefixLookup),
                 typeof(NaiveList),
                 typeof(SQLite),
             }, args: args, config: benchmarkConfig);
