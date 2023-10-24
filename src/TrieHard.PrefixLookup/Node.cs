@@ -10,7 +10,7 @@ namespace TrieHard.PrefixLookup;
 /// <typeparam name="T">The entity stored within this node</typeparam>
 internal class Node<T>
 {
-    public string Key;
+    public string? Key;
     private ReadOnlyMemory<byte> KeySegment = EmptyBytes;
     public ReadOnlyMemory<byte> KeyBytes = EmptyBytes;
 
@@ -145,7 +145,7 @@ internal class Node<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public KeyValue<T?> AsKeyValue()
     {
-        return new KeyValue<T?>(Key, KeyBytes, Value);
+        return new KeyValue<T?>(Key!, KeyBytes, Value);
     }
 
     /// <summary>
@@ -431,7 +431,7 @@ internal class Node<T>
 
     public override string ToString()
     {
-        return Key;
+        return Key!;
     }
 
     internal void Reset()

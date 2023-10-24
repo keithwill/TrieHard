@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <PackageId>PrefixLookup</PackageId>
     <Title>PrefixLookup</Title>
-    <Version>0.1.7</Version>
+    <Version>0.1.8</Version>
     <Authors>keithwill</Authors>
     <Description>
       A library containing optimized collections for doing prefix searches, useful for implementating 
