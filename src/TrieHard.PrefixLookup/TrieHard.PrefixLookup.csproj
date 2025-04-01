@@ -19,6 +19,8 @@
     <RepositoryType>github</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
