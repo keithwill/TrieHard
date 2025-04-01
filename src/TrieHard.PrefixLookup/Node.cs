@@ -73,7 +73,7 @@ internal class Node<T>
                     {
                         int cmp9 = buffer[9].FirstKeyByte - searchKeyByte;
                         if (cmp9 == 0) return 9;
-                        if (cmp9 < 0) return ~9;
+                        if (cmp9 < 0) return ~10; // No value greater than search value, return bitwise complement of the last index, plus one
                         return ~8;
                     }
 

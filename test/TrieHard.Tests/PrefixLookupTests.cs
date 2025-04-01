@@ -1,4 +1,5 @@
 using NUnit.Framework.Internal;
+using System.Text;
 using TrieHard.Alternatives.List;
 using TrieHard.Alternatives.SQLite;
 using TrieHard.Collections;
@@ -195,5 +196,48 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<TestRecord?>
 public class SimpleTrieTests : PrefixLookupTests<SimpleTrie<TestRecord?>> { }
 public class SqliteLookupTests : PrefixLookupTests<SQLiteLookup<TestRecord?>> { }
 public class ListPrefixLookupTests : PrefixLookupTests<ListPrefixLookup<TestRecord?>> { }
-public class PrefixLookupTests : PrefixLookupTests<PrefixLookup<TestRecord?>> { }
+public class PrefixLookupTests : PrefixLookupTests<PrefixLookup<TestRecord?>> 
+{
+
+    [Test]
+    public void CanRoundTripAlphaNumericKeys()
+    {
+        Assume.That(Add, Throws.Nothing);
+        var lookup = PrefixLookup<TestRecord?>.Create<TestRecord>();
+        foreach (var key in AlphaNumericKeys)
+        {
+            lookup[key] = TestRecord;
+        }
+        var expectedKeys = AlphaNumericKeys;
+        var actualKeys = lookup.Search(string.Empty).Select(x => x.Key).ToArray();
+
+        CollectionAssert.AreEqual(expectedKeys, actualKeys);
+    }
+
+    private static string[] AlphaNumericKeys = CreateAlphaNumericKeys();
+    private static string[] CreateAlphaNumericKeys()
+    {
+        var keys = new List<string>();
+        byte[] keyBytes = new byte[] { 0 };
+        char[] keyChars = new char[] { ' ' };
+
+        for (int i = byte.MinValue; i <= byte.MaxValue; i++)
+        {
+            keyBytes[0] = (byte)i;
+            if (Encoding.ASCII.TryGetChars(keyBytes, keyChars, out var charCount))
+            {
+                if (charCount == 1)
+                {
+                    var keyCharacter = keyChars[0];
+                    if (char.IsLetter(keyCharacter) || char.IsDigit(keyCharacter))
+                    {
+                        keys.Add(keyCharacter.ToString());
+                    }
+                }
+            }
+        }
+        return keys.OrderBy(x => (int)x[0]).ToArray();
+    }
+
+}
 public class UnsafeTrieTests : PrefixLookupTests<UnsafeTrie<TestRecord?>> { }
