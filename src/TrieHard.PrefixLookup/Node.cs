@@ -38,9 +38,6 @@ internal class Node<T>
                 int cmp = buffer[0].FirstKeyByte - searchKeyByte;
                 if (cmp == 0) return 0;
                 return cmp > 0 ? ~0 : ~1;
-            //if (buffer[0].FirstKeyByte == searchKeyByte) return 0;
-            //if (buffer[0].FirstKeyByte > searchKeyByte) return ~0;
-            //return ~1;
             case 2:
                 if (buffer[1].FirstKeyByte == searchKeyByte) return 1;
                 if (buffer[0].FirstKeyByte == searchKeyByte) return 0;
@@ -57,6 +54,127 @@ internal class Node<T>
                 if (buffer[1].FirstKeyByte > searchKeyByte) return ~1;
                 if (buffer[2].FirstKeyByte > searchKeyByte) return ~2;
                 return ~3;
+            case 4:
+                if (buffer[3].FirstKeyByte == searchKeyByte) return 3;
+                if (buffer[2].FirstKeyByte == searchKeyByte) return 2;
+                if (buffer[1].FirstKeyByte == searchKeyByte) return 1;
+                if (buffer[0].FirstKeyByte == searchKeyByte) return 0;
+
+                if (buffer[0].FirstKeyByte > searchKeyByte) return ~0;
+                if (buffer[1].FirstKeyByte > searchKeyByte) return ~1;
+                if (buffer[2].FirstKeyByte > searchKeyByte) return ~2;
+                if (buffer[3].FirstKeyByte > searchKeyByte) return ~3;
+                return ~4;
+            case 5:
+                if (buffer[4].FirstKeyByte == searchKeyByte) return 4;
+                if (buffer[3].FirstKeyByte == searchKeyByte) return 3;
+                if (buffer[2].FirstKeyByte == searchKeyByte) return 2;
+                if (buffer[1].FirstKeyByte == searchKeyByte) return 1;
+                if (buffer[0].FirstKeyByte == searchKeyByte) return 0;
+
+                if (buffer[0].FirstKeyByte > searchKeyByte) return ~0;
+                if (buffer[1].FirstKeyByte > searchKeyByte) return ~1;
+                if (buffer[2].FirstKeyByte > searchKeyByte) return ~2;
+                if (buffer[3].FirstKeyByte > searchKeyByte) return ~3;
+                if (buffer[4].FirstKeyByte > searchKeyByte) return ~4;
+                return ~5;
+
+            case 6:
+                int cmp6_2 = buffer[2].FirstKeyByte - searchKeyByte;
+                if (cmp6_2 == 0) return 2;
+                if (cmp6_2 < 0)
+                {
+                    if (buffer[5].FirstKeyByte == searchKeyByte) return 5;
+                    if (buffer[4].FirstKeyByte == searchKeyByte) return 4;
+                    if (buffer[3].FirstKeyByte == searchKeyByte) return 3;
+                    if (buffer[3].FirstKeyByte > searchKeyByte) return ~3;
+                    if (buffer[4].FirstKeyByte > searchKeyByte) return ~4;
+                    if (buffer[5].FirstKeyByte > searchKeyByte) return ~5;
+                    return ~6;
+                }
+
+                if (buffer[1].FirstKeyByte == searchKeyByte) return 1;
+                if (buffer[0].FirstKeyByte == searchKeyByte) return 0;
+
+                if (buffer[0].FirstKeyByte > searchKeyByte) return ~0;
+                if (buffer[1].FirstKeyByte > searchKeyByte) return ~1;
+                return ~2;
+
+            case 7:
+                int cmp7_3 = buffer[3].FirstKeyByte - searchKeyByte;
+                if (cmp7_3 == 0) return 3;
+                if (cmp7_3 < 0)
+                {
+                    if (buffer[6].FirstKeyByte == searchKeyByte) return 6;
+                    if (buffer[5].FirstKeyByte == searchKeyByte) return 5;
+                    if (buffer[4].FirstKeyByte == searchKeyByte) return 4;
+                    if (buffer[4].FirstKeyByte > searchKeyByte) return ~4;
+                    if (buffer[5].FirstKeyByte > searchKeyByte) return ~5;
+                    if (buffer[6].FirstKeyByte > searchKeyByte) return ~6;
+                    return ~7;
+                }
+
+                if (buffer[2].FirstKeyByte == searchKeyByte) return 2;
+                if (buffer[1].FirstKeyByte == searchKeyByte) return 1;
+                if (buffer[0].FirstKeyByte == searchKeyByte) return 0;
+
+                if (buffer[0].FirstKeyByte > searchKeyByte) return ~0;
+                if (buffer[1].FirstKeyByte > searchKeyByte) return ~1;
+                if (buffer[2].FirstKeyByte > searchKeyByte) return ~2;
+                return ~3;
+            case 8:
+                int cmp8_4 = buffer[4].FirstKeyByte - searchKeyByte;
+                if (cmp8_4 == 0) return 4;
+                if (cmp8_4 < 0)
+                {
+                    if (buffer[7].FirstKeyByte == searchKeyByte) return 7;
+                    if (buffer[6].FirstKeyByte == searchKeyByte) return 6;
+                    if (buffer[5].FirstKeyByte == searchKeyByte) return 5;
+
+                    if (buffer[5].FirstKeyByte > searchKeyByte) return ~5;
+                    if (buffer[6].FirstKeyByte > searchKeyByte) return ~6;
+                    if (buffer[7].FirstKeyByte > searchKeyByte) return ~7;
+                    return ~8;
+                }
+
+                if (buffer[3].FirstKeyByte == searchKeyByte) return 3;
+                if (buffer[2].FirstKeyByte == searchKeyByte) return 2;
+                if (buffer[1].FirstKeyByte == searchKeyByte) return 1;
+                if (buffer[0].FirstKeyByte == searchKeyByte) return 0;
+
+                if (buffer[0].FirstKeyByte > searchKeyByte) return ~0;
+                if (buffer[1].FirstKeyByte > searchKeyByte) return ~1;
+                if (buffer[2].FirstKeyByte > searchKeyByte) return ~2;
+                if (buffer[3].FirstKeyByte > searchKeyByte) return ~3;
+                return ~4;
+            case 9:
+                int cmp9_4 = buffer[4].FirstKeyByte - searchKeyByte;
+                if (cmp9_4 == 0) return 4;
+                if (cmp9_4 < 0)
+                {
+                    if (buffer[8].FirstKeyByte == searchKeyByte) return 8;
+                    if (buffer[7].FirstKeyByte == searchKeyByte) return 7;
+                    if (buffer[6].FirstKeyByte == searchKeyByte) return 6;
+                    if (buffer[5].FirstKeyByte == searchKeyByte) return 5;
+
+                    if (buffer[5].FirstKeyByte > searchKeyByte) return ~5;
+                    if (buffer[6].FirstKeyByte > searchKeyByte) return ~6;
+                    if (buffer[7].FirstKeyByte > searchKeyByte) return ~7;
+                    if (buffer[8].FirstKeyByte > searchKeyByte) return ~8;
+                    return ~9;
+                }
+
+                if (buffer[3].FirstKeyByte == searchKeyByte) return 3;
+                if (buffer[2].FirstKeyByte == searchKeyByte) return 2;
+                if (buffer[1].FirstKeyByte == searchKeyByte) return 1;
+                if (buffer[0].FirstKeyByte == searchKeyByte) return 0;
+
+                if (buffer[0].FirstKeyByte > searchKeyByte) return ~0;
+                if (buffer[1].FirstKeyByte > searchKeyByte) return ~1;
+                if (buffer[2].FirstKeyByte > searchKeyByte) return ~2;
+                if (buffer[3].FirstKeyByte > searchKeyByte) return ~3;
+                return ~4;
+
             case 10:
                 // Size 10 is very important. If this tree is used
                 // to store codes and ids, then its likely many
@@ -65,7 +183,7 @@ internal class Node<T>
                 // Unroll loop and manually binary search
                 int cmp5 = buffer[5].FirstKeyByte - searchKeyByte;
                 if (cmp5 == 0) return 5;
-                if (cmp5 < 0)
+                if (cmp5 < 0) // Its greater than index 5
                 {
                     int cmp8 = buffer[8].FirstKeyByte - searchKeyByte;
                     if (cmp8 == 0) return 8;
@@ -74,53 +192,75 @@ internal class Node<T>
                         int cmp9 = buffer[9].FirstKeyByte - searchKeyByte;
                         if (cmp9 == 0) return 9;
                         if (cmp9 < 0) return ~10; // No value greater than search value, return bitwise complement of the last index, plus one
-                        return ~8;
+                        return ~9;
                     }
+
+                    // Its greater than 5 but less than 8
 
                     int cmp6 = buffer[6].FirstKeyByte - searchKeyByte;
                     if (cmp6 == 0) return 6;
-                    if (cmp6 < 0)
+                    if (cmp6 < 0) // Its value is between index 6 and 8 exclusive
                     {
                         int cmp7 = buffer[7].FirstKeyByte - searchKeyByte;
                         if (cmp7 == 0) return 7;
-                        if (cmp7 < 0) return ~7;
-                        return ~6;
+                        if (cmp7 < 0) return ~8; // Its value is between index 7 and 8
+                        return ~7;
                     }
-                    return ~5;
+                    // Its greater than 5, but less than 6
+                    return ~6;
                 }
 
                 int cmp2 = buffer[2].FirstKeyByte - searchKeyByte;
                 if (cmp2 == 0) return 2;
-                if (cmp2 < 0)
+                if (cmp2 < 0) // Its between index 2 and 5 exclusive
                 {
                     int cmp3 = buffer[3].FirstKeyByte - searchKeyByte;
                     if (cmp3 == 0) return 3;
-                    if (cmp3 < 0)
+                    if (cmp3 < 0) // Its between index 3 and 5 exclusive
                     {
                         int cmp4 = buffer[4].FirstKeyByte - searchKeyByte;
                         if (cmp4 == 0) return 4;
-                        if (cmp4 < 0) return ~4;
-                        return ~3;
+                        if (cmp4 < 0) return ~5; // Its greater than 4, but less than 5
+                        return ~4;
                     }
-                    return ~2;
+                    // Its greater than two, but less than 3
+                    return ~3;
                 }
+
+                // Its less than index 2
                 int cmp0 = buffer[0].FirstKeyByte - searchKeyByte;
                 if (cmp0 == 0) return 0;
-                if (cmp0 < 0)
+                if (cmp0 < 0) //Its less than index 2, but greater than index 0
                 {
                     int cmp1 = buffer[1].FirstKeyByte - searchKeyByte;
                     if (cmp1 == 0) return 1;
-                    if (cmp1 < 0) return ~1;
-                    return ~0;
-                };
+                    if (cmp1 < 0) return ~2;
+                    return ~1;
+                }
 
-                return -1;
+                return ~0;
 
             case 256:
                 // If the node has every possible ordered value, no need to search
                 return searchKeyByte;
 
             default:
+                if (childCount < 32)
+                {
+                    for (int i = 0; i < childCount; i++)
+                    {
+                        if (buffer[i].FirstKeyByte >= searchKeyByte)
+                        {
+                            if (buffer[i].FirstKeyByte == searchKeyByte)
+                            {
+                                return i;
+                            }
+                            return ~i;
+                        }
+                    }
+                    return ~childCount;
+                }
+
                 int lo = 0;
                 int hi = childCount - 1;
                 while (lo <= hi)

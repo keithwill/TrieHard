@@ -1,4 +1,5 @@
 using NUnit.Framework.Internal;
+using System.Diagnostics;
 using System.Text;
 using TrieHard.Alternatives.List;
 using TrieHard.Alternatives.SQLite;
@@ -136,6 +137,69 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<TestRecord?>
             TestRecord? expectedResult = expected[resultIndex];
             TestRecord? actualResult = actualResults[resultIndex];
             Assert.That(expectedResult!.Key, Is.EqualTo(actualResult!.Key));
+        }
+    }
+
+
+    private string GetRandomKeyString(int minLength, int maxLength)
+    {
+        var length = Random.Shared.Next(minLength, maxLength + 1);
+        char[] characters = new char[length];
+        for (int i = 0; i < length; i++)
+        {
+            characters[i] = (char)Random.Shared.Next(32, 127);
+        }
+        return new string(characters);
+    }
+
+    [Test]
+    [Explicit]
+    public void SearchValues_RandomValues_ResultsAreCorrect()
+    {
+        Assume.That(CreateWithValues, Throws.Nothing);
+
+        const int iterations = 1000;
+        const int valuesPerIteration = 100;
+        
+
+        for(int iteration = 0; iteration < iterations; iteration++)
+        {
+            string[] keyValues = new string[valuesPerIteration];
+            
+            var lookup = (T)T.Create<TestRecord>();
+
+            var searchResults = lookup.SearchValues(string.Empty).ToArray();
+            var previousSearchResult = searchResults.ToArray();
+
+            for (int i = 0; i < valuesPerIteration; i++)
+            {
+                var newKey = GetRandomKeyString(1, 3);
+                var testRecord = new TestRecord(newKey);
+                if (keyValues.Contains(newKey))
+                {
+                    // Skip duplicates
+                    i--;
+                    continue;
+                }
+                keyValues[i] = newKey;
+                lookup[newKey] = testRecord;
+
+                previousSearchResult = searchResults.ToArray();                
+                searchResults = lookup.SearchValues(string.Empty).ToArray();
+                
+                var keyValuesSpan = keyValues.AsSpan(0, i + 1);
+                keyValuesSpan.Sort(StringComparer.Ordinal);
+
+                Assert.That(keyValuesSpan.Length, Is.EqualTo(searchResults.Length));
+
+                for(int keyIndex = 0; keyIndex < keyValuesSpan.Length; keyIndex++)
+                {
+                    var expected = keyValuesSpan[keyIndex];
+                    var actual = searchResults[keyIndex]!.Key;
+                    Assert.That(expected, Is.EqualTo(actual));
+                }
+
+            }
         }
     }
 
