@@ -21,10 +21,19 @@ public class PrefixLookup<T> : IPrefixLookup<T>
     public static bool IsSorted => true;
 
     private Node<T?> root;
+    private bool isCaseSensitive = true;
 
-    public PrefixLookup()
+    /// <summary>
+    /// Initializes the PrefixLookup
+    /// </summary>
+    /// <param name="caseSensitive">
+    /// If keys provided as strings should be uppercased (invariant culture)
+    /// before being used for a lookup or set operation.
+    /// /// be made case </param>
+    public PrefixLookup(bool caseSensitive = true)
     {
         root = new Node<T?>();
+        isCaseSensitive = caseSensitive;
     }
 
     public int Count => root.GetValuesCount();
@@ -58,8 +67,16 @@ public class PrefixLookup<T> : IPrefixLookup<T>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Span<byte> GetKeyStringBytes(string key, Span<byte> buffer)
+    private Span<byte> GetKeyStringBytes(string key, Span<byte> buffer)
     {
+        if (!isCaseSensitive)
+        {
+            Span<char> upper = stackalloc char[key.Length];
+            key.AsSpan().ToUpperInvariant(upper);
+            Utf8.FromUtf16(upper, buffer, out var _, out var bytesWrittenUpper, false, true);
+            return buffer.Slice(0, bytesWrittenUpper);
+        }
+
         Utf8.FromUtf16(key, buffer, out var _, out var bytesWritten, false, true);
         return buffer.Slice(0, bytesWritten);
     }
