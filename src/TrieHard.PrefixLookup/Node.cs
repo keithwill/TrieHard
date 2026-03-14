@@ -246,19 +246,17 @@ internal class Node<T>
             default:
                 int lo = 0;
                 int hi = childCount - 1;
+
                 while (lo <= hi)
                 {
-                    int i = lo + (hi - lo >> 1);
-                    int c = buffer[i].FirstKeyByte - searchKeyByte;
-                    if (c == 0) return i;
-                    if (c < 0)
-                    {
-                        lo = i + 1;
-                    }
-                    else
-                    {
-                        hi = i - 1;
-                    }
+                    int i = (lo + hi) >> 1;
+                    byte v = buffer[i].FirstKeyByte;
+
+                    if (v == searchKeyByte)
+                        return i;
+
+                    lo = v < searchKeyByte ? i + 1 : lo;
+                    hi = v > searchKeyByte ? i - 1 : hi;
                 }
                 return ~lo;
         }
