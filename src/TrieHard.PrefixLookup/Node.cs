@@ -11,8 +11,9 @@ namespace TrieHard.PrefixLookup;
 internal class Node<T>
 {
     public string? Key;
-    private ReadOnlyMemory<byte> KeySegment = EmptyBytes;
-    public ReadOnlyMemory<byte> KeyBytes = EmptyBytes;
+    private byte[] keyBytes = EmptyBytes;
+    private int keyBytesLength;
+    private int keySegmentStart;
 
     public Node<T>[] childrenBuffer = EmptyNodes;
     private Span<Node<T>> Children => childrenBuffer.AsSpan();
@@ -20,7 +21,19 @@ internal class Node<T>
     public byte FirstKeyByte;
 
     public static readonly Node<T>[] EmptyNodes = Array.Empty<Node<T>>();
-    public static readonly byte[] EmptyBytes = [];
+    private static readonly byte[] EmptyBytes = [];
+
+    private int KeySegmentLength
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => keyBytesLength - keySegmentStart;
+    }
+
+    private ReadOnlySpan<byte> KeySegmentSpan
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => keyBytes.AsSpan(keySegmentStart, keyBytesLength - keySegmentStart);
+    }
 
     private int FindChildByFirstByte(byte searchKeyByte)
     {
@@ -266,7 +279,7 @@ internal class Node<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public KeyValue<T?> AsKeyValue()
     {
-        return new KeyValue<T?>(Key!, KeyBytes, Value);
+        return new KeyValue<T?>(Key!, keyBytes.AsMemory(0, keyBytesLength), Value);
     }
 
     /// <summary>
@@ -296,12 +309,11 @@ internal class Node<T>
                 ref Node<T> matchingChild = ref searchNode.childrenBuffer[matchingIndex]!;
 
                 int matchingLength = 1;
-                int childKeySegmentLength = matchingChild.KeySegment.Length;
+                int childKeySegmentLength = matchingChild.KeySegmentLength;
 
                 if (childKeySegmentLength > 1)
                 {
-                    var matchingChildKeySegment = matchingChild.KeySegment;
-                    ReadOnlySpan<byte> matchingChildKey = matchingChildKeySegment.Span;
+                    ReadOnlySpan<byte> matchingChildKey = matchingChild.KeySegmentSpan;
                     matchingLength = searchKey.CommonPrefixLength(matchingChildKey);
                 }
 
@@ -352,10 +364,11 @@ internal class Node<T>
                 if (keyBytes is null) keyBytes = key.ToArray();
                 var newChild = new Node<T>();
 
-                newChild.KeySegment = keyBytes.AsMemory(keyOffset, searchKey.Length);
+                newChild.keyBytes = keyBytes;
+                newChild.keySegmentStart = keyOffset;
+                newChild.keyBytesLength = keyOffset + searchKey.Length;
                 newChild.FirstKeyByte = keyBytes[keyOffset];
-                newChild.KeyBytes = keyBytes.AsMemory(0, keyOffset + searchKey.Length);
-                newChild.Key = Encoding.UTF8.GetString(newChild.KeyBytes.Span);
+                newChild.Key = Encoding.UTF8.GetString(keyBytes, 0, newChild.keyBytesLength);
                 newChild.Value = value;
                 searchNode = searchNode.CloneWithNewChild(newChild, insertChildAtIndex);
 
@@ -368,9 +381,10 @@ internal class Node<T>
     {
         var clone = new Node<T>();
         clone.Key = Key;
-        clone.KeySegment = KeySegment;
+        clone.keyBytes = keyBytes;
+        clone.keyBytesLength = keyBytesLength;
+        clone.keySegmentStart = keySegmentStart;
         clone.FirstKeyByte = FirstKeyByte;
-        clone.KeyBytes = KeyBytes;
         clone.Value = Value;
         if (copyChildren)
         {
@@ -402,20 +416,17 @@ internal class Node<T>
 
         // We have to clone the child we split because we are changing its key size
         var splitChild = child.Clone(true);
-        var newOffset = atKeyLength;
-        var newCount = splitChild.KeySegment.Length - atKeyLength;
-        splitChild.KeySegment = splitChild.KeySegment.Slice(newOffset, newCount);
-        splitChild.FirstKeyByte = splitChild.KeySegment.Span[0];
+        splitChild.keySegmentStart += atKeyLength;
+        splitChild.FirstKeyByte = splitChild.keyBytes[splitChild.keySegmentStart];
 
         var splitParent = new Node<T>();
         splitParent.childrenBuffer = [splitChild];
 
-        var childKeySegment = child.KeySegment;
-        splitParent.KeySegment = childKeySegment.Slice(0, atKeyLength);
-        splitParent.FirstKeyByte = childKeySegment.Span[0];
-        var childKey = child.KeyBytes;
-        splitParent.KeyBytes = childKey.Slice(0, childKey.Length - childKeySegment.Length + atKeyLength);
-        splitParent.Key = Encoding.UTF8.GetString(splitParent.KeyBytes.Span);
+        splitParent.keyBytes = child.keyBytes;
+        splitParent.keySegmentStart = child.keySegmentStart;
+        splitParent.keyBytesLength = child.keySegmentStart + atKeyLength;
+        splitParent.FirstKeyByte = child.keyBytes[child.keySegmentStart];
+        splitParent.Key = Encoding.UTF8.GetString(splitParent.keyBytes, 0, splitParent.keyBytesLength);
 
         child = splitParent;
     }
@@ -431,7 +442,7 @@ internal class Node<T>
         {
             searchNode = searchNode.childrenBuffer[matchingIndex];
 
-            var keySegment = searchNode.KeySegment.Span;
+            var keySegment = searchNode.KeySegmentSpan;
             var keyLength = keySegment.Length;
             var bytesMatched = keyLength == 1 ? 1 : key.CommonPrefixLength(keySegment);
 
@@ -453,7 +464,7 @@ internal class Node<T>
         while (childIndex > -1)
         {
             node = node.childrenBuffer[childIndex];
-            var keySegment = node.KeySegment.Span;
+            var keySegment = node.KeySegmentSpan;
             var keyLength = keySegment.Length;
             var matchingBytes = keyLength == 1 ? 1 : key.CommonPrefixLength(keySegment);
 
@@ -492,10 +503,11 @@ internal class Node<T>
 
     internal void Reset()
     {
-        KeyBytes = default;
+        keyBytes = EmptyBytes;
+        keyBytesLength = 0;
+        keySegmentStart = 0;
         Value = default;
         childrenBuffer = EmptyNodes;
-        KeySegment = EmptyBytes;
     }
 
 
