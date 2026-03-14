@@ -22,7 +22,6 @@ internal class Node<T>
     public static readonly Node<T>[] EmptyNodes = Array.Empty<Node<T>>();
     public static readonly byte[] EmptyBytes = [];
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int FindChildByFirstByte(byte searchKeyByte)
     {
         // The 'default' search is a basic binary search (see the 'default' case
@@ -245,22 +244,6 @@ internal class Node<T>
                 return searchKeyByte;
 
             default:
-                if (childCount < 32)
-                {
-                    for (int i = 0; i < childCount; i++)
-                    {
-                        if (buffer[i].FirstKeyByte >= searchKeyByte)
-                        {
-                            if (buffer[i].FirstKeyByte == searchKeyByte)
-                            {
-                                return i;
-                            }
-                            return ~i;
-                        }
-                    }
-                    return ~childCount;
-                }
-
                 int lo = 0;
                 int hi = childCount - 1;
                 while (lo <= hi)
