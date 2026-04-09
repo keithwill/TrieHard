@@ -31,6 +31,7 @@ namespace TrieHard.Benchmarks
         public const string Prefix = "34567";
         public static readonly ReadOnlyMemory<byte> KeyBytes =    "345678"u8.ToArray().AsMemory();
         public static readonly ReadOnlyMemory<byte> PrefixBytes = "34567"u8.ToArray().AsMemory();
+        public static readonly ReadOnlyMemory<byte> LongestPrefixKeyBytes = "345678x"u8.ToArray().AsMemory();
         static TestData()
         {
             Sequential = new KeyValue<string>[1_000_000];

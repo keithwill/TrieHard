@@ -92,6 +92,18 @@ public class PrefixLookup<T> : IPrefixLookup<T>
         return root.Get(key);
     }
 
+    public T? LongestPrefix(string key)
+    {
+        Span<byte> keyBuffer = stackalloc byte[key.Length * 4];
+        Span<byte> keySpan = GetKeyStringBytes(key, keyBuffer);
+        return LongestPrefix(keySpan);
+    }
+
+    public T? LongestPrefix(ReadOnlySpan<byte> key)
+    {
+        return root.LongestPrefix(key);
+    }
+
     public void Clear()
     {
         root.Reset();

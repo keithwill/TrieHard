@@ -70,6 +70,30 @@ namespace TrieHard.Alternatives.List
             return values.Where(x => x.Key.StartsWith(keyPrefix)).Select(x => x.Value);
         }
 
+        public T? LongestPrefix(string key)
+        {
+            int longestKeyLength = -1;
+            T? longestValue = default;
+
+            foreach (var kvp in values)
+            {
+                if (!key.StartsWith(kvp.Key))
+                {
+                    continue;
+                }
+
+                if (kvp.Key.Length <= longestKeyLength)
+                {
+                    continue;
+                }
+
+                longestKeyLength = kvp.Key.Length;
+                longestValue = kvp.Value;
+            }
+
+            return longestKeyLength >= 0 ? longestValue : default;
+        }
+
         IEnumerator IEnumerable.GetEnumerator()
         {
             return this.GetEnumerator();

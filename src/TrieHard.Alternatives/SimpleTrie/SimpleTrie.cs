@@ -60,6 +60,11 @@ namespace TrieHard.Collections
             return rootNode.Search(keyPrefix);
         }
 
+        public T? LongestPrefix(string key)
+        {
+            return rootNode.LongestPrefix(key);
+        }
+
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();

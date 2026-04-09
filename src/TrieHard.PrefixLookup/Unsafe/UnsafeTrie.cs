@@ -267,6 +267,66 @@ namespace TrieHard.Collections
             return values[node->ValueLocation];
         }
 
+        public T? LongestPrefix(string key)
+        {
+            int keyByteMaxSize = key.Length * 4;
+
+            if (key.Length > 4096)
+            {
+                Span<byte> keySpan;
+                var buffer = ArrayPool<byte>.Shared.Rent(keyByteMaxSize);
+                keySpan = buffer.AsSpan();
+                Utf8.FromUtf16(key, keySpan, out var _, out var bytesWritten, false, true);
+                keySpan = keySpan.Slice(0, bytesWritten);
+                var result = LongestPrefix(keySpan);
+                ArrayPool<byte>.Shared.Return(buffer);
+                return result;
+            }
+
+            Span<byte> stackKeySpan = stackalloc byte[keyByteMaxSize];
+            Utf8.FromUtf16(key, stackKeySpan, out var _, out var stackBytesWritten, false, true);
+            stackKeySpan = stackKeySpan.Slice(0, stackBytesWritten);
+            return LongestPrefix(stackKeySpan);
+        }
+
+        public T? LongestPrefix(ReadOnlySpan<byte> key)
+        {
+            int longestValueLocation = rootPointer->ValueLocation;
+
+            if (key.Length == 0)
+            {
+                return longestValueLocation > -1 ? values[longestValueLocation] : default!;
+            }
+
+            int keyIndex = 0;
+            UnsafeTrieNode* searchNode = rootPointer;
+            while (keyIndex < key.Length)
+            {
+                byte byteToMatch = key[keyIndex];
+
+                var matchingIndex = searchNode->BinarySearch(byteToMatch);
+                if (matchingIndex < 0)
+                {
+                    break;
+                }
+
+                searchNode = (UnsafeTrieNode*)searchNode->GetChild(matchingIndex).ToPointer();
+                if (searchNode->ValueLocation > -1)
+                {
+                    longestValueLocation = searchNode->ValueLocation;
+                }
+
+                keyIndex++;
+            }
+
+            if (longestValueLocation < 0)
+            {
+                return default!;
+            }
+
+            return values[longestValueLocation];
+        }
+
         public void Dispose()
         {
             if (isDisposed)

@@ -16,6 +16,7 @@ namespace TrieHard.Benchmarks
         protected T lookup;
         protected const string testKey = "555555";
         protected const string testPrefixKey = "55555";
+        protected const string testLongestPrefixKey = "555555x";
 
         [GlobalSetup]
         public virtual void Setup()
@@ -65,6 +66,12 @@ namespace TrieHard.Benchmarks
                 result = value;
             }
             return result;
+        }
+
+        [Benchmark]
+        public virtual string LongestPrefix()
+        {
+            return lookup.LongestPrefix(testLongestPrefixKey);
         }
 
         [Benchmark]

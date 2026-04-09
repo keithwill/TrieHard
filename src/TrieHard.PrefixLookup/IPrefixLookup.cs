@@ -51,6 +51,14 @@
         IEnumerable<TValue?> SearchValues(string keyPrefix);
 
         /// <summary>
+        /// Returns the value associated with the stored key that is the longest prefix of the supplied key.
+        /// If no stored key is a prefix of the supplied key, returns the default value.
+        /// </summary>
+        /// <param name="key">The key to search for a longest stored prefix match</param>
+        /// <returns>The value associated with the longest matching stored prefix, or default(TValue)</returns>
+        TValue? LongestPrefix(string key);
+
+        /// <summary>
         /// If this type of lookup can be modified after creation or not.
         /// </summary>
         virtual static bool IsImmutable => false;
