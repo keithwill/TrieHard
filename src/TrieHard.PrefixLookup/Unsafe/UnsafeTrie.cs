@@ -20,6 +20,14 @@ namespace TrieHard.Collections
         public static Concurrency ThreadSafety => Concurrency.None;
         public static bool IsSorted => true;
 
+        private const int InitialNodeBufferSize = 4096;
+        private const int MaxStackAllocSize = 4096;
+
+        /// <summary>
+        /// Maximum UTF-8 bytes a UTF-16 string of the given length could produce.
+        /// </summary>
+        private static int KeyMaxByteSize(int utf16Length) => Encoding.UTF8.GetMaxByteCount(utf16Length);
+
         private List<UnsafeTrieNodeBuffer> buffers = new List<UnsafeTrieNodeBuffer>();
         private UnsafeTrieNodeBuffer buffer;
         private nuint nodeCount = 0;
@@ -42,8 +50,8 @@ namespace TrieHard.Collections
 
         public UnsafeTrie()
         {
-            this.buffer = new UnsafeTrieNodeBuffer(4096);
-            this.buffers.Add(buffer);
+            buffer = new UnsafeTrieNodeBuffer(InitialNodeBufferSize);
+            buffers.Add(buffer);
             CreateRoot();
         }
 
@@ -63,21 +71,20 @@ namespace TrieHard.Collections
                 var newCapacity = buffer.Size * 2;
                 var newBuffer = new UnsafeTrieNodeBuffer(newCapacity);
                 buffers.Add(newBuffer);
-                this.buffer = newBuffer;
+                buffer = newBuffer;
             }
         }
 
         private void RecordNode()
         {
-            this.buffer.Advance(UnsafeTrieNode.Size);
+            buffer.Advance(UnsafeTrieNode.Size);
             nodeCount++;
         }
 
         public void Set(string key, T? value)
         {
-            var maxByteSize = key.Length * 4;
-
-            if (key.Length > 4096)
+            var maxByteSize = KeyMaxByteSize(key.Length);
+            if (maxByteSize > MaxStackAllocSize)
             {
                 var buffer = ArrayPool<byte>.Shared.Rent(maxByteSize);
                 Span<byte> keySpan = buffer.AsSpan();
@@ -143,7 +150,7 @@ namespace TrieHard.Collections
                 return Search(EmptyKeyBytes);
             }
 
-            var maxByteSize = key.Length * 4;
+            var maxByteSize = KeyMaxByteSize(key.Length);
             var buffer = ArrayPool<byte>.Shared.Rent(maxByteSize);
             Span<byte> keySpan = buffer.AsSpan();
             Utf8.FromUtf16(key, keySpan, out var _, out var bytesWritten, false, true);
@@ -183,8 +190,8 @@ namespace TrieHard.Collections
 
         public UnsafeTrieValueEnumerator<T?> SearchValues(string keyPrefix)
         {
-            var maxByteSize = keyPrefix.Length * 3;
-            if (maxByteSize > 4096)
+            var maxByteSize = KeyMaxByteSize(keyPrefix.Length);
+            if (maxByteSize > MaxStackAllocSize)
             {
                 var buffer = ArrayPool<byte>.Shared.Rent(maxByteSize);
                 Span<byte> keySpan = buffer.AsSpan();
@@ -230,9 +237,8 @@ namespace TrieHard.Collections
 
         public T? Get(string key)
         {
-            int keyByteMaxSize = key.Length * 4;
-
-            if (key.Length > 4096)
+            int keyByteMaxSize = KeyMaxByteSize(key.Length);
+            if (keyByteMaxSize > MaxStackAllocSize)
             {
                 Span<byte> keySpan;
                 var buffer = ArrayPool<byte>.Shared.Rent(keyByteMaxSize);
@@ -269,9 +275,8 @@ namespace TrieHard.Collections
 
         public T? LongestPrefix(string key)
         {
-            int keyByteMaxSize = key.Length * 4;
-
-            if (key.Length > 4096)
+            int keyByteMaxSize = KeyMaxByteSize(key.Length);
+            if (keyByteMaxSize > MaxStackAllocSize)
             {
                 Span<byte> keySpan;
                 var buffer = ArrayPool<byte>.Shared.Rent(keyByteMaxSize);
@@ -282,11 +287,13 @@ namespace TrieHard.Collections
                 ArrayPool<byte>.Shared.Return(buffer);
                 return result;
             }
-
-            Span<byte> stackKeySpan = stackalloc byte[keyByteMaxSize];
-            Utf8.FromUtf16(key, stackKeySpan, out var _, out var stackBytesWritten, false, true);
-            stackKeySpan = stackKeySpan.Slice(0, stackBytesWritten);
-            return LongestPrefix(stackKeySpan);
+            else
+            {
+                Span<byte> stackKeySpan = stackalloc byte[keyByteMaxSize];
+                Utf8.FromUtf16(key, stackKeySpan, out var _, out var stackBytesWritten, false, true);
+                stackKeySpan = stackKeySpan.Slice(0, stackBytesWritten);
+                return LongestPrefix(stackKeySpan);
+            }
         }
 
         public T? LongestPrefix(ReadOnlySpan<byte> key)
@@ -385,17 +392,17 @@ namespace TrieHard.Collections
 
         IEnumerable<KeyValue<T?>> IPrefixLookup<T?>.Search(string keyPrefix)
         {
-            return this.Search(keyPrefix);
+            return Search(keyPrefix);
         }
 
         IEnumerator<KeyValue<T?>> IEnumerable<KeyValue<T?>>.GetEnumerator()
         {
-            return this.GetEnumerator();
+            return GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return this.GetEnumerator();
+            return GetEnumerator();
         }
 
 
