@@ -212,6 +212,10 @@ namespace TrieHard.Collections
 
         private nint FindNodeAddress(ReadOnlySpan<byte> key)
         {
+            if (key.Length == 0)
+            {
+                return new nint(rootPointer);
+            }
             int keyIndex = 0;
             UnsafeTrieNode* searchNode = rootPointer;
             while (true)
