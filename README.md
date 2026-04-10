@@ -210,6 +210,21 @@ A plain list struggles a bit at one million records.
 
 The Unsafe SearchValues result doesn't seem accurate.
 
+### Longest Prefix
+`dotnet run -c Release --filter *LongestPrefix*`
+
+```console
+| Type         | Method             | Mean             | Error            | StdDev           | Allocated |
+|------------- |------------------- |-----------------:|-----------------:|-----------------:|----------:|
+| PrefixLookup | LongestPrefix_Utf8 |         21.08 ns |         0.055 ns |         0.049 ns |         - |
+| Unsafe       | LongestPrefix_Utf8 |         23.69 ns |         0.495 ns |         0.463 ns |         - |
+| PrefixLookup | LongestPrefix      |         29.01 ns |         0.262 ns |         0.245 ns |         - |
+| Unsafe       | LongestPrefix      |         30.04 ns |         0.179 ns |         0.167 ns |         - |
+| Simple       | LongestPrefix      |         34.95 ns |         0.202 ns |         0.169 ns |         - |
+| NaiveList    | LongestPrefix      | 12,929,422.12 ns |    54,875.563 ns |    45,823.580 ns |      12 B |
+| SQLite       | LongestPrefix      | 54,111,071.25 ns | 1,071,224.090 ns | 1,392,893.899 ns |     427 B |
+```
+
 ### UTF8 Methods
 `dotnet run -c Release --filter *Utf8*`
 
