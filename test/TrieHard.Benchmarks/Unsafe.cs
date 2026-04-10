@@ -63,7 +63,7 @@ namespace TrieHard.Benchmarks
         public override string SearchValues()
         {
             string result = null;
-            foreach (var value in lookup.SearchValues(TestData.Key))
+            foreach (var value in lookup.SearchValues(TestData.Prefix))
             {
                 result = value;
             }
