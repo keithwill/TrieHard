@@ -457,6 +457,54 @@ internal class Node<T>
         return default;
     }
 
+    public T? LongestPrefix(ReadOnlySpan<byte> key)
+    {
+        T? longestValue = default;
+        bool hasLongestValue = Value is not null;
+
+        if (hasLongestValue)
+        {
+            longestValue = Value;
+        }
+
+        if (key.Length == 0)
+        {
+            return hasLongestValue ? longestValue : default;
+        }
+
+        var searchNode = this;
+
+        while (key.Length > 0)
+        {
+            int matchingIndex = searchNode.FindChildByFirstByte(key[0]);
+            if (matchingIndex < 0)
+            {
+                break;
+            }
+
+            searchNode = searchNode.childrenBuffer[matchingIndex];
+
+            var keySegment = searchNode.KeySegmentSpan;
+            int keyLength = keySegment.Length;
+            int matchingBytes = keyLength == 1 ? 1 : key.CommonPrefixLength(keySegment);
+
+            if (matchingBytes != keyLength)
+            {
+                break;
+            }
+
+            key = key.Slice(matchingBytes);
+
+            if (searchNode.Value is not null)
+            {
+                longestValue = searchNode.Value;
+                hasLongestValue = true;
+            }
+        }
+
+        return hasLongestValue ? longestValue : default;
+    }
+
     internal Node<T>? FindPrefixMatch(ReadOnlySpan<byte> key)
     {
         var node = this;

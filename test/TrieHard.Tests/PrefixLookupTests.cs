@@ -79,6 +79,73 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<TestRecord?>
     }
 
     [Test]
+    public void LongestPrefix_FindsExactMatch()
+    {
+        Assume.That(CreateWithValues, Throws.Nothing);
+        T lookup = (T)T.Create(testKvpEnumerable!);
+        var result = lookup.LongestPrefix(TestKey);
+        Assert.That(result, Is.SameAs(TestRecord));
+    }
+
+    [Test]
+    public void LongestPrefix_FindsLongestStoredPrefix()
+    {
+        Assume.That(CreateWithValues, Throws.Nothing);
+
+        var shorterMatch = new TestRecord("ab");
+        var longerMatch = new TestRecord("abcd");
+
+        T lookup = (T)T.Create(new[]
+        {
+            new KeyValue<TestRecord?>("a", new TestRecord("a")),
+            new KeyValue<TestRecord?>("ab", shorterMatch),
+            new KeyValue<TestRecord?>("abcd", longerMatch),
+        });
+
+        var result = lookup.LongestPrefix("abcde");
+
+        Assert.That(result, Is.SameAs(longerMatch));
+    }
+
+    [Test]
+    public void LongestPrefix_WhenKeyEndsWithinUnvaluedPath_ReturnsLastStoredPrefix()
+    {
+        Assume.That(CreateWithValues, Throws.Nothing);
+
+        var shorterMatch = new TestRecord("ab");
+        var longerMatch = new TestRecord("abcd");
+
+        T lookup = (T)T.Create(new[]
+        {
+            new KeyValue<TestRecord?>("ab", shorterMatch),
+            new KeyValue<TestRecord?>("abcd", longerMatch),
+        });
+
+        var result = lookup.LongestPrefix("abc");
+
+        Assert.That(result, Is.SameAs(shorterMatch));
+    }
+
+    [Test]
+    public void LongestPrefix_WhenNoStoredPrefixMatches_ReturnsNull()
+    {
+        Assume.That(CreateWithValues, Throws.Nothing);
+        T lookup = (T)T.Create(testKvpEnumerable!);
+        var result = lookup.LongestPrefix("NoMatch");
+        Assert.That(result, Is.Null);
+    }
+
+    [Test]
+    public void LongestPrefix_EmptyKeyInput_ReturnsNull()
+    {
+        Assume.That(CreateWithValues, Throws.Nothing);
+        T lookup = (T)T.Create(testKvpEnumerable!);
+        // No empty-key value stored, should return null
+        var result = lookup.LongestPrefix("");
+        Assert.That(result, Is.Null);
+    }
+
+    [Test]
     public void Search_FindsKeyByPrefix()
     {
         Assume.That(CreateWithValues, Throws.Nothing);
@@ -274,6 +341,7 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<TestRecord?>
 public class SimpleTrieTests : PrefixLookupTests<SimpleTrie<TestRecord?>> { }
 public class SqliteLookupTests : PrefixLookupTests<SQLiteLookup<TestRecord?>> { }
 public class ListPrefixLookupTests : PrefixLookupTests<ListPrefixLookup<TestRecord?>> { }
+public class UnsafeTrieTests : PrefixLookupTests<UnsafeTrie<TestRecord?>> { }
 public class PrefixLookupTests : PrefixLookupTests<PrefixLookup<TestRecord?>> 
 {
 
@@ -318,4 +386,3 @@ public class PrefixLookupTests : PrefixLookupTests<PrefixLookup<TestRecord?>>
     }
 
 }
-public class UnsafeTrieTests : PrefixLookupTests<UnsafeTrie<TestRecord?>> { }

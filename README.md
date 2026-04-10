@@ -64,7 +64,7 @@ not store whole keys and can only be used to check for the existence of complete
 
 # Typical Alternatives to Tries
 
-The most common alternative for implementing a prefix lookup is a naïve enumeration over a list.
+The most common alternative for implementing a prefix lookup is a naï¿½ve enumeration over a list.
 Typically this could be done with a LINQ Where query passing in a lambda to check if each key element StartsWith
 a given search text. This can perform well for smaller collections, but quickly becomes a hindrance with
 millions of items.
@@ -84,8 +84,10 @@ additional latency and networking concerns.
 In TrieHard.Abstractions is an interface IPrefixLookup. All implementations
 in this project implement that interface. An IPrefixLookup has an indexer and
 can be enumerated for key value pairs like a Dictionary, but also exposes
-Search and SearchValues methods which take a key prefix and return enumerables
-of KeyValuePairs or the generic value results respectively.
+Search, SearchValues, and LongestPrefix methods. Search and SearchValues take a
+key prefix and return enumerables of KeyValuePairs or the generic value results
+respectively, while LongestPrefix returns the value associated with the longest
+stored key that prefixes the supplied key.
 
 ### [PrefixLookup](https://github.com/keithwill/TrieHard/tree/main/src/TrieHard.PrefixLookup)
 

@@ -70,6 +70,12 @@ namespace TrieHard.Benchmarks
             return result;
         }
 
+        [Benchmark]
+        public string LongestPrefix_Utf8()
+        {
+            return lookup.LongestPrefix(TestData.LongestPrefixKeyBytes.Span);
+        }
+
 
 
 

@@ -51,6 +51,43 @@ namespace TrieHard.Collections
             return GetNode(keySegment)!.Value;
         }
 
+        public T? LongestPrefix(ReadOnlySpan<char> keySegment)
+        {
+            T? longestValue = default;
+            bool hasLongestValue = HasValue;
+
+            if (hasLongestValue)
+            {
+                longestValue = Value;
+            }
+
+            if (keySegment.Length == 0)
+            {
+                return hasLongestValue ? longestValue : default;
+            }
+
+            var searchNode = this;
+
+            while (keySegment.Length > 0)
+            {
+                if (!searchNode.Children.TryGetValue(keySegment[0], out var child))
+                {
+                    break;
+                }
+
+                searchNode = child;
+                if (searchNode.HasValue)
+                {
+                    longestValue = searchNode.Value;
+                    hasLongestValue = true;
+                }
+
+                keySegment = keySegment.Slice(1);
+            }
+
+            return hasLongestValue ? longestValue : default;
+        }
+
         public IEnumerable<KeyValue<T?>> Search(string keySegment)
         {
             var matchingRoot = GetNode(keySegment);

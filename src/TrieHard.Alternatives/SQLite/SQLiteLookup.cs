@@ -28,6 +28,9 @@ namespace TrieHard.Alternatives.SQLite
         private SqliteCommand? getCommand;
         private SqliteParameter? getKeyParameter;
 
+        private SqliteCommand? longestPrefixCommand;
+        private SqliteParameter? longestPrefixKeyParameter;
+
         public SQLiteLookup() 
         {
             connectionString = $"Data Source=:memory:";
@@ -69,6 +72,9 @@ namespace TrieHard.Alternatives.SQLite
 
             lookup.getCommand = new SqliteCommand("SELECT ValueIndex FROM lookup WHERE Key = @Key", lookup.connection);
             lookup.getKeyParameter = lookup.getCommand.Parameters.Add("@Key", SqliteType.Text);
+
+            lookup.longestPrefixCommand = new SqliteCommand("SELECT ValueIndex FROM lookup WHERE substr(@Key, 1, length(Key)) = Key ORDER BY length(Key) DESC LIMIT 1", lookup.connection);
+            lookup.longestPrefixKeyParameter = lookup.longestPrefixCommand.Parameters.Add("@Key", SqliteType.Text);
             return lookup;
         }
 
@@ -85,6 +91,7 @@ namespace TrieHard.Alternatives.SQLite
                 isDisposed = true;
                 searchCommand?.Dispose();
                 getCommand?.Dispose();
+                longestPrefixCommand?.Dispose();
             }
         }
 
@@ -103,6 +110,17 @@ namespace TrieHard.Alternatives.SQLite
         {
             getKeyParameter!.Value = key;
             var valueIndex = getCommand!.ExecuteScalar();
+            if (valueIndex == null)
+            {
+                return default!;
+            }
+            return values[(long)valueIndex];
+        }
+
+        public T? LongestPrefix(string key)
+        {
+            longestPrefixKeyParameter!.Value = key;
+            var valueIndex = longestPrefixCommand!.ExecuteScalar();
             if (valueIndex == null)
             {
                 return default!;
