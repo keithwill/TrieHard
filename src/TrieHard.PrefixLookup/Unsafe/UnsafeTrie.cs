@@ -52,7 +52,7 @@ namespace TrieHard.Collections
             var nodeSize = UnsafeTrieNode.Size;
             EnsureNodeSpace();
             rootPointer = (UnsafeTrieNode*)buffer.CurrentAddress;
-            *rootPointer = new UnsafeTrieNode();
+            *rootPointer = new UnsafeTrieNode { ValueLocation = -1 };
             RecordNode();
         }
 

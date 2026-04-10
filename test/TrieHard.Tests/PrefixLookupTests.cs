@@ -254,6 +254,20 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<TestRecord?>
         }
         Assert.That(lookup.Count, Is.EqualTo(valuesToAdd));
     }
+
+    [Test]
+    public void Enumerate_DoesNotYieldPhantomRootEntry()
+    {
+        Assume.That(CreateWithValues, Throws.Nothing);
+        T lookup = (T)T.Create(testKvpEnumerable!);
+
+        var keys = new List<string>();
+        foreach (var kv in (IEnumerable<KeyValue<TestRecord?>>)lookup)
+            keys.Add(kv.Key);
+
+        Assert.That(keys, Has.Count.EqualTo(lookup.Count));
+        Assert.That(keys, Has.None.EqualTo(""));
+    }
 }
 
 
