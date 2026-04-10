@@ -42,7 +42,7 @@ namespace TrieHard.Collections
 
         private void Push(nint node, byte childIndex, byte key)
         {
-            if (stackCount == 0)
+            if (stackSize == 0)
             {
                 stack = NativeMemory.Alloc(4, StackEntrySize);
                 stackSize = 4;

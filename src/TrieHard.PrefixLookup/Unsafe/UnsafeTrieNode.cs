@@ -37,30 +37,11 @@ namespace TrieHard.Collections
             return keys.BinarySearch(keyByte);
         }
 
-        public bool Is(in UnsafeTrieNode other)
-        {
-            return this.ChildKeysAddress == other.ChildKeysAddress;
-        }
-
         public nint GetChild(int index)
         {
-            Span<long> childKeys = new Span<long>((long*)ChildLocations, ChildCount);
             var childrenLocations = (long*)ChildLocations.ToPointer();
             var result = (nint)childrenLocations[index];
             return result;
-        }
-
-        public readonly ref readonly UnsafeTrieNode GetChildRef(int index)
-        {
-            byte* childKeys = (byte*)((nint)ChildKeysAddress).ToPointer();
-            long* childLocations = (long*)(childKeys + ChildCount);
-            UnsafeTrieNode* childPointer = (UnsafeTrieNode*)new nint(childLocations[index]).ToPointer();
-            return ref *childPointer;
-        }
-
-        public UnsafeTrieNode* GetChildPointer(int index)
-        {
-            return (UnsafeTrieNode*)GetChild(index).ToPointer();
         }
 
         public byte GetChildKey(int index)
@@ -85,7 +66,7 @@ namespace TrieHard.Collections
             byte* childKeysPtr = (byte*)childKeys.ToPointer();
             long* childLocationsPtr = (long*)ChildLocations.ToPointer();
 
-            nuint newBytesSize = (nuint)Convert.ToUInt64(newChildCount + (newChildCount * 8));
+            nuint newBytesSize = (nuint)(newChildCount + (newChildCount * 8));
             byte* newKeys = (byte*)NativeMemory.Alloc(newBytesSize);
             long* newLocations = (long*)(newKeys + newChildCount);
 
