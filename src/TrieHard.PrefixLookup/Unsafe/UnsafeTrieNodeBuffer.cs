@@ -38,6 +38,12 @@ namespace TrieHard.Collections
             currentAddress += bytesToAdvance;
         }
 
+        public void Reset()
+        {
+            consumed = 0;
+            currentAddress = (byte*)pointer;
+        }
+
         public void Dispose()
         {
             if (isDisposed)
