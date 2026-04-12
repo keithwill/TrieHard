@@ -1,5 +1,4 @@
 using NUnit.Framework.Internal;
-using System.Diagnostics;
 using System.Text;
 using TrieHard.Alternatives.List;
 using TrieHard.Alternatives.SQLite;
@@ -336,7 +335,6 @@ public abstract class PrefixLookupTests<T> where T : IPrefixLookup<TestRecord?>
         Assert.That(keys, Has.None.EqualTo(""));
     }
 }
-
 
 public class SimpleTrieTests : PrefixLookupTests<SimpleTrie<TestRecord?>> { }
 public class SqliteLookupTests : PrefixLookupTests<SQLiteLookup<TestRecord?>> { }

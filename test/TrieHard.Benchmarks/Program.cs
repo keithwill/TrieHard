@@ -19,6 +19,7 @@ namespace TrieHard.Benchmarks
             var summary = BenchmarkRunner.Run(new Type[]
             {
                 typeof(Unsafe),
+                typeof(UnsafeBlittable),
                 typeof(Simple),
                 typeof(PrefixLookup),
                 typeof(NaiveList),

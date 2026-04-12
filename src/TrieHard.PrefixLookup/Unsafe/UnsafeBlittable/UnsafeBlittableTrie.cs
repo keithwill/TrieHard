@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Buffers;
 using System.Collections;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -8,35 +9,44 @@ using System.Text.Unicode;
 
 namespace TrieHard.Collections
 {
+    /// <summary>
+    /// A trie that stores values of unmanaged type T directly within node structs in unmanaged memory,
+    /// eliminating the managed <c>List&lt;T&gt;</c> used by <see cref="UnsafeTrie{T}"/>.
+    /// <para>
+    /// Each node contains the value inline. The managed heap is used only for bookkeeping structures
+    /// (the list of node buffer objects and the trie class itself); all node data and value data lives
+    /// in unmanaged slabs.
+    /// </para>
+    /// <para>
+    /// The node struct switches from <c>LayoutKind.Explicit</c> to <c>LayoutKind.Sequential</c> because
+    /// <c>[FieldOffset]</c> requires compile-time constant byte offsets, which cannot be specified for
+    /// fields that follow the variable-size generic field <c>T Value</c>. Sequential layout lets the
+    /// runtime derive correct offsets and trailing padding per closed generic instantiation.
+    /// </para>
+    /// </summary>
     [SkipLocalsInit]
-    public unsafe class UnsafeTrie<T>  : IPrefixLookup<T?>, IDisposable
+    public unsafe class UnsafeBlittableTrie<T> : IPrefixLookup<T?>, IDisposable
+        where T : unmanaged
     {
         public static bool IsImmutable => false;
-
         public static Concurrency ThreadSafety => Concurrency.None;
         public static bool IsSorted => true;
 
-        private const int InitialNodeBufferSize = 4096;
+        private const int InitialNodeBufferCount = 4096;
         private const int MaxStackAllocSize = 4096;
 
-        /// <summary>
-        /// Maximum UTF-8 bytes a UTF-16 string of the given length could produce.
-        /// </summary>
+        private static readonly int NodeSize = UnsafeBlittableTrieNode<T>.Size;
+
         private static int KeyMaxByteSize(int utf16Length) => Encoding.UTF8.GetMaxByteCount(utf16Length);
 
-        private List<UnsafeTrieNodeBuffer> buffers = new List<UnsafeTrieNodeBuffer>();
+        private readonly List<UnsafeTrieNodeBuffer> buffers = new();
         private UnsafeTrieNodeBuffer buffer;
-        private nuint nodeCount = 0;
+        private int count;
 
-        private List<T?> values = new();
-        private bool isDisposed = false;
-        private UnsafeTrieNode* rootPointer;
+        private bool isDisposed;
+        private UnsafeBlittableTrieNode<T>* rootPointer;
 
-        internal List<T?> Values => values;
-
-
-        public int Count => values.Count;
-
+        public int Count => count;
 
         public T? this[string key]
         {
@@ -44,25 +54,24 @@ namespace TrieHard.Collections
             set => Set(key, value);
         }
 
-        public UnsafeTrie()
+        public UnsafeBlittableTrie()
         {
-            buffer = new UnsafeTrieNodeBuffer(InitialNodeBufferSize);
+            buffer = new UnsafeTrieNodeBuffer((long)InitialNodeBufferCount * NodeSize);
             buffers.Add(buffer);
             CreateRoot();
         }
 
         private void CreateRoot()
         {
-            var nodeSize = UnsafeTrieNode.Size;
             EnsureNodeSpace();
-            rootPointer = (UnsafeTrieNode*)buffer.CurrentAddress;
-            *rootPointer = new UnsafeTrieNode { ValueLocation = -1 };
+            rootPointer = (UnsafeBlittableTrieNode<T>*)buffer.CurrentAddress;
+            *rootPointer = new UnsafeBlittableTrieNode<T> { HasValue = false };
             RecordNode();
         }
 
         private void EnsureNodeSpace()
         {
-            if (!buffer.IsAvailable(UnsafeTrieNode.Size))
+            if (!buffer.IsAvailable(NodeSize))
             {
                 var newCapacity = buffer.Size * 2;
                 var newBuffer = new UnsafeTrieNodeBuffer(newCapacity);
@@ -73,8 +82,7 @@ namespace TrieHard.Collections
 
         private void RecordNode()
         {
-            buffer.Advance(UnsafeTrieNode.Size);
-            nodeCount++;
+            buffer.Advance(NodeSize);
         }
 
         public void Set(string key, T? value)
@@ -82,17 +90,17 @@ namespace TrieHard.Collections
             var maxByteSize = KeyMaxByteSize(key.Length);
             if (maxByteSize > MaxStackAllocSize)
             {
-                var buffer = ArrayPool<byte>.Shared.Rent(maxByteSize);
-                Span<byte> keySpan = buffer.AsSpan();
-                Utf8.FromUtf16(key, keySpan, out var _, out var bytesWritten, false, true);
+                var rentedBuffer = ArrayPool<byte>.Shared.Rent(maxByteSize);
+                Span<byte> keySpan = rentedBuffer.AsSpan();
+                Utf8.FromUtf16(key, keySpan, out _, out var bytesWritten, false, true);
                 keySpan = keySpan.Slice(0, bytesWritten);
                 Set(keySpan, value);
-                ArrayPool<byte>.Shared.Return(buffer);
+                ArrayPool<byte>.Shared.Return(rentedBuffer);
             }
             else
             {
                 Span<byte> stackKeySpan = stackalloc byte[maxByteSize];
-                Utf8.FromUtf16(key, stackKeySpan, out var _, out var bytesWritten, false, true);
+                Utf8.FromUtf16(key, stackKeySpan, out _, out var bytesWritten, false, true);
                 stackKeySpan = stackKeySpan.Slice(0, bytesWritten);
                 Set(stackKeySpan, value);
             }
@@ -101,8 +109,8 @@ namespace TrieHard.Collections
         public void Set(in ReadOnlySpan<byte> key, T? value)
         {
             int keyIndex = 0;
+            UnsafeBlittableTrieNode<T>* searchNode = rootPointer;
 
-            UnsafeTrieNode* searchNode = rootPointer;
             while (true)
             {
                 byte byteToMatch = key[keyIndex];
@@ -112,34 +120,31 @@ namespace TrieHard.Collections
                 {
                     matchingIndex = ~matchingIndex;
                     EnsureNodeSpace();
-                    UnsafeTrieNode* newNode = (UnsafeTrieNode*)buffer.CurrentAddress;
-                    *newNode = new UnsafeTrieNode { ValueLocation = -1 };
+                    UnsafeBlittableTrieNode<T>* newNode = (UnsafeBlittableTrieNode<T>*)buffer.CurrentAddress;
+                    *newNode = new UnsafeBlittableTrieNode<T> { HasValue = false };
                     RecordNode();
                     searchNode->AddChild(new nint(newNode), byteToMatch, matchingIndex);
                 }
 
-                searchNode = (UnsafeTrieNode*)searchNode->GetChild(matchingIndex).ToPointer();
+                searchNode = (UnsafeBlittableTrieNode<T>*)searchNode->GetChild(matchingIndex).ToPointer();
 
                 keyIndex++;
                 if (key.Length == keyIndex)
                 {
-                    if (searchNode->ValueLocation > -1)
+                    if (!searchNode->HasValue)
                     {
-                        values[searchNode->ValueLocation] = value;
+                        count++;
                     }
-                    else
-                    {
-                        values.Add(value);
-                        searchNode->ValueLocation = values.Count - 1;
-                    }
+                    searchNode->HasValue = true;
+                    searchNode->Value = value.GetValueOrDefault();
                     return;
                 }
             }
         }
 
-        private static readonly byte[] EmptyKeyBytes = new byte[0];
+        private static readonly byte[] EmptyKeyBytes = Array.Empty<byte>();
 
-        public UnsafeTrieEnumerator<T> Search(string key)
+        public UnsafeBlittableTrieEnumerator<T> Search(string key)
         {
             if (key.Length == 0)
             {
@@ -147,60 +152,49 @@ namespace TrieHard.Collections
             }
 
             var maxByteSize = KeyMaxByteSize(key.Length);
-            var buffer = ArrayPool<byte>.Shared.Rent(maxByteSize);
-            Span<byte> keySpan = buffer.AsSpan();
-            Utf8.FromUtf16(key, keySpan, out var _, out var bytesWritten, false, true);
-            return Search(buffer.AsMemory(0, bytesWritten), keyBuffer: buffer );
+            var rentedBuffer = ArrayPool<byte>.Shared.Rent(maxByteSize);
+            Span<byte> keySpan = rentedBuffer.AsSpan();
+            Utf8.FromUtf16(key, keySpan, out _, out var bytesWritten, false, true);
+            return Search(rentedBuffer.AsMemory(0, bytesWritten), keyBuffer: rentedBuffer);
         }
 
-
-        public UnsafeTrieEnumerator<T> Search(ReadOnlyMemory<byte> key, byte[]? keyBuffer)
+        public UnsafeBlittableTrieEnumerator<T> Search(ReadOnlyMemory<byte> key, byte[]? keyBuffer = null)
         {
             nint matchingNode = FindNodeAddress(key.Span);
             if (matchingNode > 0)
             {
-                return new UnsafeTrieEnumerator<T>(this, key, matchingNode, keyBuffer);
+                return new UnsafeBlittableTrieEnumerator<T>(key, matchingNode, keyBuffer);
             }
-            return new UnsafeTrieEnumerator<T>(null!, key, 0, keyBuffer);
+            return new UnsafeBlittableTrieEnumerator<T>(key, 0, keyBuffer);
         }
 
-        public UnsafeTrieEnumerator<T> Search(ReadOnlyMemory<byte> key)
-        {
-            nint matchingNode = FindNodeAddress(key.Span);
-            if (matchingNode > 0)
-            {
-                return new UnsafeTrieEnumerator<T>(this, key, matchingNode);
-            }
-            return new UnsafeTrieEnumerator<T>(null!, key, 0);
-        }
-
-        public UnsafeTrieValueEnumerator<T?> SearchValues(ReadOnlySpan<byte> keyPrefix)
+        public UnsafeBlittableTrieValueEnumerator<T> SearchValues(ReadOnlySpan<byte> keyPrefix)
         {
             nint matchingNode = FindNodeAddress(keyPrefix);
             if (matchingNode > 0)
             {
-                return new UnsafeTrieValueEnumerator<T?>(this, matchingNode);
+                return new UnsafeBlittableTrieValueEnumerator<T>(matchingNode);
             }
-            return UnsafeTrieValueEnumerator<T?>.None;
+            return UnsafeBlittableTrieValueEnumerator<T>.None;
         }
 
-        public UnsafeTrieValueEnumerator<T?> SearchValues(string keyPrefix)
+        public UnsafeBlittableTrieValueEnumerator<T> SearchValues(string keyPrefix)
         {
             var maxByteSize = KeyMaxByteSize(keyPrefix.Length);
             if (maxByteSize > MaxStackAllocSize)
             {
-                var buffer = ArrayPool<byte>.Shared.Rent(maxByteSize);
-                Span<byte> keySpan = buffer.AsSpan();
-                Utf8.FromUtf16(keyPrefix, keySpan, out var _, out var bytesWritten, false, true);
+                var rentedBuffer = ArrayPool<byte>.Shared.Rent(maxByteSize);
+                Span<byte> keySpan = rentedBuffer.AsSpan();
+                Utf8.FromUtf16(keyPrefix, keySpan, out _, out var bytesWritten, false, true);
                 keySpan = keySpan.Slice(0, bytesWritten);
-                UnsafeTrieValueEnumerator<T?> result = SearchValues(keySpan);
-                ArrayPool<byte>.Shared.Return(buffer);
+                UnsafeBlittableTrieValueEnumerator<T> result = SearchValues(keySpan);
+                ArrayPool<byte>.Shared.Return(rentedBuffer);
                 return result;
             }
             else
             {
                 Span<byte> stackKeySpan = stackalloc byte[maxByteSize];
-                Utf8.FromUtf16(keyPrefix, stackKeySpan, out var _, out var bytesWritten, false, true);
+                Utf8.FromUtf16(keyPrefix, stackKeySpan, out _, out var bytesWritten, false, true);
                 stackKeySpan = stackKeySpan.Slice(0, bytesWritten);
                 return SearchValues(stackKeySpan);
             }
@@ -213,7 +207,7 @@ namespace TrieHard.Collections
                 return new nint(rootPointer);
             }
             int keyIndex = 0;
-            UnsafeTrieNode* searchNode = rootPointer;
+            UnsafeBlittableTrieNode<T>* searchNode = rootPointer;
             while (true)
             {
                 byte byteToMatch = key[keyIndex];
@@ -225,7 +219,7 @@ namespace TrieHard.Collections
                 }
 
                 var matchingChildAddress = searchNode->GetChild(matchingIndex);
-                searchNode = (UnsafeTrieNode*)matchingChildAddress.ToPointer();
+                searchNode = (UnsafeBlittableTrieNode<T>*)matchingChildAddress.ToPointer();
 
                 keyIndex++;
                 if (key.Length == keyIndex)
@@ -240,19 +234,18 @@ namespace TrieHard.Collections
             int keyByteMaxSize = KeyMaxByteSize(key.Length);
             if (keyByteMaxSize > MaxStackAllocSize)
             {
-                Span<byte> keySpan;
-                var buffer = ArrayPool<byte>.Shared.Rent(keyByteMaxSize);
-                keySpan = buffer.AsSpan();
-                Utf8.FromUtf16(key, keySpan, out var _, out var bytesWritten, false, true);
+                var rentedBuffer = ArrayPool<byte>.Shared.Rent(keyByteMaxSize);
+                Span<byte> keySpan = rentedBuffer.AsSpan();
+                Utf8.FromUtf16(key, keySpan, out _, out var bytesWritten, false, true);
                 keySpan = keySpan.Slice(0, bytesWritten);
                 var result = Get(keySpan);
-                ArrayPool<byte>.Shared.Return(buffer);
+                ArrayPool<byte>.Shared.Return(rentedBuffer);
                 return result;
             }
             else
             {
                 Span<byte> stackKeySpan = stackalloc byte[keyByteMaxSize];
-                Utf8.FromUtf16(key, stackKeySpan, out var _, out var bytesWritten, false, true);
+                Utf8.FromUtf16(key, stackKeySpan, out _, out var bytesWritten, false, true);
                 stackKeySpan = stackKeySpan.Slice(0, bytesWritten);
                 return Get(stackKeySpan);
             }
@@ -263,14 +256,14 @@ namespace TrieHard.Collections
             var nodeAddress = FindNodeAddress(key);
             if (nodeAddress == 0)
             {
-                return default!;
+                return null;
             }
-            UnsafeTrieNode* node = (UnsafeTrieNode*)nodeAddress;
-            if (node->ValueLocation == -1)
+            UnsafeBlittableTrieNode<T>* node = (UnsafeBlittableTrieNode<T>*)nodeAddress;
+            if (!node->HasValue)
             {
-                return default!;
+                return null;
             }
-            return values[node->ValueLocation];
+            return node->Value;
         }
 
         public T? LongestPrefix(string key)
@@ -278,19 +271,18 @@ namespace TrieHard.Collections
             int keyByteMaxSize = KeyMaxByteSize(key.Length);
             if (keyByteMaxSize > MaxStackAllocSize)
             {
-                Span<byte> keySpan;
-                var buffer = ArrayPool<byte>.Shared.Rent(keyByteMaxSize);
-                keySpan = buffer.AsSpan();
-                Utf8.FromUtf16(key, keySpan, out var _, out var bytesWritten, false, true);
+                var rentedBuffer = ArrayPool<byte>.Shared.Rent(keyByteMaxSize);
+                Span<byte> keySpan = rentedBuffer.AsSpan();
+                Utf8.FromUtf16(key, keySpan, out _, out var bytesWritten, false, true);
                 keySpan = keySpan.Slice(0, bytesWritten);
                 var result = LongestPrefix(keySpan);
-                ArrayPool<byte>.Shared.Return(buffer);
+                ArrayPool<byte>.Shared.Return(rentedBuffer);
                 return result;
             }
             else
             {
                 Span<byte> stackKeySpan = stackalloc byte[keyByteMaxSize];
-                Utf8.FromUtf16(key, stackKeySpan, out var _, out var stackBytesWritten, false, true);
+                Utf8.FromUtf16(key, stackKeySpan, out _, out var stackBytesWritten, false, true);
                 stackKeySpan = stackKeySpan.Slice(0, stackBytesWritten);
                 return LongestPrefix(stackKeySpan);
             }
@@ -298,15 +290,15 @@ namespace TrieHard.Collections
 
         public T? LongestPrefix(ReadOnlySpan<byte> key)
         {
-            int longestValueLocation = rootPointer->ValueLocation;
+            T? longestValue = rootPointer->HasValue ? rootPointer->Value : null;
 
             if (key.Length == 0)
             {
-                return longestValueLocation > -1 ? values[longestValueLocation] : default!;
+                return longestValue;
             }
 
             int keyIndex = 0;
-            UnsafeTrieNode* searchNode = rootPointer;
+            UnsafeBlittableTrieNode<T>* searchNode = rootPointer;
             while (keyIndex < key.Length)
             {
                 byte byteToMatch = key[keyIndex];
@@ -317,38 +309,31 @@ namespace TrieHard.Collections
                     break;
                 }
 
-                searchNode = (UnsafeTrieNode*)searchNode->GetChild(matchingIndex).ToPointer();
-                if (searchNode->ValueLocation > -1)
+                searchNode = (UnsafeBlittableTrieNode<T>*)searchNode->GetChild(matchingIndex).ToPointer();
+                if (searchNode->HasValue)
                 {
-                    longestValueLocation = searchNode->ValueLocation;
+                    longestValue = searchNode->Value;
                 }
 
                 keyIndex++;
             }
 
-            if (longestValueLocation < 0)
-            {
-                return default!;
-            }
-
-            return values[longestValueLocation];
+            return longestValue;
         }
 
         public void Dispose()
         {
-            if (isDisposed)
-            {
-                return;
-            }
+            if (isDisposed) return;
+
             var freeList = new List<nint>();
             GetNodeFreeAddresses(new nint(rootPointer), freeList);
             foreach (var address in freeList)
             {
                 NativeMemory.Free(address.ToPointer());
             }
-            foreach (var buffer in buffers)
+            foreach (var buf in buffers)
             {
-                buffer.Dispose();
+                buf.Dispose();
             }
             isDisposed = true;
             GC.SuppressFinalize(this);
@@ -356,43 +341,46 @@ namespace TrieHard.Collections
 
         private static readonly byte[] EmptyByteArray = Array.Empty<byte>();
 
-        public UnsafeTrieEnumerator<T> GetEnumerator()
+        public UnsafeBlittableTrieEnumerator<T> GetEnumerator()
         {
-            return new UnsafeTrieEnumerator<T>(this, EmptyByteArray, new nint(rootPointer));
+            return new UnsafeBlittableTrieEnumerator<T>(EmptyByteArray, new nint(rootPointer));
         }
 
         private void GetNodeFreeAddresses(nint searchNode, List<nint> freeList)
         {
-            UnsafeTrieNode* node = (UnsafeTrieNode*)searchNode.ToPointer();
+            UnsafeBlittableTrieNode<T>* node = (UnsafeBlittableTrieNode<T>*)searchNode.ToPointer();
             freeList.Add(new nint((void*)node->ChildKeysAddress));
             byte childCount = node->ChildCount;
             for (int i = 0; i < childCount; i++)
             {
-                var childAddress = node->GetChild(i);
-                GetNodeFreeAddresses(childAddress, freeList);
+                GetNodeFreeAddresses(node->GetChild(i), freeList);
             }
         }
 
         public void Clear()
         {
             ClearNodeRecursive(new nint(rootPointer));
-            Values.Clear();
+            count = 0;
         }
 
-        public void ClearNodeRecursive(nint nodeAddress)
+        private void ClearNodeRecursive(nint nodeAddress)
         {
-            var node = (UnsafeTrieNode*)nodeAddress.ToPointer();
-            node->ValueLocation = -1;
-            for(int i = 0; i < node->ChildCount; i++)
+            var node = (UnsafeBlittableTrieNode<T>*)nodeAddress.ToPointer();
+            node->HasValue = false;
+            for (int i = 0; i < node->ChildCount; i++)
             {
-                var childAddress = node->GetChild(i);
-                ClearNodeRecursive(childAddress);
+                ClearNodeRecursive(node->GetChild(i));
             }
         }
 
         IEnumerable<KeyValue<T?>> IPrefixLookup<T?>.Search(string keyPrefix)
         {
             return Search(keyPrefix);
+        }
+
+        IEnumerable<T?> IPrefixLookup<T?>.SearchValues(string keyPrefix)
+        {
+            return SearchValues(keyPrefix);
         }
 
         IEnumerator<KeyValue<T?>> IEnumerable<KeyValue<T?>>.GetEnumerator()
@@ -405,10 +393,10 @@ namespace TrieHard.Collections
             return GetEnumerator();
         }
 
-
         public static IPrefixLookup<TValue?> Create<TValue>(IEnumerable<KeyValue<TValue?>> source)
+            where TValue : unmanaged
         {
-            var result = new UnsafeTrie<TValue>();
+            var result = new UnsafeBlittableTrie<TValue>();
             foreach (var kvp in source)
             {
                 result.Set(kvp.Key, kvp.Value);
@@ -416,19 +404,10 @@ namespace TrieHard.Collections
             return result;
         }
 
-        IEnumerable<T> IPrefixLookup<T?>.SearchValues(string keyPrefix)
-        {
-            var keyBytes = Encoding.UTF8.GetBytes(keyPrefix);
-            return SearchValues(keyBytes);
-        }
-
         public static IPrefixLookup<TValue?> Create<TValue>()
+            where TValue : unmanaged
         {
-            return new UnsafeTrie<TValue>();
+            return new UnsafeBlittableTrie<TValue>();
         }
-
     }
-
-
-
 }
