@@ -20,6 +20,7 @@ namespace TrieHard.Benchmarks
             {
                 typeof(Unsafe),
                 typeof(UnsafeBlittable),
+                typeof(UnsafeNativeSpan),
                 typeof(Simple),
                 typeof(PrefixLookup),
                 typeof(NaiveList),

@@ -28,10 +28,6 @@ public class UnsafeNativeSpanTrieTests
 
     private static byte[] ToBytes(NativeByteSpan? span) => span?.ToArray() ?? [];
 
-    // -------------------------------------------------------------------------
-    // Construction / factory
-    // -------------------------------------------------------------------------
-
     [Test]
     public void Create_EmptyTrie_DoesNotThrow()
     {
@@ -49,10 +45,6 @@ public class UnsafeNativeSpanTrieTests
         trie.Set("key2", [2]);
         Assert.That(trie.Count, Is.EqualTo(2));
     }
-
-    // -------------------------------------------------------------------------
-    // Set / Get
-    // -------------------------------------------------------------------------
 
     [Test]
     public void Set_DoesNotThrow()
@@ -140,10 +132,6 @@ public class UnsafeNativeSpanTrieTests
         Assert.That(trie.Count, Is.EqualTo(1));
     }
 
-    // -------------------------------------------------------------------------
-    // Search (key-value pairs)
-    // -------------------------------------------------------------------------
-
     [Test]
     public void Search_FindsValueByPrefix()
     {
@@ -204,10 +192,6 @@ public class UnsafeNativeSpanTrieTests
         }
     }
 
-    // -------------------------------------------------------------------------
-    // SearchValues (values only)
-    // -------------------------------------------------------------------------
-
     [Test]
     public void SearchValues_FindsValueByPrefix()
     {
@@ -255,10 +239,6 @@ public class UnsafeNativeSpanTrieTests
         var result = trie.SearchValues(keyBytes.AsSpan()).Single();
         Assert.That(result!.Value.ToArray(), Is.EqualTo(TestValue));
     }
-
-    // -------------------------------------------------------------------------
-    // LongestPrefix
-    // -------------------------------------------------------------------------
 
     [Test]
     public void LongestPrefix_FindsExactMatch()
@@ -311,10 +291,6 @@ public class UnsafeNativeSpanTrieTests
         Assert.That(result, Is.Null);
     }
 
-    // -------------------------------------------------------------------------
-    // Count / Clear
-    // -------------------------------------------------------------------------
-
     [Test]
     public void AddIncrementsCount()
     {
@@ -350,10 +326,6 @@ public class UnsafeNativeSpanTrieTests
         Assert.That(trie.Count, Is.EqualTo(valuesToAdd));
     }
 
-    // -------------------------------------------------------------------------
-    // Enumeration
-    // -------------------------------------------------------------------------
-
     [Test]
     public void Enumerate_DoesNotYieldPhantomRootEntry()
     {
@@ -388,10 +360,6 @@ public class UnsafeNativeSpanTrieTests
         }
     }
 
-    // -------------------------------------------------------------------------
-    // NativeByteSpan value semantics
-    // -------------------------------------------------------------------------
-
     [Test]
     public void NativeByteSpan_AsSpan_ReadsCorrectBytes()
     {
@@ -418,10 +386,6 @@ public class UnsafeNativeSpanTrieTests
         Assert.That(result!.Value.Length, Is.EqualTo(0));
     }
 
-    // -------------------------------------------------------------------------
-    // Dispose
-    // -------------------------------------------------------------------------
-
     [Test]
     public void Dispose_DoesNotThrow()
     {
@@ -437,10 +401,6 @@ public class UnsafeNativeSpanTrieTests
         trie.Dispose();
         Assert.DoesNotThrow(() => trie.Dispose());
     }
-
-    // -------------------------------------------------------------------------
-    // IPrefixLookup<NativeByteSpan?> interface compliance
-    // -------------------------------------------------------------------------
 
     [Test]
     public void IPrefixLookup_Search_ReturnsCorrectValues()
