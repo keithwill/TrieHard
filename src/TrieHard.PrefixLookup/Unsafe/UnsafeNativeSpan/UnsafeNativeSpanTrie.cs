@@ -1,7 +1,5 @@
-using System;
 using System.Buffers;
 using System.Collections;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -10,33 +8,46 @@ using System.Text.Unicode;
 namespace TrieHard.Collections
 {
     /// <summary>
-    /// A trie that stores variable-length byte-array values in unmanaged memory, eliminating
-    /// managed-heap pressure for stored values.
+    /// A sorted prefix trie that stores variable-length byte sequences as values in unmanaged
+    /// memory, eliminating managed-heap pressure on both the write and read paths.
     /// <para>
-    /// Values are written into pooled unmanaged slabs (one or more <see cref="UnsafeTrieNodeBuffer"/>
-    /// instances) rather than being individually allocated and freed. On <see cref="Dispose"/>,
-    /// only the node buffers, child-key blocks, and value slabs are released — no per-node
-    /// traversal is needed to free value memory.
-    /// </para>
-    /// <para>
+    /// Keys are UTF-8 encoded strings. Values are raw byte arrays appended into pooled unmanaged
+    /// slabs rather than being individually heap-allocated.
     /// <see cref="Get(ReadOnlySpan{byte})"/> and all enumerators return <see cref="NativeByteSpan?"/>,
     /// a zero-allocation struct that points directly into the owning slab. No <c>byte[]</c> is
     /// allocated on the read path. Callers that need an owned copy can call
     /// <see cref="NativeByteSpan.ToArray"/>.
     /// </para>
     /// <para>
-    /// <b>Overwrite behaviour:</b> if a key is set to a new value whose byte length exceeds the
-    /// previously stored length, the old slab bytes are abandoned in place and the new bytes are
-    /// appended to the current slab. The wasted space is reclaimed only on <see cref="Clear"/> or
-    /// <see cref="Dispose"/>. When the new value fits within the old allocation it is written
-    /// in-place with no slab waste.
+    /// <b>Thread safety:</b> instances are not thread-safe. Concurrent reads without writes are
+    /// safe, but any concurrent write requires external synchronisation.
+    /// </para>
+    /// <para>
+    /// <b>Value lifetime:</b> a <see cref="NativeByteSpan"/> remains valid until the key is
+    /// overwritten with a larger value, or until the trie is <see cref="Clear"/>ed or
+    /// <see cref="Dispose"/>d. Do not hold a <see cref="NativeByteSpan"/> beyond those events.
+    /// </para>
+    /// <para>
+    /// <b>Overwrite behaviour:</b> if a key is set to a new value whose byte length fits within
+    /// the previously stored allocation, the bytes are updated in place with no slab waste.
+    /// If the new value is larger, the old bytes are abandoned and the new bytes are appended to
+    /// the current value slab; wasted space is reclaimed only on <see cref="Clear"/> or
+    /// <see cref="Dispose"/>.
+    /// </para>
+    /// <para>
+    /// <b>Disposal:</b> the trie must be disposed when no longer needed. On <see cref="Dispose"/>,
+    /// all node buffers, child-key blocks, and value slabs are freed without requiring a per-node
+    /// traversal for value memory.
     /// </para>
     /// </summary>
     [SkipLocalsInit]
     public unsafe class UnsafeNativeSpanTrie : IPrefixLookup<NativeByteSpan?>, IDisposable
     {
+        /// <inheritdoc/>
         public static bool IsImmutable => false;
+        /// <inheritdoc/>
         public static Concurrency ThreadSafety => Concurrency.None;
+        /// <inheritdoc/>
         public static bool IsSorted => true;
 
         private const int InitialNodeBufferCount = 4096;
@@ -59,8 +70,14 @@ namespace TrieHard.Collections
         private bool isDisposed;
         private UnsafeNativeSpanTrieNode* rootPointer;
 
+        /// <summary>The number of keys with stored values in the trie.</summary>
         public int Count => count;
 
+        /// <summary>
+        /// Gets or sets the value associated with <paramref name="key"/>.
+        /// Returns <c>null</c> when the key is absent or was explicitly stored as <c>null</c>.
+        /// Setting to <c>null</c> stores a null value; the key is still counted as present.
+        /// </summary>
         public NativeByteSpan? this[string key]
         {
             get => Get(key);
@@ -122,10 +139,9 @@ namespace TrieHard.Collections
             }
         }
 
-        // ---------------------------------------------------------------------------
-        // Set
-        // ---------------------------------------------------------------------------
-
+        /// <summary>
+        /// Sets the value for <paramref name="key"/>. Pass <c>null</c> to store a null value for the key.
+        /// </summary>
         public void Set(string key, byte[]? value)
         {
             var maxByteSize = KeyMaxByteSize(key.Length);
@@ -147,6 +163,7 @@ namespace TrieHard.Collections
             }
         }
 
+        /// <summary>Sets the value for <paramref name="key"/> from a <see cref="ReadOnlySpan{T}"/>.</summary>
         public void Set(string key, ReadOnlySpan<byte> value)
         {
             var maxByteSize = KeyMaxByteSize(key.Length);
@@ -274,12 +291,12 @@ namespace TrieHard.Collections
             valueBuffer.Advance(slabAdvance);
         }
 
-        // ---------------------------------------------------------------------------
-        // Search / Find
-        // ---------------------------------------------------------------------------
-
         private static readonly byte[] EmptyKeyBytes = Array.Empty<byte>();
 
+        /// <summary>
+        /// Returns an enumerator that yields all key-value pairs whose keys begin with
+        /// <paramref name="key"/>. Dispose the enumerator when done to release pooled resources.
+        /// </summary>
         public UnsafeNativeSpanTrieEnumerator Search(string key)
         {
             if (key.Length == 0)
@@ -294,6 +311,11 @@ namespace TrieHard.Collections
             return Search(rentedBuffer.AsMemory(0, bytesWritten), keyBuffer: rentedBuffer);
         }
 
+        /// <summary>
+        /// Returns an enumerator that yields all key-value pairs whose UTF-8 keys begin with
+        /// <paramref name="key"/>. When a pooled <paramref name="keyBuffer"/> is provided it is
+        /// returned to <see cref="ArrayPool{T}.Shared"/> when the enumerator is disposed.
+        /// </summary>
         public UnsafeNativeSpanTrieEnumerator Search(ReadOnlyMemory<byte> key, byte[]? keyBuffer = null)
         {
             nint matchingNode = FindNodeAddress(key.Span);
@@ -304,6 +326,10 @@ namespace TrieHard.Collections
             return new UnsafeNativeSpanTrieEnumerator(key, 0, keyBuffer);
         }
 
+        /// <summary>
+        /// Returns a value-only enumerator for all entries whose UTF-8 keys begin with
+        /// <paramref name="keyPrefix"/>. Dispose the enumerator when done to release unmanaged resources.
+        /// </summary>
         public UnsafeNativeSpanTrieValueEnumerator SearchValues(ReadOnlySpan<byte> keyPrefix)
         {
             nint matchingNode = FindNodeAddress(keyPrefix);
@@ -314,6 +340,10 @@ namespace TrieHard.Collections
             return UnsafeNativeSpanTrieValueEnumerator.None;
         }
 
+        /// <summary>
+        /// Returns a value-only enumerator for all entries whose keys begin with
+        /// <paramref name="keyPrefix"/>. Dispose the enumerator when done to release unmanaged resources.
+        /// </summary>
         public UnsafeNativeSpanTrieValueEnumerator SearchValues(string keyPrefix)
         {
             var maxByteSize = KeyMaxByteSize(keyPrefix.Length);
@@ -365,10 +395,10 @@ namespace TrieHard.Collections
             }
         }
 
-        // ---------------------------------------------------------------------------
-        // Get
-        // ---------------------------------------------------------------------------
-
+        /// <summary>
+        /// Returns the value stored for <paramref name="key"/>, or <c>null</c> if the key is not
+        /// present or was stored as <c>null</c>.
+        /// </summary>
         public NativeByteSpan? Get(string key)
         {
             int keyByteMaxSize = KeyMaxByteSize(key.Length);
@@ -391,6 +421,10 @@ namespace TrieHard.Collections
             }
         }
 
+        /// <summary>
+        /// Returns the value stored for the UTF-8 <paramref name="key"/>, or <c>null</c> if
+        /// the key is not present or was stored as <c>null</c>.
+        /// </summary>
         public NativeByteSpan? Get(ReadOnlySpan<byte> key)
         {
             var nodeAddress = FindNodeAddress(key);
@@ -400,10 +434,10 @@ namespace TrieHard.Collections
             return UnsafeNativeSpanTrieEnumerator.ReadNodeValue(node);
         }
 
-        // ---------------------------------------------------------------------------
-        // LongestPrefix
-        // ---------------------------------------------------------------------------
-
+        /// <summary>
+        /// Returns the value associated with the longest key in the trie that is a prefix of
+        /// <paramref name="key"/>, or <c>null</c> if no such prefix exists.
+        /// </summary>
         public NativeByteSpan? LongestPrefix(string key)
         {
             int keyByteMaxSize = KeyMaxByteSize(key.Length);
@@ -426,6 +460,10 @@ namespace TrieHard.Collections
             }
         }
 
+        /// <summary>
+        /// Returns the value associated with the longest UTF-8 key in the trie that is a prefix
+        /// of <paramref name="key"/>, or <c>null</c> if no such prefix exists.
+        /// </summary>
         public NativeByteSpan? LongestPrefix(ReadOnlySpan<byte> key)
         {
             NativeByteSpan? longestValue = rootPointer->HasValue
@@ -461,10 +499,11 @@ namespace TrieHard.Collections
             return longestValue;
         }
 
-        // ---------------------------------------------------------------------------
-        // Lifecycle
-        // ---------------------------------------------------------------------------
-
+        /// <summary>
+        /// Frees all unmanaged memory owned by the trie: node buffers, child-key blocks, and
+        /// value slabs. Any <see cref="NativeByteSpan"/> instances obtained from this trie become
+        /// invalid after this call.
+        /// </summary>
         public void Dispose()
         {
             if (isDisposed) return;
@@ -500,11 +539,20 @@ namespace TrieHard.Collections
 
         private static readonly byte[] EmptyByteArray = Array.Empty<byte>();
 
+        /// <summary>
+        /// Returns an enumerator that yields all key-value pairs in the trie in sorted
+        /// (lexicographic) order. Dispose the enumerator when done to release unmanaged resources.
+        /// </summary>
         public UnsafeNativeSpanTrieEnumerator GetEnumerator()
         {
             return new UnsafeNativeSpanTrieEnumerator(EmptyByteArray, new nint(rootPointer));
         }
 
+        /// <summary>
+        /// Removes all stored values and reclaims value slab memory, while preserving the
+        /// allocated node structure for reuse. Any <see cref="NativeByteSpan"/> instances
+        /// obtained before this call become invalid.
+        /// </summary>
         public void Clear()
         {
             ClearNodeRecursive(new nint(rootPointer));
@@ -529,10 +577,6 @@ namespace TrieHard.Collections
                 ClearNodeRecursive(node->GetChild(i));
         }
 
-        // ---------------------------------------------------------------------------
-        // IPrefixLookup<NativeByteSpan> explicit implementations
-        // ---------------------------------------------------------------------------
-
         IEnumerable<KeyValue<NativeByteSpan?>> IPrefixLookup<NativeByteSpan?>.Search(string keyPrefix)
         {
             return Search(keyPrefix);
@@ -553,6 +597,11 @@ namespace TrieHard.Collections
             return GetEnumerator();
         }
 
+        /// <summary>
+        /// Creates and populates an <see cref="UnsafeNativeSpanTrie"/> from <paramref name="source"/>.
+        /// <typeparamref name="TValue"/> must be <see cref="NativeByteSpan"/>; throws
+        /// <see cref="NotSupportedException"/> otherwise.
+        /// </summary>
         public static IPrefixLookup<TValue?> Create<TValue>(IEnumerable<KeyValue<TValue?>> source)
         {
             if (source is not IEnumerable<KeyValue<NativeByteSpan?>> byteSource)
@@ -568,6 +617,11 @@ namespace TrieHard.Collections
             return (IPrefixLookup<TValue?>)(object)trie;
         }
 
+        /// <summary>
+        /// Creates an empty <see cref="UnsafeNativeSpanTrie"/>.
+        /// <typeparamref name="TValue"/> must be <see cref="NativeByteSpan"/>; throws
+        /// <see cref="NotSupportedException"/> otherwise.
+        /// </summary>
         public static IPrefixLookup<TValue?> Create<TValue>()
         {
             if (typeof(TValue) != typeof(NativeByteSpan))

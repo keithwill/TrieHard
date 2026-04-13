@@ -42,13 +42,19 @@ namespace TrieHard.Collections
         /// <summary>True when this node is a terminal for a stored key and a value (possibly null) has been set.</summary>
         public bool HasValue;
 
+        /// <summary>Number of children currently stored in the child keys/addresses block.</summary>
         public byte ChildCount;
 
         /// <summary>Size of this node struct in bytes, including any sequential-layout padding.</summary>
         public static int Size => Unsafe.SizeOf<UnsafeNativeSpanTrieNode>();
 
+        /// <summary>Pointer to the start of the child keys/addresses block as a native integer.</summary>
         public nint ChildKeys => (nint)ChildKeysAddress;
 
+        /// <summary>
+        /// Pointer to the start of the child addresses section within the child keys/addresses block
+        /// (immediately after the <see cref="ChildCount"/> key bytes).
+        /// </summary>
         public nint ChildLocations
         {
             get
@@ -58,18 +64,25 @@ namespace TrieHard.Collections
             }
         }
 
+        /// <summary>
+        /// Searches the sorted child key bytes for <paramref name="keyByte"/>.
+        /// Returns the index of the match, or a negative value (bitwise complement of the
+        /// insertion point) when not found.
+        /// </summary>
         public int BinarySearch(byte keyByte)
         {
             Span<byte> keys = new Span<byte>(ChildKeys.ToPointer(), ChildCount);
             return keys.BinarySearch(keyByte);
         }
 
+        /// <summary>Returns the address of the child node at <paramref name="index"/>.</summary>
         public nint GetChild(int index)
         {
             var childrenLocations = (long*)ChildLocations.ToPointer();
             return (nint)childrenLocations[index];
         }
 
+        /// <summary>Returns the key byte of the child at <paramref name="index"/>.</summary>
         public byte GetChildKey(int index)
         {
             byte* childKeys = (byte*)ChildKeys.ToPointer();

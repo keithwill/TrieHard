@@ -14,8 +14,44 @@ This repository is a playground for testing various implementations
 of structures and approaches for performing prefix (starts with)
 searches, like the kind used for autocomplete or typeahead functionality.
 
-I will gladly take contributions to this project and I plan to expose some
-of its results as NuGet packages for general use.
+I will gladly take contributions to this project. The `PrefixLookup` implementation
+is published as a NuGet package for general use.
+
+## Getting Started
+
+```shell
+dotnet add package PrefixLookup
+```
+
+```csharp
+// Create and populate
+var lookup = new PrefixLookup<string>();
+lookup["apple"] = "a fruit";
+lookup["application"] = "a program";
+lookup["apt"] = "linux package manager";
+
+// Prefix search — returns key-value pairs in lexicographic order
+foreach (var result in lookup.Search("app"))
+{
+    Console.WriteLine($"{result.Key}: {result.Value}");
+}
+
+// Direct key lookup
+string? value = lookup["apple"];
+
+// Longest prefix match (useful for routing)
+string? route = lookup.LongestPrefix("/api/users/123");
+```
+
+> **Tip:** For performance-sensitive hot paths, pass `ReadOnlySpan<byte>` (UTF-8) directly to `Get`, `Set`, `Search`, and `SearchValues` to skip string encoding overhead.
+
+`PrefixLookup<T>` also supports case-insensitive mode, where keys are normalized at insert and search time:
+
+```csharp
+var lookup = new PrefixLookup<string>(caseSensitive: false);
+lookup["Apple"] = "fruit";
+var result = lookup.Search("app"); // matches "Apple"
+```
 
 ## What is with the name? What is a Trie?
 
@@ -102,6 +138,21 @@ other techniques to reduce allocations and GC pressure during operation. It offe
 few specialized APIs beyond the IPrefixLookup methods, such as a non allocating search
 operation that gives access to keys as UTF8 spans.
 
+> **Resource Management:** `UnsafeTrie`, `UnsafeBlittableTrie`, and `UnsafeNativeSpanTrie`
+> allocate unmanaged memory and implement `IDisposable`. Always dispose them (or use a
+> `using` declaration) when done.
+
+### UnsafeBlittableTrie
+
+A variant of UnsafeTrie that only accepts `unmanaged` generic types (structs containing
+only value types — ints, enums, other unmanaged structs). Values are stored inline within
+each node in unmanaged memory, eliminating boxing and separate heap allocations per entry.
+
+### UnsafeNativeSpanTrie
+
+Stores raw byte span values in unmanaged memory. Useful when values are already byte
+arrays and you want to avoid encoding overhead and managed heap pressure.
+
 ### [SimpleTrie](https://github.com/keithwill/TrieHard/tree/main/src/TrieHard.Alternatives/SimpleTrie)
 
 This was implemented as a reference C# trie based on various articles that suggest
@@ -130,11 +181,23 @@ concurrent write pressure). I don't recommend reusing this SQLiteLookup, as
 its not intended for use outside of these contrived benchmarks and it wasn't
 made to support updates.
 
+### NuGet Package: [PrefixLookup](https://www.nuget.org/packages/PrefixLookup)
 
-### Nuget Package [PrefixLookup](https://camo.githubusercontent.com/887adb22225c0f98b23fecc0aca4b12ae232332941c37fc0615ab57d4dc03ade/68747470733a2f2f696d672e736869656c64732e696f2f6e756765742f762f5072656669784c6f6f6b7570)
-
-The PrefixLookup.csproj includes output for a NugetPackage that includes the PrefixLookup
+The PrefixLookup.csproj includes output for a NuGet package that includes the PrefixLookup
 class and the UnsafeTrie.
+
+## Choosing an Implementation
+
+| Goal | Recommended |
+|---|---|
+| General purpose prefix lookup | `PrefixLookup<T>` |
+| Reduce GC / unmanaged memory pressure | `UnsafeTrie<T>` |
+| Store unmanaged value types with zero boxing | `UnsafeBlittableTrie<T>` |
+| Store raw byte arrays as values | `UnsafeNativeSpanTrie` |
+| Naive reference implementation | `SimpleTrie<T>` |
+
+`PrefixLookup<T>`,  `UnsafeTrie<T>`, `UnsafeBlittableTrie`, and `UnsafeNativeSpanTrie` are available via the `PrefixLookup` NuGet package.
+The other implementations are in this repository for research and benchmarking purposes.
 
 ## Benchmarks
 
@@ -199,16 +262,14 @@ A plain list struggles a bit at one million records.
 `dotnet run -c Release --filter *SearchValues*`
 
 ```console
-| Type         | Method            | Mean             | Error          | StdDev         | Gen0   | Allocated |
-|------------- |------------------ |-----------------:|---------------:|---------------:|-------:|----------:|
-| Unsafe       | SearchValues**    |         43.77 ns |       0.059 ns |       0.052 ns |      - |         - |
-| PrefixLookup | SearchValues      |        102.13 ns |       0.104 ns |       0.092 ns |      - |         - |
-| Simple       | SearchValues      |      1,169.26 ns |       8.131 ns |       7.208 ns | 0.0153 |    2712 B |
-| NaiveList    | SearchValues      | 19,610,249.38 ns | 239,773.289 ns | 224,284.083 ns |      - |     335 B |
-| SQLite       | SearchValues      | 33,229,859.05 ns | 187,359.459 ns | 166,089.280 ns |      - |     545 B |
+| Type             | Method                 | Mean             | Error          | StdDev         | Gen0   | Allocated |
+|----------------- |----------------------- |-----------------:|---------------:|---------------:|-------:|----------:|
+| PrefixLookup     | SearchValues           |         92.55 ns |       0.279 ns |       0.247 ns |      - |         - |
+| Unsafe           | SearchValues           |        105.93 ns |       0.717 ns |       0.599 ns |      - |         - |
+| Simple           | SearchValues           |      1,091.33 ns |       8.546 ns |       7.994 ns | 0.0153 |    2712 B |
+| NaiveList        | SearchValues           | 19,244,868.97 ns |  76,344.751 ns |  67,677.633 ns |      - |     326 B |
+| SQLite           | SearchValues           | 30,652,710.82 ns | 132,381.723 ns | 110,544.734 ns |      - |     519 B |
 ```
-
-The Unsafe SearchValues result doesn't seem accurate.
 
 ### Longest Prefix
 `dotnet run -c Release --filter *LongestPrefix*`
@@ -265,6 +326,9 @@ of C# strings when getting or setting values.
 | Unsafe       | paths      |       67.17 |     3947.65 |   0.4849 |
 | Simple       | paths      |    20991.61 |    22617.46 |  21.9587 |
 ```
+
+*Baseline: a single `List<string>` holding all 5M keys, representing the minimum managed
+memory needed to store the raw strings without any index structure.*
 
 The 'paths' keys look like URL subpaths and follow a format of
 /customer/{id}/entity/{id}/ with the ID being a sequential number. This

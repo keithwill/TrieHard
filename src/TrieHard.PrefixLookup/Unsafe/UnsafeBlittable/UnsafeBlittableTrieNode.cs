@@ -1,18 +1,16 @@
-using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace TrieHard.Collections
 {
     /// <summary>
-    /// A trie node that embeds its value T directly in the node struct stored in unmanaged memory.
-    /// Unlike <see cref="UnsafeTrieNode"/>, there is no index into a managed values list — the value
-    /// lives alongside the navigation metadata in the same allocation.
+    /// A node in a <see cref="UnsafeBlittableTrie{T}"/>, stored in unmanaged memory.
     /// <para>
-    /// Uses <see cref="LayoutKind.Sequential"/> instead of <see cref="LayoutKind.Explicit"/> because
-    /// <c>[FieldOffset]</c> attributes require compile-time constant offsets, which cannot be expressed
-    /// for fields that follow a generic field <c>T Value</c> whose size varies by type argument.
-    /// The sequential layout lets the runtime compute correct offsets and padding per closed generic type.
+    /// Each node holds a value of type <typeparamref name="T"/> inline alongside its navigation
+    /// metadata. Children are maintained as a sorted array of key bytes with a parallel array of
+    /// node pointers, both stored in a single externally-allocated unmanaged block pointed to by
+    /// <see cref="ChildKeysAddress"/>. Child lookup uses binary search, so insertion and lookup
+    /// cost O(log k) where k is the number of children at a node.
     /// </para>
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
@@ -31,6 +29,7 @@ namespace TrieHard.Collections
         /// <summary>True when this node is a terminal for a stored key and <see cref="Value"/> is meaningful.</summary>
         public bool HasValue;
 
+        /// <summary>The number of immediate children of this node.</summary>
         public byte ChildCount;
 
         /// <summary>
@@ -39,8 +38,13 @@ namespace TrieHard.Collections
         /// </summary>
         public static int Size => Unsafe.SizeOf<UnsafeBlittableTrieNode<T>>();
 
+        /// <summary>Pointer to the start of the child-keys block (the key bytes portion).</summary>
         public nint ChildKeys => (nint)ChildKeysAddress;
 
+        /// <summary>
+        /// Pointer to the child-addresses portion of the child block, which begins immediately after the
+        /// <see cref="ChildCount"/> key bytes.
+        /// </summary>
         public nint ChildLocations
         {
             get
@@ -50,18 +54,27 @@ namespace TrieHard.Collections
             }
         }
 
+        /// <summary>
+        /// Searches the sorted child-key array for <paramref name="keyByte"/> using binary search.
+        /// </summary>
+        /// <returns>
+        /// The non-negative index of the child if found; otherwise the bitwise complement (~) of the
+        /// index at which <paramref name="keyByte"/> would be inserted to preserve sort order.
+        /// </returns>
         public int BinarySearch(byte keyByte)
         {
             Span<byte> keys = new Span<byte>(ChildKeys.ToPointer(), ChildCount);
             return keys.BinarySearch(keyByte);
         }
 
+        /// <summary>Returns the node pointer for the child at the given sorted <paramref name="index"/>.</summary>
         public nint GetChild(int index)
         {
             var childrenLocations = (long*)ChildLocations.ToPointer();
             return (nint)childrenLocations[index];
         }
 
+        /// <summary>Returns the key byte for the child at the given sorted <paramref name="index"/>.</summary>
         public byte GetChildKey(int index)
         {
             byte* childKeys = (byte*)ChildKeys.ToPointer();

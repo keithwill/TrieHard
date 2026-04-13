@@ -1,15 +1,20 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace TrieHard.Collections
 {
     /// <summary>
-    /// Value-only enumerator for <see cref="UnsafeBlittableTrie{T}"/>.
-    /// Unlike <see cref="UnsafeTrieValueEnumerator{T}"/>, this enumerator does not hold a reference
-    /// to the trie; values are read directly from each node's inline <c>Value</c> field.
+    /// An enumerator that yields values from a <see cref="UnsafeBlittableTrie{T}"/>, starting from a
+    /// given node and covering all of its descendants in lexicographic key order, without reconstructing
+    /// the key strings.
+    /// <para>
+    /// Obtain instances via <see cref="UnsafeBlittableTrie{T}.SearchValues(string)"/>. Do not construct directly.
+    /// </para>
+    /// <para>
+    /// This struct allocates a small unmanaged traversal stack. Always dispose it — either explicitly
+    /// or by iterating with <see langword="foreach"/>, which calls <see cref="Dispose"/> automatically.
+    /// </para>
     /// </summary>
     [SkipLocalsInit]
     public unsafe struct UnsafeBlittableTrieValueEnumerator<T> : IEnumerable<T?>, IEnumerator<T?>
@@ -26,6 +31,7 @@ namespace TrieHard.Collections
         private T? currentValue;
         private bool finished;
 
+        /// <summary>A pre-finished, empty enumerator that yields no elements.</summary>
         public readonly static UnsafeBlittableTrieValueEnumerator<T> None =
             new UnsafeBlittableTrieValueEnumerator<T>(0) { finished = true };
 
@@ -75,6 +81,8 @@ namespace TrieHard.Collections
             return entry;
         }
 
+        /// <summary>Advances the enumerator to the next value.</summary>
+        /// <returns><see langword="true"/> if a value is available in <see cref="Current"/>; <see langword="false"/> when all entries have been yielded.</returns>
         public bool MoveNext()
         {
             if (finished) return false;
@@ -131,6 +139,10 @@ namespace TrieHard.Collections
             }
         }
 
+        /// <summary>
+        /// Releases the unmanaged traversal stack.
+        /// Must be called when enumeration is complete unless a <see langword="foreach"/> loop is used.
+        /// </summary>
         public void Dispose()
         {
             if (!isDisposed)
@@ -143,6 +155,7 @@ namespace TrieHard.Collections
             }
         }
 
+        /// <summary>Resets the enumerator to the beginning of the subtree so it can be iterated again.</summary>
         public void Reset()
         {
             if (collectNode != 0)
@@ -157,9 +170,12 @@ namespace TrieHard.Collections
             }
         }
 
+        /// <summary>Returns this enumerator, enabling use in <see langword="foreach"/> loops directly on the enumerator struct.</summary>
         public UnsafeBlittableTrieValueEnumerator<T> GetEnumerator() { return this; }
         IEnumerator<T?> IEnumerable<T?>.GetEnumerator() { return this; }
         IEnumerator IEnumerable.GetEnumerator() { return this; }
+
+        /// <summary>Gets the current value. Valid only after a successful call to <see cref="MoveNext"/>.</summary>
         public T? Current => currentValue;
         object? IEnumerator.Current => currentValue;
     }

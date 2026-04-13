@@ -1,13 +1,10 @@
-using System;
-using System.Runtime.InteropServices;
-
 namespace TrieHard.Collections
 {
     /// <summary>
     /// A zero-allocation view of a byte sequence stored in unmanaged memory by
     /// <see cref="UnsafeNativeSpanTrie"/>.
     /// <para>
-    /// The lifetime of the underlying bytes is tied to the owning trie: the span remains
+    /// The lifetime of the underlying bytes are tied to the owning trie: the span remains
     /// valid until the key is overwritten with a larger value, or until the trie is disposed
     /// or cleared. Callers should not hold a <see cref="NativeByteSpan"/> beyond those events.
     /// </para>

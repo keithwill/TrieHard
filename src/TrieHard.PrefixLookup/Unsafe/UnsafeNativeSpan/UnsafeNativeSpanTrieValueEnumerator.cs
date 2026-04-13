@@ -1,15 +1,21 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace TrieHard.Collections
 {
     /// <summary>
-    /// Value-only enumerator for <see cref="UnsafeNativeSpanTrie"/>.
-    /// Values are returned as <see cref="NativeByteSpan"/> — a zero-allocation struct that
-    /// points directly into the trie's unmanaged value slabs.
+    /// Value-only enumerator returned by <see cref="UnsafeNativeSpanTrie.SearchValues(string)"/>
+    /// that yields values in lexicographic key order without allocating key strings.
+    /// <para>
+    /// Values are returned as <see cref="NativeByteSpan?"/> — a zero-allocation struct that
+    /// points directly into the trie's unmanaged value slabs. The spans are valid only for the
+    /// lifetime of the owning trie (see <see cref="NativeByteSpan"/> for details).
+    /// </para>
+    /// <para>
+    /// The enumerator allocates a small unmanaged traversal stack. Always dispose it (via
+    /// <c>using</c> or an explicit <see cref="Dispose"/> call) to avoid unmanaged memory leaks.
+    /// </para>
     /// </summary>
     [SkipLocalsInit]
     public unsafe struct UnsafeNativeSpanTrieValueEnumerator : IEnumerable<NativeByteSpan?>, IEnumerator<NativeByteSpan?>
@@ -25,6 +31,7 @@ namespace TrieHard.Collections
         private NativeByteSpan? currentValue;
         private bool finished;
 
+        /// <summary>A pre-finished, empty enumerator that yields no results.</summary>
         public readonly static UnsafeNativeSpanTrieValueEnumerator None =
             new UnsafeNativeSpanTrieValueEnumerator(0) { finished = true };
 
@@ -74,6 +81,7 @@ namespace TrieHard.Collections
             return entry;
         }
 
+        /// <summary>Advances the enumerator to the next value. Returns <c>false</c> when exhausted.</summary>
         public bool MoveNext()
         {
             if (finished) return false;
@@ -130,6 +138,7 @@ namespace TrieHard.Collections
             }
         }
 
+        /// <summary>Frees the unmanaged traversal stack.</summary>
         public void Dispose()
         {
             if (!isDisposed)
@@ -142,6 +151,7 @@ namespace TrieHard.Collections
             }
         }
 
+        /// <summary>Resets the enumerator to the beginning of the result set.</summary>
         public void Reset()
         {
             if (collectNode != 0)
@@ -156,9 +166,11 @@ namespace TrieHard.Collections
             }
         }
 
+        /// <summary>Returns this enumerator, enabling use in <c>foreach</c> directly on the struct.</summary>
         public UnsafeNativeSpanTrieValueEnumerator GetEnumerator() { return this; }
         IEnumerator<NativeByteSpan?> IEnumerable<NativeByteSpan?>.GetEnumerator() { return this; }
         IEnumerator IEnumerable.GetEnumerator() { return this; }
+        /// <summary>The current value.</summary>
         public NativeByteSpan? Current => currentValue;
         object? IEnumerator.Current => currentValue;
     }

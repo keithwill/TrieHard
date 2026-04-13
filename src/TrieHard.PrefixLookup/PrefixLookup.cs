@@ -7,37 +7,54 @@ using TrieHard.Collections;
 namespace TrieHard.PrefixLookup;
 
 /// <summary>
-/// A collection for storing values keyed by string that offers efficient lookup by key prefixes.
+/// A general-purpose sorted prefix lookup backed by a radix tree that stores values keyed by
+/// string and supports efficient prefix-based retrieval.
+/// <para>
+/// Keys are strings stored as UTF-8 bytes internally. An optional case-insensitive mode
+/// (see <see cref="PrefixLookup{T}(bool)"/>) folds all keys to upper-case (invariant culture)
+/// before storage and lookup. Raw UTF-8 byte keys are also accepted via the
+/// <see cref="this[ReadOnlySpan{byte}]"/> indexer and <see cref="Set"/>/<see cref="Get"/> overloads.
+/// </para>
+/// <para>
+/// <b>Thread safety:</b> concurrent reads from multiple threads are safe. Writes must be
+/// performed from a single thread.
+/// </para>
+/// <para>
+/// All enumeration methods return results in lexicographic (sorted) key order.
+/// </para>
 /// </summary>
-/// <remarks>
-/// Implemented as a Radix Tree.
-/// </remarks>
-/// <seealso>https://en.wikipedia.org/wiki/Radix_tree</seealso>
-/// <typeparam name="T"></typeparam>
+/// <typeparam name="T">The type of value stored with each key.</typeparam>
+/// <seealso href="https://en.wikipedia.org/wiki/Radix_tree">Radix tree — Wikipedia</seealso>
 public class PrefixLookup<T> : IPrefixLookup<T>
 {
+    /// <inheritdoc/>
     public static bool IsImmutable => false;
+    /// <inheritdoc/>
     public static Concurrency ThreadSafety => Concurrency.Read;
+    /// <inheritdoc/>
     public static bool IsSorted => true;
 
     private Node<T?> root;
     private bool isCaseSensitive = true;
 
     /// <summary>
-    /// Initializes the PrefixLookup
+    /// Initializes a new <see cref="PrefixLookup{T}"/>.
     /// </summary>
     /// <param name="caseSensitive">
-    /// If keys provided as strings should be uppercased (invariant culture)
-    /// before being used for a lookup or set operation.
-    /// /// be made case </param>
+    /// <c>true</c> (the default) to treat keys as case-sensitive.
+    /// <c>false</c> to fold all keys to upper-case (invariant culture) before storage and lookup,
+    /// making the collection case-insensitive.
+    /// </param>
     public PrefixLookup(bool caseSensitive = true)
     {
         root = new Node<T?>();
         isCaseSensitive = caseSensitive;
     }
 
+    /// <inheritdoc/>
     public int Count => root.GetValuesCount();
 
+    /// <inheritdoc/>
     public T? this[string key]
     {
         get
@@ -54,6 +71,10 @@ public class PrefixLookup<T> : IPrefixLookup<T>
         }
     }
 
+    /// <summary>
+    /// Gets or sets the value associated with the UTF-8 byte key <paramref name="key"/>.
+    /// Returns <c>default</c> when the key is not present.
+    /// </summary>
     public T? this[ReadOnlySpan<byte> key]
     {
         get
@@ -82,16 +103,22 @@ public class PrefixLookup<T> : IPrefixLookup<T>
     }
 
 
+    /// <summary>Sets the value for the UTF-8 byte key <paramref name="keyBytes"/>.</summary>
     public void Set(ReadOnlySpan<byte> keyBytes, T? value)
     {
         root.SetValue(ref root, keyBytes, value);
     }
 
+    /// <summary>
+    /// Returns the value stored for the UTF-8 byte key <paramref name="key"/>, or
+    /// <c>default</c> if the key is not present.
+    /// </summary>
     public T? Get(ReadOnlySpan<byte> key)
     {
         return root.Get(key);
     }
 
+    /// <inheritdoc/>
     public T? LongestPrefix(string key)
     {
         Span<byte> keyBuffer = stackalloc byte[key.Length * 4];
@@ -99,16 +126,22 @@ public class PrefixLookup<T> : IPrefixLookup<T>
         return LongestPrefix(keySpan);
     }
 
+    /// <summary>
+    /// Returns the value associated with the longest UTF-8 key in the collection that is a
+    /// prefix of <paramref name="key"/>, or <c>default</c> if no such prefix exists.
+    /// </summary>
     public T? LongestPrefix(ReadOnlySpan<byte> key)
     {
         return root.LongestPrefix(key);
     }
 
+    /// <inheritdoc/>
     public void Clear()
     {
         root.Reset();
     }
 
+    /// <summary>Returns an enumerator that yields all key-value pairs in lexicographic order.</summary>
     public IEnumerator<KeyValue<T?>> GetEnumerator()
     {
         return Search(ReadOnlySpan<byte>.Empty).GetEnumerator();
@@ -119,11 +152,15 @@ public class PrefixLookup<T> : IPrefixLookup<T>
         return GetEnumerator();
     }
 
+    /// <summary>Creates an empty <see cref="PrefixLookup{T}"/> for the given value type.</summary>
     public static IPrefixLookup<TValue?> Create<TValue>()
     {
         return new PrefixLookup<TValue?>();
     }
 
+    /// <summary>
+    /// Creates a <see cref="PrefixLookup{T}"/> populated from <paramref name="source"/>.
+    /// </summary>
     public static IPrefixLookup<TValue?> Create<TValue>(IEnumerable<KeyValue<TValue?>> source)
     {
         var result = new PrefixLookup<TValue?>();
@@ -134,6 +171,10 @@ public class PrefixLookup<T> : IPrefixLookup<T>
         return result;
     }
 
+    /// <summary>
+    /// Returns a value-only enumerator for all entries whose keys begin with
+    /// <paramref name="keyPrefix"/>, in lexicographic order.
+    /// </summary>
     public ValueEnumerator SearchValues(string keyPrefix)
     {
         Span<byte> keyBuffer = stackalloc byte[keyPrefix.Length * 4];
@@ -141,12 +182,20 @@ public class PrefixLookup<T> : IPrefixLookup<T>
         return SearchValues(keyBuffer);
     }
 
+    /// <summary>
+    /// Returns a value-only enumerator for all entries whose UTF-8 keys begin with
+    /// <paramref name="keyPrefix"/>, in lexicographic order.
+    /// </summary>
     public ValueEnumerator SearchValues(ReadOnlySpan<byte> keyPrefix)
     {
         Node<T?>? matchingNode = keyPrefix.Length == 0 ? root : root.FindPrefixMatch(keyPrefix);
         return new ValueEnumerator(matchingNode);
     }
 
+    /// <summary>
+    /// Returns an enumerator that yields all key-value pairs whose keys begin with
+    /// <paramref name="keyPrefix"/>, in lexicographic order.
+    /// </summary>
     public Enumerator Search(string keyPrefix)
     {
         Span<byte> keyBuffer = stackalloc byte[keyPrefix.Length * 4];
@@ -154,6 +203,10 @@ public class PrefixLookup<T> : IPrefixLookup<T>
         return Search(keyBuffer);
     }
 
+    /// <summary>
+    /// Returns an enumerator that yields all key-value pairs whose UTF-8 keys begin with
+    /// <paramref name="keyPrefix"/>, in lexicographic order.
+    /// </summary>
     public Enumerator Search(ReadOnlySpan<byte> keyPrefix)
     {
         Node<T?>? matchingNode = keyPrefix.Length == 0 ? root : root.FindPrefixMatch(keyPrefix);
@@ -178,16 +231,27 @@ public class PrefixLookup<T> : IPrefixLookup<T>
 
     #region Enumerators
 
+    /// <summary>
+    /// Key-value pair enumerator returned by <see cref="PrefixLookup{T}.Search(string)"/> and
+    /// <see cref="PrefixLookup{T}.GetEnumerator()"/>. Yields results in lexicographic key order.
+    /// <para>
+    /// The traversal stack is rented from a pool on first <see cref="MoveNext"/> call and
+    /// returned to the pool on <see cref="IDisposable.Dispose"/>. Always dispose via <c>using</c>
+    /// or an explicit dispose to return the stack to the pool.
+    /// </para>
+    /// </summary>
     public struct Enumerator : IEnumerable<KeyValue<T?>>, IEnumerator<KeyValue<T?>>
     {
 
         private Node<T?>? searchNode;
         private Stack<(Node<T?>[] Siblings, int Index)>? stack;
         private KeyValue<T?> current;
+        /// <summary>The current key-value pair.</summary>
         public KeyValue<T?> Current => current;
 
         object IEnumerator.Current => Current;
 
+        /// <summary>Returns this enumerator, enabling use in <c>foreach</c> directly on the struct.</summary>
         public Enumerator GetEnumerator() => this;
 
         internal Enumerator(Node<T?>? collectNode)
@@ -212,6 +276,7 @@ public class PrefixLookup<T> : IPrefixLookup<T>
             stackPool.Enqueue(stack);
         }
 
+        /// <summary>Advances the enumerator to the next key-value pair. Returns <c>false</c> when exhausted.</summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool MoveNext()
         {
@@ -287,11 +352,13 @@ public class PrefixLookup<T> : IPrefixLookup<T>
             return this;
         }
 
+        /// <summary>Not supported. Always throws <see cref="NotImplementedException"/>.</summary>
         public void Reset()
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>Returns the traversal stack to the pool.</summary>
         void IDisposable.Dispose()
         {
             if (stack is not null)
@@ -302,16 +369,27 @@ public class PrefixLookup<T> : IPrefixLookup<T>
         }
     }
 
+    /// <summary>
+    /// Value-only enumerator returned by <see cref="PrefixLookup{T}.SearchValues(string)"/>.
+    /// Yields values in lexicographic key order without allocating key strings.
+    /// <para>
+    /// The traversal stack is rented from a pool on first <see cref="MoveNext"/> call and
+    /// returned to the pool on <see cref="IDisposable.Dispose"/>. Always dispose via <c>using</c>
+    /// or an explicit dispose to return the stack to the pool.
+    /// </para>
+    /// </summary>
     public struct ValueEnumerator : IEnumerable<T>, IEnumerator<T>
     {
 
         private Node<T?>? searchNode;
         private Stack<(Node<T?>[] Siblings, int Index)>? stack;
         private T current = default!;
+        /// <summary>The current value.</summary>
         public T Current => current;
 
         object IEnumerator.Current => Current!;
 
+        /// <summary>Returns this enumerator, enabling use in <c>foreach</c> directly on the struct.</summary>
         public ValueEnumerator GetEnumerator() => this;
 
         internal ValueEnumerator(Node<T?>? collectNode)
@@ -336,6 +414,7 @@ public class PrefixLookup<T> : IPrefixLookup<T>
             stackPool.Enqueue(stack);
         }
 
+        /// <summary>Advances the enumerator to the next value. Returns <c>false</c> when exhausted.</summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool MoveNext()
         {
@@ -411,11 +490,13 @@ public class PrefixLookup<T> : IPrefixLookup<T>
             return this;
         }
 
+        /// <summary>Not supported. Always throws <see cref="NotImplementedException"/>.</summary>
         public void Reset()
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>Returns the traversal stack to the pool.</summary>
         void IDisposable.Dispose()
         {
             if (stack is not null)
