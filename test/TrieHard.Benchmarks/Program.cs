@@ -14,6 +14,7 @@ namespace TrieHard.Benchmarks
                 typeof(UnsafeNativeSpan),
                 typeof(Simple),
                 typeof(PrefixLookup),
+                typeof(PrefixLookupWide),
                 typeof(NaiveList),
                 typeof(SQLite),
             ], args: args, config: benchmarkConfig);
