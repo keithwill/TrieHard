@@ -142,9 +142,9 @@ public class PrefixLookup<T> : IPrefixLookup<T>
     }
 
     /// <summary>Returns an enumerator that yields all key-value pairs in lexicographic order.</summary>
-    public IEnumerator<KeyValue<T?>> GetEnumerator()
+    public Enumerator GetEnumerator()
     {
-        return Search(ReadOnlySpan<byte>.Empty).GetEnumerator();
+        return Search(ReadOnlySpan<byte>.Empty);
     }
 
     IEnumerator IEnumerable.GetEnumerator()
