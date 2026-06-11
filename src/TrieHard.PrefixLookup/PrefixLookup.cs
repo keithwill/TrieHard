@@ -59,13 +59,13 @@ public class PrefixLookup<T> : IPrefixLookup<T>
     {
         get
         {
-            Span<byte> keyBuffer = stackalloc byte[key.Length * 4];
+            Span<byte> keyBuffer = stackalloc byte[key.Length * 3];
             Span<byte> keySpan = GetKeyStringBytes(key, keyBuffer);
             return Get(keySpan);
         }
         set
         {
-            Span<byte> keyBuffer = stackalloc byte[key.Length * 4];
+            Span<byte> keyBuffer = stackalloc byte[key.Length * 3];
             Span<byte> keySpan = GetKeyStringBytes(key, keyBuffer);
             Set(keySpan, value);
         }
@@ -121,7 +121,7 @@ public class PrefixLookup<T> : IPrefixLookup<T>
     /// <inheritdoc/>
     public T? LongestPrefix(string key)
     {
-        Span<byte> keyBuffer = stackalloc byte[key.Length * 4];
+        Span<byte> keyBuffer = stackalloc byte[key.Length * 3];
         Span<byte> keySpan = GetKeyStringBytes(key, keyBuffer);
         return LongestPrefix(keySpan);
     }
@@ -177,7 +177,7 @@ public class PrefixLookup<T> : IPrefixLookup<T>
     /// </summary>
     public ValueEnumerator SearchValues(string keyPrefix)
     {
-        Span<byte> keyBuffer = stackalloc byte[keyPrefix.Length * 4];
+        Span<byte> keyBuffer = stackalloc byte[keyPrefix.Length * 3];
         keyBuffer = GetKeyStringBytes(keyPrefix, keyBuffer);
         return SearchValues(keyBuffer);
     }
@@ -198,7 +198,7 @@ public class PrefixLookup<T> : IPrefixLookup<T>
     /// </summary>
     public Enumerator Search(string keyPrefix)
     {
-        Span<byte> keyBuffer = stackalloc byte[keyPrefix.Length * 4];
+        Span<byte> keyBuffer = stackalloc byte[keyPrefix.Length * 3];
         keyBuffer = GetKeyStringBytes(keyPrefix, keyBuffer);
         return Search(keyBuffer);
     }

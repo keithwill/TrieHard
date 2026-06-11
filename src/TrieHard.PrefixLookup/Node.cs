@@ -76,7 +76,12 @@ internal class Node<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public KeyValue<T?> AsKeyValue()
     {
-        return new KeyValue<T?>(Key!, keyBytes.AsMemory(0, keyBytesLength), Value);
+        // The key string is materialized lazily: nodes are created on the write
+        // path without one, and only enumerators that actually yield a node need
+        // its UTF-16 key. The race under concurrent readers is benign — competing
+        // threads compute identical strings and the reference assignment is atomic.
+        Key ??= Encoding.UTF8.GetString(keyBytes, 0, keyBytesLength);
+        return new KeyValue<T?>(Key, keyBytes.AsMemory(0, keyBytesLength), Value);
     }
 
     /// <summary>
@@ -165,7 +170,7 @@ internal class Node<T>
                 newChild.keySegmentStart = keyOffset;
                 newChild.keyBytesLength = keyOffset + searchKey.Length;
                 newChild.FirstKeyByte = keyBytes[keyOffset];
-                newChild.Key = Encoding.UTF8.GetString(keyBytes, 0, newChild.keyBytesLength);
+                // Key is materialized lazily in AsKeyValue() — see that method.
                 newChild.Value = value;
                 searchNode = searchNode.CloneWithNewChild(newChild, insertChildAtIndex);
 
@@ -227,7 +232,7 @@ internal class Node<T>
         splitParent.keySegmentStart = child.keySegmentStart;
         splitParent.keyBytesLength = child.keySegmentStart + atKeyLength;
         splitParent.FirstKeyByte = child.keyBytes[child.keySegmentStart];
-        splitParent.Key = Encoding.UTF8.GetString(splitParent.keyBytes, 0, splitParent.keyBytesLength);
+        // Key is materialized lazily in AsKeyValue() — see that method.
 
         child = splitParent;
     }
@@ -347,7 +352,7 @@ internal class Node<T>
 
     public override string ToString()
     {
-        return Key!;
+        return Key ?? Encoding.UTF8.GetString(keyBytes, 0, keyBytesLength);
     }
 
     internal void Reset()
