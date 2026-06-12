@@ -202,7 +202,7 @@ internal class Node<T>
         clone.childrenBuffer = new Node<T>[childrenBuffer.Length + 1];
         Children.CopyWithInsert(clone.Children, newChild, atIndex);
         clone.childFirstBytes = new byte[childFirstBytes.Length + 1];
-        childFirstBytes.AsSpan().CopyWithInsert(clone.childFirstBytes, newChild.FirstKeyByte, atIndex);
+        childFirstBytes.AsSpan().CopyWithInsertThresholded(clone.childFirstBytes, newChild.FirstKeyByte, atIndex);
         return clone;
     }
 
