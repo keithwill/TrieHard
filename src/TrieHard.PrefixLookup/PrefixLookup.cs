@@ -244,7 +244,8 @@ public class PrefixLookup<T> : IPrefixLookup<T>
     {
 
         private Node<T?>? searchNode;
-        private Stack<(Node<T?>[] Siblings, int Index)>? stack;
+        private (Node<T?>[] Siblings, int Index)[]? stack;
+        private int stackCount;
         private KeyValue<T?> current;
         /// <summary>The current key-value pair.</summary>
         public KeyValue<T?> Current => current;
@@ -259,20 +260,23 @@ public class PrefixLookup<T> : IPrefixLookup<T>
             searchNode = collectNode;
         }
 
-        private static readonly ConcurrentQueue<Stack<(Node<T?>[] Siblings, int Index)>> stackPool = new();
+        private const int InitialStackSize = 32;
 
-        private Stack<(Node<T?>[] Siblings, int Index)> RentStack()
+        private static readonly ConcurrentQueue<(Node<T?>[] Siblings, int Index)[]> stackPool = new();
+
+        private static (Node<T?>[] Siblings, int Index)[] RentStack()
         {
             if (stackPool.TryDequeue(out var stack))
             {
                 return stack;
             }
-            return new Stack<(Node<T?>[] Siblings, int Index)>();
+            return new (Node<T?>[] Siblings, int Index)[InitialStackSize];
         }
 
-        private void ReturnStack(Stack<(Node<T?>[] Siblings, int Index)> stack)
+        private static void ReturnStack((Node<T?>[] Siblings, int Index)[] stack, int count)
         {
-            stack.Clear();
+            // Clear the live frames so the pool doesn't root traversed subtrees.
+            Array.Clear(stack, 0, count);
             stackPool.Enqueue(stack);
         }
 
@@ -298,7 +302,11 @@ public class PrefixLookup<T> : IPrefixLookup<T>
                 // DFS: Go until we find a value or bottom out on a leaf node
                 while (searchNode!.childrenBuffer.Length > 0)
                 {
-                    stack.Push((searchNode.childrenBuffer, 0));
+                    if (stackCount == stack.Length)
+                    {
+                        Array.Resize(ref stack, stack.Length * 2);
+                    }
+                    stack[stackCount++] = (searchNode.childrenBuffer, 0);
                     searchNode = searchNode.childrenBuffer[0];
                     if (searchNode.Value is not null)
                     {
@@ -312,22 +320,23 @@ public class PrefixLookup<T> : IPrefixLookup<T>
 
                 while (true)
                 {
-                    if (stack.Count == 0)
+                    if (stackCount == 0)
                     {
                         searchNode = null;
                         var stackTmp = stack;
                         stack = null;
-                        ReturnStack(stackTmp);
+                        ReturnStack(stackTmp, 0);
                         return false;
                     }
 
-                    var parentStack = stack.Pop();
-                    var siblings = parentStack.Siblings;
-                    var nextSiblingIndex = parentStack.Index + 1;
+                    // Advance the top frame's index in place rather than pop-then-push.
+                    ref var top = ref stack[stackCount - 1];
+                    var siblings = top.Siblings;
+                    var nextSiblingIndex = top.Index + 1;
 
                     if (nextSiblingIndex < siblings.Length)
                     {
-                        stack.Push((parentStack.Siblings, nextSiblingIndex));
+                        top.Index = nextSiblingIndex;
                         searchNode = siblings[nextSiblingIndex];
 
                         if (searchNode.Value is not null)
@@ -337,6 +346,11 @@ public class PrefixLookup<T> : IPrefixLookup<T>
                         }
                         break;
                     }
+
+                    // No more siblings: pop and clear the slot so the pooled
+                    // array doesn't keep the subtree alive.
+                    stackCount--;
+                    stack[stackCount] = default;
                 }
             }
         }
@@ -363,8 +377,9 @@ public class PrefixLookup<T> : IPrefixLookup<T>
         {
             if (stack is not null)
             {
-                ReturnStack(stack);
+                ReturnStack(stack, stackCount);
                 stack = null;
+                stackCount = 0;
             }
         }
     }
@@ -382,7 +397,8 @@ public class PrefixLookup<T> : IPrefixLookup<T>
     {
 
         private Node<T?>? searchNode;
-        private Stack<(Node<T?>[] Siblings, int Index)>? stack;
+        private (Node<T?>[] Siblings, int Index)[]? stack;
+        private int stackCount;
         private T current = default!;
         /// <summary>The current value.</summary>
         public T Current => current;
@@ -397,20 +413,23 @@ public class PrefixLookup<T> : IPrefixLookup<T>
             searchNode = collectNode;
         }
 
-        private static readonly ConcurrentQueue<Stack<(Node<T?>[] Siblings, int Index)>> stackPool = new();
+        private const int InitialStackSize = 32;
 
-        private Stack<(Node<T?>[] Siblings, int Index)> RentStack()
+        private static readonly ConcurrentQueue<(Node<T?>[] Siblings, int Index)[]> stackPool = new();
+
+        private static (Node<T?>[] Siblings, int Index)[] RentStack()
         {
             if (stackPool.TryDequeue(out var stack))
             {
                 return stack;
             }
-            return new Stack<(Node<T?>[] Siblings, int Index)>();
+            return new (Node<T?>[] Siblings, int Index)[InitialStackSize];
         }
 
-        private void ReturnStack(Stack<(Node<T?>[] Siblings, int Index)> stack)
+        private static void ReturnStack((Node<T?>[] Siblings, int Index)[] stack, int count)
         {
-            stack.Clear();
+            // Clear the live frames so the pool doesn't root traversed subtrees.
+            Array.Clear(stack, 0, count);
             stackPool.Enqueue(stack);
         }
 
@@ -436,7 +455,11 @@ public class PrefixLookup<T> : IPrefixLookup<T>
                 // DFS: Go until we find a value or bottom out on a leaf node
                 while (searchNode!.childrenBuffer.Length > 0)
                 {
-                    stack.Push((searchNode.childrenBuffer, 0));
+                    if (stackCount == stack.Length)
+                    {
+                        Array.Resize(ref stack, stack.Length * 2);
+                    }
+                    stack[stackCount++] = (searchNode.childrenBuffer, 0);
                     searchNode = searchNode.childrenBuffer[0];
                     if (searchNode.Value is not null)
                     {
@@ -450,22 +473,23 @@ public class PrefixLookup<T> : IPrefixLookup<T>
 
                 while (true)
                 {
-                    if (stack.Count == 0)
+                    if (stackCount == 0)
                     {
                         searchNode = null;
                         var stackTmp = stack;
                         stack = null;
-                        ReturnStack(stackTmp);
+                        ReturnStack(stackTmp, 0);
                         return false;
                     }
 
-                    var parentStack = stack.Pop();
-                    var siblings = parentStack.Siblings;
-                    var nextSiblingIndex = parentStack.Index + 1;
+                    // Advance the top frame's index in place rather than pop-then-push.
+                    ref var top = ref stack[stackCount - 1];
+                    var siblings = top.Siblings;
+                    var nextSiblingIndex = top.Index + 1;
 
                     if (nextSiblingIndex < siblings.Length)
                     {
-                        stack.Push((parentStack.Siblings, nextSiblingIndex));
+                        top.Index = nextSiblingIndex;
                         searchNode = siblings[nextSiblingIndex];
 
                         if (searchNode.Value is not null)
@@ -475,6 +499,11 @@ public class PrefixLookup<T> : IPrefixLookup<T>
                         }
                         break;
                     }
+
+                    // No more siblings: pop and clear the slot so the pooled
+                    // array doesn't keep the subtree alive.
+                    stackCount--;
+                    stack[stackCount] = default;
                 }
             }
         }
@@ -501,8 +530,9 @@ public class PrefixLookup<T> : IPrefixLookup<T>
         {
             if (stack is not null)
             {
-                ReturnStack(stack);
+                ReturnStack(stack, stackCount);
                 stack = null;
+                stackCount = 0;
             }
         }
     }
